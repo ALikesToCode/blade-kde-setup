@@ -28,8 +28,9 @@ a timestamped directory under:
 | `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
-| `--all` | Runs all four modes | Mixed |
+| `--all` | Runs packages, tools, user files, system tuning, and live KDE apply | Mixed |
 | `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
+| `--tools` | Installs pinned OpenWiki and OfficeCLI commands plus the Codex skill collection | Sudo for global npm; skills are user-local |
 
 Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
 non-interactive package-manager confirmation.
@@ -76,6 +77,26 @@ The package manifest installs Node.js, npm, and pnpm. User setup then installs
 the current Wrangler v4 CLI into `PNPM_HOME`. Interactive Bash maps `npm` to
 `pnpm` and `npx` to `pnpm dlx`; use `npm-system` or `npx-system` whenever a tool
 specifically requires the Arch npm executable.
+
+The `--tools` mode installs `openwiki@0.2.0` with npm, a checksum-verified
+OfficeCLI v1.0.138 binary, and pinned personal Codex skills under
+`~/.agents/skills/`. The collection includes OfficeCLI, all seven Caveman
+skills, Matt Pocock's 22 maintained engineering/productivity skills, Hallmark's
+complete design reference library, all canonical ECC skills, Karpathy's coding
+guidelines, all six Emil Kowalski design-engineering skills, seven Code Review
+Graph workflows, and all 263 Agency Agents as native Codex custom agents. The
+Code Review Graph CLI is installed through uv, registered as a global Codex MCP
+server without a fixed project working directory, and wired into additive
+global Codex lifecycle hooks. Exact
+repository commits live in `packages/codex-skills.lock`; deprecated,
+in-progress, and author-personal Matt directories are deliberately excluded.
+ECC's Claude hooks, translated duplicates, MCP mutations, and experimental
+plugin wrapper are also excluded because direct Agent Skills are its reliable
+Codex path. Re-run `./install.sh --tools` to restore or update the pinned set,
+then restart Codex so it discovers new skills.
+
+OpenWiki's only allowed npm lifecycle build is its required native
+`better-sqlite3` dependency; npm scripts for other dependencies remain blocked.
 
 User setup also installs the global development policy after backing up an
 existing version. It requires modular changes, focused verification, independent

@@ -20,6 +20,8 @@ The setup includes:
 - Global modular-development, verification, atomic-commit, identity, and
   destructive-action guardrails for assisted coding sessions
 - pnpm-first interactive Node workflow and a globally accessible Wrangler CLI
+- Pinned OpenWiki and OfficeCLI commands plus Codex-only Caveman, Matt Pocock,
+  Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine
 - Native Wayland launch profiles for Zen and Antigravity, plus deterministic
@@ -78,6 +80,7 @@ updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
 wrangler whoami           # verify Cloudflare CLI authentication
 npm-system --version      # bypass the interactive npm -> pnpm alias
+./install.sh --tools      # restore pinned CLI tools and Codex skills
 ```
 
 ## Design notes
