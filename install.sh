@@ -12,6 +12,7 @@ DO_APPLY=0
 DO_PACKAGES=0
 DO_SYSTEM=0
 DO_HARDENED=0
+DO_TOOLS=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
 SUDO_KEEPALIVE_PID=
@@ -23,12 +24,13 @@ Usage: ./install.sh [options]
 With no mode flag, installs the user configuration and applies the KDE theme.
 
 Modes:
-  --all          Packages + user files + system tuning + live KDE setup
+  --all          Packages + tools + user files + system tuning + live KDE setup
   --user         Install home-directory files and desktop assets
   --apply        Apply the installed KDE appearance to the current session
   --packages     Install the Arch and AUR package manifests
   --system       Configure Pacman, Reflector, and the SDDM login theme
   --hardened     Install the optional fail-closed workspace/browser launcher
+  --tools        Install pinned CLI tools and personal Codex skills
 
 Options:
   -n, --dry-run  Print the plan without changing anything or asking for sudo
@@ -45,13 +47,14 @@ EOF
 while (($#)); do
     case $1 in
         --all)
-            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; MODE_SELECTED=1
+            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; DO_TOOLS=1; MODE_SELECTED=1
             ;;
         --user) DO_USER=1; MODE_SELECTED=1 ;;
         --apply) DO_APPLY=1; MODE_SELECTED=1 ;;
         --packages) DO_PACKAGES=1; MODE_SELECTED=1 ;;
         --system) DO_SYSTEM=1; MODE_SELECTED=1 ;;
         --hardened) DO_HARDENED=1; MODE_SELECTED=1 ;;
+        --tools) DO_TOOLS=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -261,7 +264,7 @@ install_user_files() {
     install_file "$ROOT/dotfiles/media/yt-dlp/config" "$HOME/.config/yt-dlp/config"
     install_file "$ROOT/dotfiles/nvim/init.lua" "$HOME/.config/nvim/init.lua"
     install_file "$ROOT/dotfiles/tmux/tmux.conf" "$HOME/.tmux.conf"
-    install_file "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
+    install_template "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
@@ -481,11 +484,19 @@ configure_system() {
 printf '%s%sBlade KDE setup%s\n' "$BOLD" "$BLUE" "$RESET"
 ((DRY_RUN)) && printf '%sDry run: no files, packages, or services will be changed.%s\n' "$YELLOW" "$RESET"
 
-if ((DO_PACKAGES || DO_SYSTEM)); then
+if ((DO_PACKAGES || DO_SYSTEM || DO_TOOLS)); then
     begin_sudo_session
 fi
 
 ((DO_PACKAGES)) && install_packages
+if ((DO_TOOLS)); then
+    section 'Installing command-line tools and Codex skills'
+    if ((DRY_RUN)); then
+        "$ROOT/scripts/install-codex-tools.sh" --dry-run
+    else
+        "$ROOT/scripts/install-codex-tools.sh"
+    fi
+fi
 ((DO_USER)) && install_user_files
 ((DO_SYSTEM)) && configure_system
 

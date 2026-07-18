@@ -1,0 +1,51 @@
+# GitHub repository | exact commit | skill directory | installed skill name
+#
+# The installer fetches each repository once at the pinned commit, then copies
+# only these Agent Skills into ~/.agents/skills. Deprecated, in-progress, and
+# author-personal directories are intentionally excluded.
+iOfficeAI/OfficeCLI|67a93a397393263a87a2be855a91435c6354fb2f|SKILL.md|officecli
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/cavecrew|cavecrew
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman-commit|caveman-commit
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman-compress|caveman-compress
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman-help|caveman-help
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman-review|caveman-review
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman-stats|caveman-stats
+JuliusBrussee/caveman|0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0|skills/caveman|caveman
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/ask-matt|ask-matt
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/code-review|code-review
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/codebase-design|codebase-design
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/diagnosing-bugs|diagnosing-bugs
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/domain-modeling|domain-modeling
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/grill-with-docs|grill-with-docs
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/implement|implement
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/improve-codebase-architecture|improve-codebase-architecture
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/prototype|prototype
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/research|research
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/resolving-merge-conflicts|resolving-merge-conflicts
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/setup-matt-pocock-skills|setup-matt-pocock-skills
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/tdd|tdd
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/to-spec|to-spec
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/to-tickets|to-tickets
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/triage|triage
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/engineering/wayfinder|wayfinder
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/productivity/grill-me|grill-me
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/productivity/grilling|grilling
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/productivity/handoff|handoff
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/productivity/teach|teach
+mattpocock/skills|9603c1cc8118d08bc1b3bf34cf714f62178dea3b|skills/productivity/writing-great-skills|writing-great-skills
+Nutlope/hallmark|aeb42fb354ff4efa36ab475773a082315a3af2ce|skills/hallmark|hallmark
+affaan-m/ECC|754b8dd76ca885b764ec22f476664377aa46b6cd|skills|*
+multica-ai/andrej-karpathy-skills|2c606141936f1eeef17fa3043a72095b4765b9c2|skills/karpathy-guidelines|karpathy-guidelines
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/animation-vocabulary|animation-vocabulary
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/apple-design|apple-design
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/emil-design-eng|emil-design-eng
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/find-animation-opportunities|find-animation-opportunities
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/improve-animations|improve-animations
+emilkowalski/skills|6bf24434f7730ad169077756cf9c7cd7bd675fc6|skills/review-animations|review-animations
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/build-graph|build-graph
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/debug-issue|debug-issue
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/explore-codebase|explore-codebase
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/refactor-safely|refactor-safely
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/review-changes|review-changes
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/review-delta|review-delta
+tirth8205/code-review-graph|6a1ee1c7063cc35cfa5ff12b8198c29360f3e4ad|skills/review-pr|review-pr

@@ -1,0 +1,2 @@
+# Exact global Node command-line tools installed by --tools.
+openwiki@0.2.0

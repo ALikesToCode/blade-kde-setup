@@ -22,3 +22,4 @@ __pycache__/
 node_modules/
 target/
 blade-kde-backups/
+.code-review-graph/

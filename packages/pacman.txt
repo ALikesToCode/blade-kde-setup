@@ -37,6 +37,7 @@ sddm
 tmux
 ttf-jetbrains-mono-nerd
 util-linux
+uv
 wireplumber
 yt-dlp
 yt-dlp-ejs
