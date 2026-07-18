@@ -11,6 +11,7 @@ DO_USER=0
 DO_APPLY=0
 DO_PACKAGES=0
 DO_SYSTEM=0
+DO_HARDENED=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
 SUDO_KEEPALIVE_PID=
@@ -27,6 +28,7 @@ Modes:
   --apply        Apply the installed KDE appearance to the current session
   --packages     Install the Arch and AUR package manifests
   --system       Configure Pacman, Reflector, and the SDDM login theme
+  --hardened     Install the optional fail-closed workspace/browser launcher
 
 Options:
   -n, --dry-run  Print the plan without changing anything or asking for sudo
@@ -49,6 +51,7 @@ while (($#)); do
         --apply) DO_APPLY=1; MODE_SELECTED=1 ;;
         --packages) DO_PACKAGES=1; MODE_SELECTED=1 ;;
         --system) DO_SYSTEM=1; MODE_SELECTED=1 ;;
+        --hardened) DO_HARDENED=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -485,6 +488,12 @@ fi
 ((DO_PACKAGES)) && install_packages
 ((DO_USER)) && install_user_files
 ((DO_SYSTEM)) && configure_system
+
+if ((DO_HARDENED)); then
+    section 'Installing the optional hardened workspace launcher'
+    run bash "$ROOT/extras/hardened-workspace/install.sh" stage
+    run bash "$ROOT/extras/hardened-workspace/install.sh" integrate-shell
+fi
 
 if ((DO_APPLY)); then
     section 'Applying the KDE session appearance'

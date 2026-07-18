@@ -22,6 +22,7 @@
 | Safe Git defaults | `dotfiles/git/` | Included from the user’s existing global Git config |
 | Package updater | `bin/` | `~/.local/bin/updateall` and `update-all-packages` |
 | Optimized app launchers | `dotfiles/apps/` | Native Wayland Zen/Antigravity and Vulkan-pinned Zed |
+| Hardened workspace launcher | `extras/hardened-workspace/` | Optional fail-closed Firejail/Landlock runtime and browser wrappers |
 | Package manifests | `packages/` | Consumed by `install.sh --packages` |
 | Mirror tuning | `system/reflector.conf` | `/etc/xdg/reflector/reflector.conf` |
 
@@ -41,3 +42,6 @@ keeping the normal title bar calm and cohesive.
 - wallpaper generation masters and temporary image outputs
 - the previous process-wide Konsole stylesheet activation that caused mouse and
   tab-focus problems
+- CloakBrowser binaries, Playwright dependencies, mutable sandbox state, and
+  verification scratch repositories; only checksummed policy/configuration and
+  installers are tracked

@@ -24,6 +24,8 @@ The setup includes:
 - `updateall -y` for the package managers detected on the machine
 - Native Wayland launch profiles for Zen and Antigravity, plus deterministic
   Vulkan GPU selection for Zed on the Blade hybrid-graphics layout
+- Optional fail-closed Firejail/Landlock workspace launcher with a pinned
+  CloakBrowser and terminal-preserving interactive startup
 
 ## Install
 
@@ -43,6 +45,14 @@ The full install asks for `sudo` once. SDDM is deliberately not restarted, so
 the new login screen appears safely after the next logout or reboot. Existing
 files are copied to `~/.local/state/blade-kde-backups/` before replacement.
 
+The hardened workspace launcher is intentionally separate from `--all` because
+it verifies pre-staged external browser/runtime assets. See
+[Hardened workspace](docs/HARDENED-WORKSPACE.md), then run:
+
+```bash
+./install.sh --hardened
+```
+
 For only the unprivileged desktop and dotfiles, run:
 
 ```bash
@@ -61,6 +71,7 @@ the multi-monitor widget design is covered in [Plasma panels](docs/PANELS.md).
 ./tests/smoke.sh          # syntax, manifest, portability, and secret checks
 ./scripts/verify-app-launchers.sh  # verify Zen, Antigravity, and Zed launch paths
 ./scripts/apply-panels.sh --dry-run  # preview the multi-monitor panel layout
+~/.config/codex-safe/doctor.sh --run  # verify the optional sandbox boundary
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
 wrangler whoami           # verify Cloudflare CLI authentication

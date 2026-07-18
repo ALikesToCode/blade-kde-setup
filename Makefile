@@ -1,4 +1,4 @@
-.PHONY: test doctor dry-run panels-dry-run install-user install-all
+.PHONY: test doctor dry-run panels-dry-run install-user install-hardened install-all
 
 test:
 	./tests/smoke.sh
@@ -14,6 +14,9 @@ panels-dry-run:
 
 install-user:
 	./install.sh --user --apply
+
+install-hardened:
+	./install.sh --hardened
 
 install-all:
 	./install.sh --all

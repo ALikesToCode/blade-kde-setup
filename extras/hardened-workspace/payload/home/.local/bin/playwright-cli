@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Security wrapper around the official @playwright/cli executable. It only
+# attaches to the CloakBrowser CDP endpoint created by codex-safe.
+set -Eeuo pipefail
+umask 077
+
+die() {
+  printf 'playwright-cli: ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ "${CODEX_SAFE_ACTIVE-}" == 1 ]] || die "CloakBrowser is available only inside codex-safe; launch 'codex-safe' from the target repository"
+[[ -n "${CLOAK_CDP_ENDPOINT-}" ]] || die "CLOAK_CDP_ENDPOINT is missing; stock Chromium fallback is forbidden"
+[[ -n "${PLAYWRIGHT_CLI_OUTPUT_DIR-}" && -d "$PLAYWRIGHT_CLI_OUTPUT_DIR" ]] || die "Playwright artifact directory is unavailable"
+
+config_file="$HOME/.config/codex-safe/config"
+[[ -r "$config_file" ]] || die "codex-safe config is missing"
+# shellcheck source=/dev/null
+source "$config_file"
+[[ -x "$PLAYWRIGHT_CLI_REAL" ]] || die "official @playwright/cli executable is missing"
+[[ "$(realpath -e -- "$PLAYWRIGHT_CLI_REAL")" != "$(realpath -e -- "${BASH_SOURCE[0]}")" ]] || die "wrapper recursion detected"
+
+safe_args=()
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+  arg=${args[i]}
+  case "$arg" in
+    attach|detach) die "manual attachment is disabled; codex-safe supplies the only CDP endpoint" ;;
+    install-browser|install) die "browser installation through playwright-cli is disabled; only verified CloakBrowser is allowed" ;;
+    -s|-s=*|--session|--session=*) die "session overrides are disabled" ;;
+    --browser|--browser=*|--extension|--extension=*|--persistent|--profile|--profile=*|--config|--config=*)
+      die "browser/profile overrides are disabled to prevent stock Chromium fallback: $arg"
+      ;;
+    --filename)
+      (( i + 1 < ${#args[@]} )) || die "--filename requires a value"
+      value=${args[++i]}
+      if [[ "$value" == /* ]]; then
+        resolved_parent=$(realpath -m -- "$(dirname -- "$value")")
+        [[ "$resolved_parent" == "$PLAYWRIGHT_CLI_OUTPUT_DIR" || "$resolved_parent" == "$PLAYWRIGHT_CLI_OUTPUT_DIR/"* ]] || die "artifact filename escapes .playwright-cli"
+        safe_args+=("--filename" "$value")
+      else
+        [[ "$value" != ../* && "$value" != */../* ]] || die "artifact filename escapes .playwright-cli"
+        safe_args+=("--filename" "$value")
+      fi
+      ;;
+    --filename=*)
+      value=${arg#*=}
+      if [[ "$value" == /* ]]; then
+        resolved_parent=$(realpath -m -- "$(dirname -- "$value")")
+        [[ "$resolved_parent" == "$PLAYWRIGHT_CLI_OUTPUT_DIR" || "$resolved_parent" == "$PLAYWRIGHT_CLI_OUTPUT_DIR/"* ]] || die "artifact filename escapes .playwright-cli"
+      else
+        [[ "$value" != ../* && "$value" != */../* ]] || die "artifact filename escapes .playwright-cli"
+      fi
+      safe_args+=("$arg")
+      ;;
+    *) safe_args+=("$arg") ;;
+  esac
+done
+
+session="codex-safe-${CODEX_SAFE_SESSION_ID//[^A-Za-z0-9_-]/_}"
+marker="$XDG_RUNTIME_DIR/playwright-cli-attached"
+cd "$PLAYWRIGHT_CLI_OUTPUT_DIR"
+if [[ ! -f "$marker" ]]; then
+  "$PLAYWRIGHT_CLI_REAL" -s="$session" attach --cdp="$CLOAK_CDP_ENDPOINT" >/dev/null || die "official Playwright CLI could not attach to CloakBrowser"
+  : >"$marker"
+fi
+exec "$PLAYWRIGHT_CLI_REAL" -s="$session" "${safe_args[@]}"

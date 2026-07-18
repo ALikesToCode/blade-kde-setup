@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs the official cloakserve script from the GitHub-verified v0.4.11 source
+# tag with the isolated pipx interpreter that owns CloakBrowser's dependencies.
+set -Eeuo pipefail
+host_home=${CODEX_SAFE_HOST_HOME-}
+[[ -n "$host_home" && "$host_home" == /* ]] || { printf 'cloakserve: validated host home is missing\n' >&2; exit 1; }
+source_script="$host_home/.local/share/codex-safe/cloakbrowser-source-v0.4.11/bin/cloakserve"
+python_bin="$host_home/.local/share/pipx/venvs/cloakbrowser/bin/python"
+[[ -x "$source_script" ]] || { printf 'cloakserve: verified official source is missing\n' >&2; exit 1; }
+[[ -x "$python_bin" ]] || { printf 'cloakserve: CloakBrowser pipx environment is missing\n' >&2; exit 1; }
+[[ -n "${CLOAKSERVE_SOURCE_SHA256-}" ]] || { printf 'cloakserve: pinned source checksum is missing\n' >&2; exit 1; }
+actual_sha=$(sha256sum "$source_script" | awk '{print $1}')
+[[ "$actual_sha" == "$CLOAKSERVE_SOURCE_SHA256" ]] || { printf 'cloakserve: official source checksum mismatch\n' >&2; exit 1; }
+exec "$python_bin" "$source_script" "$@"

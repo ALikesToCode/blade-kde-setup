@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+# Hardened Codex entry point. The outer Firejail+Landlock boundary is mandatory;
+# no branch in this launcher ever invokes Codex directly.
+set -Eeuo pipefail
+umask 077
+
+die() {
+  printf 'codex-safe: ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+warn() {
+  printf 'codex-safe: WARNING: %s\n' "$*" >&2
+}
+
+require_regular_secure_file() {
+  local path=$1 owner mode
+  [[ -f "$path" && ! -L "$path" ]] || die "required regular file is missing: $path"
+  owner=$(stat -Lc '%u' -- "$path")
+  mode=$(stat -Lc '%a' -- "$path")
+  [[ "$owner" == "$(id -u)" || "$owner" == 0 ]] || die "unsafe owner on $path"
+  (( (8#$mode & 8#022) == 0 )) || die "group/world-writable policy file: $path"
+}
+
+resolve_existing_dir() {
+  local value=$1 resolved
+  resolved=$(realpath -e -- "$value" 2>/dev/null) || return 1
+  [[ -d "$resolved" ]] || return 1
+  printf '%s\n' "$resolved"
+}
+
+same_or_beneath() {
+  local child=$1 parent=$2
+  [[ "$child" == "$parent" || "$child" == "$parent/"* ]]
+}
+
+reject_external_output_fd() {
+  local fd=$1 kind target
+  [[ -e "/proc/self/fd/$fd" ]] || return 0
+  kind=$(stat -Lc '%F' -- "/proc/self/fd/$fd" 2>/dev/null) || die "cannot inspect file descriptor $fd"
+  [[ "$kind" == 'regular file' ]] || return 0
+  target=$(realpath -e -- "/proc/self/fd/$fd" 2>/dev/null) || die "cannot resolve regular output file descriptor $fd"
+  same_or_beneath "$target" "$workspace" || die "output file descriptor $fd is a persistent file outside the workspace: $target"
+}
+
+validate_config_override() {
+  local value=$1 key lowered
+  [[ "$value" == *=* ]] || die "malformed Codex configuration override"
+  key=${value%%=*}
+  key=${key//[[:space:]]/}
+  lowered=${key,,}
+  case "$lowered" in
+    sandbox_mode|approval_policy|permissions|permissions.*|sandbox_workspace_write|sandbox_workspace_write.*|features.use_legacy_landlock)
+      die "configuration override is locked by codex-safe: $key"
+      ;;
+  esac
+  if [[ "$lowered" == *writable_roots* || "$lowered" == *danger_full_access* ]]; then
+    die "configuration override could expand the writable boundary: $key"
+  fi
+}
+
+config_file="$HOME/.config/codex-safe/config"
+require_regular_secure_file "$config_file"
+# shellcheck source=/dev/null
+source "$config_file"
+export CODEX_SAFE_PROFILE CODEX_SAFE_INNER CODEX_SAFE_SELF_TEST_INNER
+export CODEX_SAFE_NODE_PRELOAD CODEX_SAFE_PYTHON_DIR CLOAKSERVE_BIN
+export CLOAKBROWSER_VERSION CLOAKBROWSER_BINARY_PATH PLAYWRIGHT_CLI_REAL
+export CLOAKSERVE_SOURCE_SHA256 CLOAKBROWSER_BINARY_SHA256
+export PLAYWRIGHT_MCP_REAL PLAYWRIGHT_MCP_SAFE CODEX_SAFE_CDP_TIMEOUT_SECONDS
+export CODEX_SAFE_EPHEMERAL_ROOT
+
+[[ "${CODEX_SAFE_ACTIVE-}" != 1 ]] || die "nested codex-safe launches are refused"
+[[ -x /usr/bin/firejail ]] || die "Firejail is not installed"
+[[ -r /etc/firejail/firejail.users ]] || die "/etc/firejail/firejail.users is required; refusing Firejail's fail-open user handling"
+[[ $(stat -Lc '%u' /etc/firejail/firejail.users) == 0 ]] || die "firejail.users is not root-owned"
+users_mode=$(stat -Lc '%a' /etc/firejail/firejail.users)
+(( (8#$users_mode & 8#022) == 0 )) || die "firejail.users is group/world-writable"
+if [[ "${CODEX_SAFE_SIMULATE_FIREJAIL_DENY-0}" == 1 ]]; then
+  die "simulated Firejail user rejection (no unsandboxed fallback attempted)"
+fi
+grep -Fxq -- "$(id -un)" /etc/firejail/firejail.users || die "current user is not explicitly allowed by firejail.users"
+
+require_regular_secure_file "$CODEX_SAFE_PROFILE"
+require_regular_secure_file "$CODEX_SAFE_INNER"
+require_regular_secure_file "$CODEX_SAFE_SELF_TEST_INNER"
+require_regular_secure_file "$CODEX_SAFE_NODE_PRELOAD"
+[[ -d "$CODEX_SAFE_PYTHON_DIR" ]] || die "Python Playwright policy directory is missing"
+
+workspace=$(realpath -e -- /proc/self/cwd 2>/dev/null) || die "cannot resolve the launch directory"
+[[ -n "$workspace" && -d "$workspace" && "$workspace" == /* ]] || die "launch directory is empty, unresolved, or not absolute"
+if LC_ALL=C grep -q '[[:cntrl:]]' <<<"$workspace"; then
+  die "launch paths containing control characters are unsupported"
+fi
+home_real=$(realpath -e -- "$HOME") || die "cannot resolve HOME"
+export CODEX_SAFE_HOST_HOME=$home_real
+ephemeral_real=$(realpath -e -- "$CODEX_SAFE_EPHEMERAL_ROOT" 2>/dev/null) || die "ephemeral tmpfs mountpoint is missing"
+[[ "$ephemeral_real" == "$home_real/.cache/codex-safe-runtime" && -d "$ephemeral_real" && ! -L "$CODEX_SAFE_EPHEMERAL_ROOT" ]] || die "ephemeral tmpfs mountpoint is unsafe"
+[[ $(stat -Lc '%u' -- "$ephemeral_real") == "$(id -u)" ]] || die "ephemeral tmpfs mountpoint has the wrong owner"
+ephemeral_mode=$(stat -Lc '%a' -- "$ephemeral_real")
+(( (8#$ephemeral_mode & 8#077) == 0 )) || die "ephemeral tmpfs mountpoint is accessible by group or world"
+[[ -z $(find "$ephemeral_real" -mindepth 1 -print -quit 2>/dev/null) ]] || die "host ephemeral tmpfs mountpoint is not empty"
+case "$workspace" in
+  /|"$home_real") die "refusing unsafe launch root: $workspace" ;;
+  /tmp|/tmp/*|/var/tmp|/var/tmp/*|/run|/run/*) die "refusing volatile/runtime launch path: $workspace" ;;
+esac
+
+mount_root=$(findmnt --json --target "$workspace" --output TARGET --first-only 2>/dev/null | jq -er '.filesystems[0].target')
+[[ -n "$mount_root" ]] || die "cannot resolve the workspace mount"
+mount_root=$(realpath -e -- "$mount_root" 2>/dev/null) || die "cannot resolve the workspace mount root"
+[[ "$workspace" != "$mount_root" ]] || die "refusing to launch from mount root: $workspace"
+
+while IFS= read -r nested_mount; do
+  [[ -n "$nested_mount" ]] || continue
+  nested_mount=$(realpath -e -- "$nested_mount" 2>/dev/null) || die "cannot resolve nested mount: $nested_mount"
+  if [[ "$nested_mount" != "$mount_root" && "$nested_mount" != "$workspace" ]] && same_or_beneath "$nested_mount" "$workspace"; then
+    die "nested mount inside workspace is not allowed: $nested_mount"
+  fi
+done < <(findmnt --json --real --output TARGET | jq -r '.. | objects | .target? // empty')
+
+hardlink_probe=''
+if ! hardlink_probe=$(find "$workspace" -xdev -type f -links +1 -print -quit 2>/dev/null); then
+  die "hard-link scan failed"
+fi
+if [[ -n "$hardlink_probe" ]]; then
+  if [[ "${CODEX_SAFE_ALLOW_HARDLINKS-0}" != 1 ]]; then
+    printf 'codex-safe: suspicious multiply linked file: %q\n' "$hardlink_probe" >&2
+    die "refusing hard-linked workspace; set CODEX_SAFE_ALLOW_HARDLINKS=1 only after reviewing inode aliases"
+  fi
+  warn "hard-link override active; external inode aliases remain a persistent-write risk"
+fi
+
+if git_dir=$(env -u GIT_DIR -u GIT_WORK_TREE git -C "$workspace" rev-parse --path-format=absolute --git-dir 2>/dev/null); then
+  git_dir=$(realpath -m -- "$git_dir")
+  if ! same_or_beneath "$git_dir" "$workspace"; then
+    warn "Git worktree gitdir is outside the writable boundary: $git_dir"
+    warn "the gitdir stays read-only; commits may be unavailable. Prefer a standalone clone or disposable full repository."
+  fi
+fi
+
+# Firejail deliberately preserves descriptors 0, 1, and 2. Refuse pre-opened
+# regular output files outside the boundary; otherwise shell redirection could
+# bypass path-based mount and Landlock checks through an already-open handle.
+reject_external_output_fd 1
+reject_external_output_fd 2
+
+original_link=$(realpath -e -- "$CODEX_ORIGINAL_BIN_LINK" 2>/dev/null) || die "recorded original Codex binary is missing"
+[[ -x "$original_link" && -f "$original_link" ]] || die "recorded original Codex binary is not executable"
+self_real=$(realpath -e -- "${BASH_SOURCE[0]}") || die "cannot resolve launcher"
+[[ "$original_link" != "$self_real" ]] || die "original Codex path resolves recursively to codex-safe"
+
+forward=()
+self_test_mode=''
+args=("$@")
+end_options=0
+for ((i=0; i<${#args[@]}; i++)); do
+  arg=${args[i]}
+  if (( end_options )); then
+    forward+=("$arg")
+    continue
+  fi
+  if [[ "$arg" == -- ]]; then
+    end_options=1
+    forward+=("$arg")
+    continue
+  fi
+  case "$arg" in
+    --codex-safe-self-test)
+      (( i + 1 < ${#args[@]} )) || die "--codex-safe-self-test requires a mode"
+      self_test_mode=${args[++i]}
+      ;;
+    --codex-safe-self-test=*) self_test_mode=${arg#*=} ;;
+    --yolo|--dangerously-bypass-approvals-and-sandbox|--dangerously-bypass-hook-trust|--full-auto)
+      die "unsafe Codex flag rejected: $arg"
+      ;;
+    --add-dir|--add-dir=* ) die "additional writable directories are forbidden" ;;
+    -C|--cd)
+      (( i + 1 < ${#args[@]} )) || die "$arg requires a directory"
+      requested=$(resolve_existing_dir "${args[++i]}") || die "cannot resolve requested Codex directory"
+      [[ "$requested" == "$workspace" ]] || die "$arg may only name the original launch directory"
+      ;;
+    --cd=*)
+      requested=$(resolve_existing_dir "${arg#*=}") || die "cannot resolve requested Codex directory"
+      [[ "$requested" == "$workspace" ]] || die "--cd may only name the original launch directory"
+      ;;
+    -C?*)
+      requested=$(resolve_existing_dir "${arg#-C}") || die "cannot resolve requested Codex directory"
+      [[ "$requested" == "$workspace" ]] || die "-C may only name the original launch directory"
+      ;;
+    -s|--sandbox)
+      (( i + 1 < ${#args[@]} )) || die "$arg requires a sandbox mode"
+      [[ "${args[++i]}" == workspace-write ]] || die "sandbox mode is locked to workspace-write"
+      ;;
+    --sandbox=*) [[ "${arg#*=}" == workspace-write ]] || die "sandbox mode is locked to workspace-write" ;;
+    -s?*) [[ "${arg#-s}" == workspace-write ]] || die "sandbox mode is locked to workspace-write" ;;
+    -a|--ask-for-approval)
+      (( i + 1 < ${#args[@]} )) || die "$arg requires an approval policy"
+      [[ "${args[++i]}" == on-request ]] || die "approval policy is locked to on-request"
+      ;;
+    --ask-for-approval=*) [[ "${arg#*=}" == on-request ]] || die "approval policy is locked to on-request" ;;
+    -a?*) [[ "${arg#-a}" == on-request ]] || die "approval policy is locked to on-request" ;;
+    -p|-p?*|--profile|--profile=*) die "user-selected Codex config profiles are not allowed by codex-safe" ;;
+    -c|--config)
+      (( i + 1 < ${#args[@]} )) || die "$arg requires key=value"
+      value=${args[++i]}
+      validate_config_override "$value"
+      forward+=("-c" "$value")
+      ;;
+    --config=*)
+      value=${arg#*=}
+      validate_config_override "$value"
+      forward+=("-c" "$value")
+      ;;
+    -c?*)
+      value=${arg#-c}
+      validate_config_override "$value"
+      forward+=("-c" "$value")
+      ;;
+    --disable)
+      (( i + 1 < ${#args[@]} )) || die "--disable requires a feature"
+      value=${args[++i]}
+      [[ "$value" != use_legacy_landlock ]] || die "legacy Landlock is mandatory"
+      forward+=("--disable" "$value")
+      ;;
+    --disable=*)
+      value=${arg#*=}
+      [[ "$value" != use_legacy_landlock ]] || die "legacy Landlock is mandatory"
+      forward+=("$arg")
+      ;;
+    --enable)
+      (( i + 1 < ${#args[@]} )) || die "--enable requires a feature"
+      value=${args[++i]}
+      forward+=("--enable" "$value")
+      ;;
+    *) forward+=("$arg") ;;
+  esac
+done
+
+if [[ -n "$self_test_mode" ]]; then
+  case "$self_test_mode" in quick|filesystem|browser|codex-inner) ;; *) die "unknown self-test mode: $self_test_mode" ;; esac
+  export CODEX_SAFE_SELF_TEST_MODE=$self_test_mode
+fi
+
+locale_value=${CODEX_SAFE_LOCALE:-$CODEX_SAFE_DEFAULT_LOCALE}
+timezone_value=${CODEX_SAFE_TIMEZONE:-$CODEX_SAFE_DEFAULT_TIMEZONE}
+headed_value=${CODEX_SAFE_HEADED:-false}
+proxy_value=${CODEX_SAFE_PROXY-}
+[[ "$locale_value" =~ ^[A-Za-z0-9._-]{2,35}$ ]] || die "invalid CODEX_SAFE_LOCALE"
+[[ "$timezone_value" =~ ^[A-Za-z0-9._+-]+(/[A-Za-z0-9._+-]+)*$ ]] || die "invalid CODEX_SAFE_TIMEZONE"
+case "${headed_value,,}" in true|false|1|0|yes|no) ;; *) die "CODEX_SAFE_HEADED must be true or false" ;; esac
+[[ "$proxy_value" != *$'\n'* && "$proxy_value" != *$'\r'* ]] || die "proxy value contains control characters"
+
+export CODEX_SAFE_ACTIVE=1
+export CODEX_SAFE_WORKSPACE=$workspace
+export CODEX_SAFE_ORIGINAL_BIN=$original_link
+export CODEX_SAFE_LOCALE=$locale_value
+export CODEX_SAFE_TIMEZONE=$timezone_value
+export CODEX_SAFE_HEADED=$headed_value
+export CODEX_SAFE_PROXY=$proxy_value
+CODEX_SAFE_SESSION_ID="$(printf '%s-%s-%s' "$$" "$(date +%s)" "$RANDOM")"
+export CODEX_SAFE_SESSION_ID
+export TMPDIR=/tmp
+export DBUS_SESSION_BUS_ADDRESS=disabled:
+export DBUS_SYSTEM_BUS_ADDRESS=disabled:
+
+profile_to_use=$CODEX_SAFE_PROFILE
+if [[ "${CODEX_SAFE_SIMULATE_INVALID_PROFILE-0}" == 1 ]]; then
+  profile_to_use="$HOME/.config/codex-safe/intentionally-invalid.profile"
+fi
+
+# Firejail's Landlock rules are inherited across nested namespaces. Chromium may
+# create its own restricted namespaces, but neither it nor Codex can remount a
+# writable host view outside the workspace. The verification suite tests this.
+exec /usr/bin/firejail \
+  --profile="$profile_to_use" \
+  --name="codex-safe-$CODEX_SAFE_SESSION_ID" \
+  --read-write="$workspace" \
+  --landlock.fs.read=/ \
+  --landlock.fs.execute=/ \
+  --landlock.fs.write="$workspace" \
+  --landlock.fs.write=/tmp \
+  --landlock.fs.write=/dev \
+  --landlock.fs.write="$ephemeral_real" \
+  --landlock.fs.makeipc="$workspace" \
+  --landlock.fs.makeipc=/tmp \
+  --landlock.fs.makeipc="$ephemeral_real" \
+  --landlock.enforce \
+  "$CODEX_SAFE_INNER" "${forward[@]}"

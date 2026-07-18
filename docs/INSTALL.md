@@ -29,6 +29,7 @@ a timestamped directory under:
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
 | `--all` | Runs all four modes | Mixed |
+| `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
 
 Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
 non-interactive package-manager confirmation.
@@ -76,6 +77,11 @@ existing version. It requires modular changes, focused verification, independent
 commits, preservation of the configured Git/GitHub identity, and explicit
 approval before destructive work. The Bash profile maps both `vi` and `vim` to
 the included Neovim configuration when `nvim` is available.
+
+The hardened mode is deliberately excluded from `--all`. It fails closed when
+its pinned browser, source launcher, Playwright tools, ShellCheck binary, or
+Firejail allow-list is missing. Follow [Hardened workspace](HARDENED-WORKSPACE.md)
+before selecting it.
 
 ## Restore
 
