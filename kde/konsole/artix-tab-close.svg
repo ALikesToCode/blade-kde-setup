@@ -1,4 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
-  <path d="M2 2L8 8M8 2L2 8" fill="none" stroke="#c2ceda" stroke-width="1.35" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path fill="none" stroke="#c2ceda" stroke-linecap="round" stroke-width="1.35" d="M2 2L8 8M8 2L2 8"/></svg>
