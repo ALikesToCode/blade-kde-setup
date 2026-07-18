@@ -75,3 +75,5 @@ Search APIs may be used only to discover sources and URLs. Do not claim that bui
 
 Do not use CloakBrowser stealth functionality to bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.
 <!-- codex-safe browser policy: end -->
+
+@__HOME__/.codex/RTK.md
