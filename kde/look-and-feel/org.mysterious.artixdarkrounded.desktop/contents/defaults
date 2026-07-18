@@ -23,7 +23,7 @@ library=org.kde.klassy
 theme=Klassy
 
 [plasmarc][Theme]
-name=artix-dark-rounded
+name=breeze-dark
 
 [KSplash]
 Theme=org.kde.Breeze

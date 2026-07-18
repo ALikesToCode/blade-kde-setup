@@ -47,6 +47,27 @@ for asset in "${assets[@]}"; do
     if [[ -e $asset ]]; then ok "${asset/#$HOME/~}"; else warn "missing: ${asset/#$HOME/~}"; fi
 done
 
+printf '\nSession health\n'
+if command -v systemctl >/dev/null 2>&1 && command -v pacman >/dev/null 2>&1; then
+    kwin_version=$(pacman -Q kwin 2>/dev/null | awk '{print $2}')
+    kwin_package_dir="/var/lib/pacman/local/kwin-${kwin_version:-missing}"
+    kwin_started=$(systemctl --user show plasma-kwin_wayland.service \
+        --property=ExecMainStartTimestamp --value 2>/dev/null)
+    if [[ -n $kwin_started && -d $kwin_package_dir ]] \
+       && kwin_started_epoch=$(date -d "$kwin_started" +%s 2>/dev/null) \
+       && kwin_installed_epoch=$(stat -c %Z "$kwin_package_dir" 2>/dev/null); then
+        if ((kwin_installed_epoch > kwin_started_epoch)); then
+            warn 'KWin was upgraded after this Wayland session started; log out or reboot before restarting plasmashell'
+        else
+            ok 'running KWin matches the installed session generation'
+        fi
+    else
+        warn 'could not compare the running KWin session with the installed package'
+    fi
+else
+    warn 'systemd/pacman session freshness check is unavailable'
+fi
+
 printf '\nSystem settings\n'
 if [[ -r /etc/pacman.conf ]] && grep -Eq '^[[:space:]]*ParallelDownloads[[:space:]]*=[[:space:]]*15' /etc/pacman.conf; then
     ok 'Pacman ParallelDownloads = 15'

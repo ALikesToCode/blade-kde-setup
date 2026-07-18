@@ -3,7 +3,7 @@
 | Area | Repository source | Installed destination |
 |---|---|---|
 | Plasma global theme | `kde/look-and-feel/` | `~/.local/share/plasma/look-and-feel/` |
-| Plasma surface theme | `kde/desktoptheme/artix-dark-rounded/` | Near-black panel/popups with blue/green semantic accents |
+| Plasma surface palette | `kde/desktoptheme/artix-dark-rounded/` | Optional palette asset; stable Breeze Dark supplies the selected popup/widget SVG set |
 | KDE colors | `kde/color-schemes/` | `~/.local/share/color-schemes/` |
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
 | Launcher artwork | `assets/branding/launcher/` | Blade branding data and freedesktop hicolor icon sizes |

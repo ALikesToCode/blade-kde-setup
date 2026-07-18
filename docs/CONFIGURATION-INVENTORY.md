@@ -6,7 +6,7 @@ reviewed before it changes a system.
 
 | Requested area | Repository coverage | Apply path |
 |---|---|---|
-| Dark Artix Rounded desktop | Global look-and-feel, KDE color scheme, custom Plasma surface theme, and Breeze-compatible widget styling below `kde/` | `--user --apply` |
+| Dark Artix Rounded desktop | Global look-and-feel, Artix KDE color scheme, stable Breeze Dark Plasma surfaces, and rounded widget styling below `kde/` | `--user --apply` |
 | Blue/green accents | Near-black palette with blue selection/link/focus colors and green healthy-state telemetry | `--apply` |
 | Candy icons | Complete icon theme below `assets/icons/candy-icons/` | `--user` |
 | Personal **A** launcher | 1024 px master, six hicolor sizes, prompt, and checksums below `assets/branding/launcher/` | `--user --apply` |

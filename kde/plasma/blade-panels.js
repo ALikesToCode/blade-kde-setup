@@ -10,7 +10,6 @@ var bladeStatusItems = [
 ];
 
 var bladeExtraTrayItems = bladeStatusItems.concat([
-    "org.kde.plasma.brightness",
     "org.kde.plasma.mediacontroller",
     "org.kde.plasma.clipboard",
     "org.kde.kscreen",

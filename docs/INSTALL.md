@@ -48,6 +48,11 @@ The system mode makes four bounded changes:
 
 The installer does not restart SDDM or terminate the current Plasma session.
 
+After a Plasma or KWin package upgrade, log out and back in (or reboot) before
+restarting only `plasmashell`. A newly loaded shell cannot safely use an older
+in-memory Wayland compositor when their protocol generation changed. The doctor
+detects this session/package mismatch on Arch systems.
+
 ## Panel safety
 
 Normal installation uses the non-destructive panel mode: one panel per display
