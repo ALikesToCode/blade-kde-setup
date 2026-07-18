@@ -16,6 +16,8 @@ The setup includes:
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, aria2, Yay, and makepkg defaults
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine
+- Native Wayland launch profiles for Zen and Antigravity, plus deterministic
+  Vulkan GPU selection for Zed on the Blade hybrid-graphics layout
 
 ## Install
 
@@ -42,13 +44,15 @@ For only the unprivileged desktop and dotfiles, run:
 ```
 
 See [Installation](docs/INSTALL.md) for every mode and safety detail, and
-[Components](docs/COMPONENTS.md) for the complete file map.
+[Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
+decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md).
 
 ## Useful commands
 
 ```bash
 ./scripts/doctor.sh       # read-only prerequisite and installation report
 ./tests/smoke.sh          # syntax, manifest, portability, and secret checks
+./scripts/verify-app-launchers.sh  # verify Zen, Antigravity, and Zed launch paths
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
 ```

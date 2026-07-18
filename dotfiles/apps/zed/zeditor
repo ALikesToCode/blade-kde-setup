@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Zed uses Vulkan. On the Blade hybrid system, the Intel GPU owns the Plasma
+# display path; selecting it avoids PRIME copies and leaves the RTX GPU free for
+# CUDA, local models, and other compute workloads. Callers can override this.
+set -Eeuo pipefail
+
+export ZED_DEVICE_ID="${ZED_DEVICE_ID:-0x7d67}"
+
+exec /usr/bin/zeditor "$@"

@@ -16,6 +16,7 @@
 | Download tuning | `dotfiles/downloads/` | `~/.aria2/aria2.conf`, `~/.makepkg.conf` |
 | Safe Git defaults | `dotfiles/git/` | Included from the user’s existing global Git config |
 | Package updater | `bin/` | `~/.local/bin/updateall` and `update-all-packages` |
+| Optimized app launchers | `dotfiles/apps/` | Native Wayland Zen/Antigravity and Vulkan-pinned Zed |
 | Package manifests | `packages/` | Consumed by `install.sh --packages` |
 | Mirror tuning | `system/reflector.conf` | `/etc/xdg/reflector/reflector.conf` |
 

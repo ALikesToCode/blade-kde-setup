@@ -1,2 +1,4 @@
 # Built from the AUR through yay when --packages is requested.
 klassy
+antigravity
+zen-browser-bin

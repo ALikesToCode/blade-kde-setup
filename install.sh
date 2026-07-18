@@ -192,6 +192,14 @@ install_user_files() {
     install_file "$ROOT/dotfiles/tmux/tmux.conf" "$HOME/.tmux.conf"
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
+    install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
+    install_file "$ROOT/dotfiles/apps/zed/zeditor" "$HOME/.local/bin/zeditor" 0755
+    install_file "$ROOT/dotfiles/apps/antigravity/antigravity-flags.conf" \
+        "$HOME/.config/antigravity-flags.conf"
+    install_template "$ROOT/dotfiles/apps/zen/zen.desktop" \
+        "$HOME/.local/share/applications/zen.desktop"
+    install_template "$ROOT/dotfiles/apps/zed/dev.zed.Zed.desktop" \
+        "$HOME/.local/share/applications/dev.zed.Zed.desktop"
 
     install_tree "$ROOT/kde/look-and-feel/org.mysterious.artixdarkrounded.desktop" \
         "$HOME/.local/share/plasma/look-and-feel/org.mysterious.artixdarkrounded.desktop"
@@ -229,6 +237,10 @@ install_user_files() {
         fi
     else
         warn 'git is not installed; the safe Git defaults were copied but not included.'
+    fi
+
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        run update-desktop-database "$HOME/.local/share/applications"
     fi
 
     if ((DRY_RUN)); then
@@ -295,7 +307,7 @@ install_packages() {
             yay_command+=("${aur_packages[@]}")
             run "${yay_command[@]}"
         else
-            warn 'yay is not installed. Install the AUR manifest manually: klassy'
+            warn 'yay is not installed. Install the packages in packages/aur.txt manually.'
         fi
     fi
 }

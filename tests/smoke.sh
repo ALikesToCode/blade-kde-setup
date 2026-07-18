@@ -6,6 +6,8 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" "$ROOT/scripts/doctor.sh"
+bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
+    "$ROOT/scripts/verify-app-launchers.sh"
 
 python3 -m json.tool "$ROOT/dotfiles/yay/config.json" >/dev/null
 python3 -m json.tool \
@@ -24,6 +26,11 @@ required=(
     assets/wallpapers/desktop/desktop-ultrawide-3440x1440.png
     assets/wallpapers/login/login-16x10-3840x2400.png
     assets/wallpapers/login/login-ultrawide-3440x1440.png
+    dotfiles/apps/zen/zen-browser
+    dotfiles/apps/zen/zen.desktop
+    dotfiles/apps/antigravity/antigravity-flags.conf
+    dotfiles/apps/zed/zeditor
+    dotfiles/apps/zed/dev.zed.Zed.desktop
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
