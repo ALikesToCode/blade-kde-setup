@@ -9,6 +9,9 @@ The setup includes:
 
 - Artix Dark Rounded Plasma global theme and color scheme
 - Candy icon theme
+- Custom blue/green Candy-style **A** application launcher
+- Dual-display native Plasma panels with media, calendar, Wi-Fi, Bluetooth,
+  audio, battery, notifications, and CPU/RAM/GPU donut widgets
 - Klassy rounded decoration with compact pastel window controls
 - Native, reliable Konsole tabs and a matching dark profile
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
@@ -46,7 +49,8 @@ For only the unprivileged desktop and dotfiles, run:
 
 See [Installation](docs/INSTALL.md) for every mode and safety detail, and
 [Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
-decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md).
+decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md), and
+the multi-monitor widget design is covered in [Plasma panels](docs/PANELS.md).
 
 ## Useful commands
 
@@ -54,6 +58,7 @@ decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md).
 ./scripts/doctor.sh       # read-only prerequisite and installation report
 ./tests/smoke.sh          # syntax, manifest, portability, and secret checks
 ./scripts/verify-app-launchers.sh  # verify Zen, Antigravity, and Zed launch paths
+./scripts/apply-panels.sh --dry-run  # preview the multi-monitor panel layout
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
 wrangler whoami           # verify Cloudflare CLI authentication

@@ -3,8 +3,11 @@
 | Area | Repository source | Installed destination |
 |---|---|---|
 | Plasma global theme | `kde/look-and-feel/` | `~/.local/share/plasma/look-and-feel/` |
+| Plasma surface theme | `kde/desktoptheme/artix-dark-rounded/` | Near-black panel/popups with blue/green semantic accents |
 | KDE colors | `kde/color-schemes/` | `~/.local/share/color-schemes/` |
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
+| Launcher artwork | `assets/branding/launcher/` | Blade branding data and freedesktop hicolor icon sizes |
+| Plasma panels/widgets | `kde/plasma/`, `scripts/apply-panels.sh` | One native application/status panel per display |
 | Klassy preset | `kde/klassy/` | `~/.local/share/klassy/` and `~/.config/klassy/` |
 | Konsole | `kde/konsole/` | `~/.local/share/konsole/` and `~/.config/konsolerc` keys |
 | Desktop wallpapers | `assets/wallpapers/desktop/` | `~/.local/share/wallpapers/BladeKDE/desktop/` |

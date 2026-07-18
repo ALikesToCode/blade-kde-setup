@@ -36,10 +36,12 @@ fi
 printf '\nUser assets\n'
 declare -a assets=(
     "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
+    "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded/metadata.json"
     "$HOME/.local/share/icons/candy-icons/index.theme"
     "$HOME/.local/share/konsole/Artix Dark Rounded.profile"
     "$HOME/.local/share/klassy/Artix_Dark_Rounded.klpw"
     "$HOME/.local/share/wallpapers/BladeKDE/desktop/desktop-16x10-3840x2400.png"
+    "$HOME/.local/share/blade-kde/branding/launcher/a-candy-icon.png"
 )
 for asset in "${assets[@]}"; do
     if [[ -e $asset ]]; then ok "${asset/#$HOME/~}"; else warn "missing: ${asset/#$HOME/~}"; fi

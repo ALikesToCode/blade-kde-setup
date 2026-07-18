@@ -1,0 +1,15 @@
+Use case: logo-brand
+Asset type: KDE Plasma application-launcher icon, rendered at 1024 × 1024 for clean downscaling to a 32–40 px desktop panel.
+Reference image: use the supplied image only as a reference for its polished Candy-icon material and yellow, red, green, and blue palette. Create an original design. Do not reproduce the camera badge or any other element from the reference.
+
+Primary request: Design one instantly recognizable uppercase letter A monogram for a personal Artix KDE desktop. The A should feel custom and premium, with a bold rounded geometric silhouette, a clean triangular counter, and layered ribbon-like strokes that remain legible at very small sizes.
+
+Style and material: modern Candy icon, smooth glass-enamel finish, restrained glossy highlights, crisp vector-like edges, gently rounded bevels, subtle depth within the mark only. Refined and coherent, not toy-like, not photorealistic, not a 3D product mockup.
+
+Color palette: blue must be the dominant color and green the secondary color. Use small, balanced yellow and coral-red accents to create a continuous Google-like four-color rhythm. Smooth color transitions, tasteful saturation, no neon glare. Absolutely no purple, violet, pink, or magenta anywhere inside the mark.
+
+Composition: one A only, centered in a square canvas, upright and symmetrical enough to read immediately, generous even padding, strong silhouette, no enclosing circle, no text, and no other symbols.
+
+Backdrop: perfectly flat, perfectly uniform solid #FF00FF chroma-key background extending to every edge. The background must have no gradient, texture, vignette, glow, reflection, shadow, or ambient color spill. The subject itself must not contain #FF00FF or similar magenta.
+
+Constraints: no KDE logo, no Arch logo, no camera badge, no app badge, no letters other than the single A, no words, no watermark, no border around the canvas, no detached fragments, and no drop shadow outside the mark.

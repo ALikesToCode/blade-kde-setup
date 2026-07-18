@@ -24,8 +24,8 @@ a timestamped directory under:
 
 | Mode | Effect | Privilege |
 |---|---|---|
-| `--user` | Dotfiles, commands, icons, wallpapers, Konsole, Klassy preset, and local theme assets | User |
-| `--apply` | Activates the color, icon, cursor, Plasma, Klassy, Konsole, and wallpaper settings | User |
+| `--user` | Dotfiles, commands, launcher artwork, icons, wallpapers, Konsole, Klassy preset, and local theme assets | User |
+| `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
 | `--all` | Runs all four modes | Mixed |
@@ -46,6 +46,14 @@ The system mode makes four bounded changes:
 4. Selects that theme through `/etc/sddm.conf.d/zz-artix-qylock.conf`.
 
 The installer does not restart SDDM or terminate the current Plasma session.
+
+## Panel safety
+
+Normal installation uses the non-destructive panel mode: one panel per display
+is configured and missing widgets are added, while unrelated panels and
+existing pinned launchers remain intact. Plasma's applet configuration is
+backed up before the live change. Exact panel replacement requires the separate
+explicit command documented in [Plasma panels](PANELS.md).
 
 ## Package notes
 

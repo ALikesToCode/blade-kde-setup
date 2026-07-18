@@ -280,10 +280,22 @@ install_user_files() {
 
     install_tree "$ROOT/kde/look-and-feel/org.mysterious.artixdarkrounded.desktop" \
         "$HOME/.local/share/plasma/look-and-feel/org.mysterious.artixdarkrounded.desktop"
+    install_tree "$ROOT/kde/desktoptheme/artix-dark-rounded" \
+        "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded"
     install_file "$ROOT/kde/color-schemes/ArtixDarkRounded.colors" \
         "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
     install_tree "$ROOT/assets/icons/candy-icons" "$HOME/.local/share/icons/candy-icons"
     install_tree "$ROOT/assets/wallpapers" "$HOME/.local/share/wallpapers/BladeKDE"
+    install_file "$ROOT/assets/branding/launcher/a-candy-icon.png" \
+        "$HOME/.local/share/blade-kde/branding/launcher/a-candy-icon.png"
+    install_file "$ROOT/assets/branding/launcher/prompt.txt" \
+        "$HOME/.local/share/blade-kde/branding/launcher/prompt.txt"
+    local launcher_size
+    for launcher_size in 32 48 64 128 256 512; do
+        install_file \
+            "$ROOT/assets/branding/launcher/hicolor/${launcher_size}x${launcher_size}/apps/mysterious-a.png" \
+            "$HOME/.local/share/icons/hicolor/${launcher_size}x${launcher_size}/apps/mysterious-a.png"
+    done
     install_file "$ROOT/kde/konsole/Artix Dark Rounded.profile" \
         "$HOME/.local/share/konsole/Artix Dark Rounded.profile"
     install_file "$ROOT/kde/konsole/ArtixDarkRounded.colorscheme" \
@@ -477,8 +489,12 @@ if ((DO_APPLY)); then
     section 'Applying the KDE session appearance'
     if ((DRY_RUN)); then
         run "$ROOT/scripts/apply-kde.sh" --dry-run
+        run "$ROOT/scripts/apply-panels.sh" --dry-run
     else
         "$ROOT/scripts/apply-kde.sh"
+        if ! "$ROOT/scripts/apply-panels.sh"; then
+            warn 'The panel layout was installed but could not be applied to this Plasma session.'
+        fi
     fi
 fi
 

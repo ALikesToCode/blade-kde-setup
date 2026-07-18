@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "ALikesToCode"
+            }
+        ],
+        "Description": "Near-black Plasma surfaces with blue and green accents",
+        "EnabledByDefault": true,
+        "Id": "artix-dark-rounded",
+        "License": "GPL-3.0-or-later",
+        "Name": "Artix Dark Rounded",
+        "Version": "1.0.0"
+    },
+    "X-Plasma-API": "5.0"
+}
