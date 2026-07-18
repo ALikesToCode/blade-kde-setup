@@ -43,6 +43,7 @@ PY
 required=(
     LICENSE
     README.md
+    docs/CONFIGURATION-INVENTORY.md
     packages/pacman.txt
     kde/color-schemes/ArtixDarkRounded.colors
     kde/look-and-feel/org.mysterious.artixdarkrounded.desktop/metadata.json

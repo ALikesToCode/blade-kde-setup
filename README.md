@@ -63,6 +63,8 @@ See [Installation](docs/INSTALL.md) for every mode and safety detail, and
 [Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
 decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md), and
 the multi-monitor widget design is covered in [Plasma panels](docs/PANELS.md).
+The request-by-request audit is in
+[Configuration inventory](docs/CONFIGURATION-INVENTORY.md).
 
 ## Useful commands
 
