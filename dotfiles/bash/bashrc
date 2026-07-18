@@ -8,6 +8,12 @@ case ":$PATH:" in
     *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
 
+export PNPM_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
+case ":$PATH:" in
+    *":$PNPM_HOME/bin:"*) ;;
+    *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+esac
+
 # Stop here when Bash is not interactive.
 case $- in
     *i*) ;;
@@ -85,6 +91,14 @@ fi
 alias ..='cd ..'
 alias ...='cd ../..'
 alias cls='clear'
+
+# Prefer pnpm interactively while retaining explicit access to Arch's npm.
+if command -v pnpm >/dev/null 2>&1; then
+    alias npm='pnpm'
+    alias npx='pnpm dlx'
+    alias npm-system='/usr/bin/npm'
+    alias npx-system='/usr/bin/npx'
+fi
 
 # Load per-project environments when direnv is installed and authorized.
 if command -v direnv >/dev/null 2>&1; then

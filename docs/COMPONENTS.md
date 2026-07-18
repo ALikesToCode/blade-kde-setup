@@ -11,6 +11,7 @@
 | SDDM artwork | `assets/wallpapers/login/` | `/usr/share/sddm/themes/artix-material-you/` |
 | SDDM interface | `kde/sddm/artix-material-you/` | Local Qylock assets and system SDDM theme |
 | Shell | `dotfiles/bash/` | `~/.bashrc`, `~/.bash_profile`, `~/.profile`, `~/.inputrc` |
+| Node/Cloudflare CLI | `dotfiles/bash/`, `packages/pacman.txt` | pnpm-first aliases and `~/.local/share/pnpm/bin/wrangler` |
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |
 | Editors/tools | `dotfiles/nvim/`, `dotfiles/tmux/` | `~/.config/nvim/init.lua`, `~/.tmux.conf` |
 | Download tuning | `dotfiles/downloads/` | `~/.aria2/aria2.conf`, `~/.makepkg.conf` |
@@ -31,7 +32,8 @@ keeping the normal title bar calm and cohesive.
 
 - `.env` files, API tokens, SSH/GPG keys, and credential stores
 - GitHub authentication and personal Git identity
-- caches, browser profiles, application databases, and histories
+- caches, browser data, application databases, and histories; the single Zen
+  system-titlebar preference is merged without copying profile data
 - wallpaper generation masters and temporary image outputs
 - the previous process-wide Konsole stylesheet activation that caused mouse and
   tab-focus problems

@@ -20,7 +20,7 @@ for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv 
     fi
 done
 
-for command in yay klassy-settings reflector; do
+for command in yay klassy-settings reflector node pnpm wrangler; do
     if command -v "$command" >/dev/null 2>&1; then
         ok "$command"
     else

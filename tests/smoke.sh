@@ -28,6 +28,7 @@ required=(
     assets/wallpapers/login/login-ultrawide-3440x1440.png
     dotfiles/apps/zen/zen-browser
     dotfiles/apps/zen/zen.desktop
+    dotfiles/apps/zen/user.js
     dotfiles/apps/antigravity/antigravity-flags.conf
     dotfiles/apps/zed/zeditor
     dotfiles/apps/zed/dev.zed.Zed.desktop
@@ -44,7 +45,7 @@ if rg -n --hidden --glob '!.git/**' \
 fi
 
 if rg -n --hidden --glob '!.git/**' '/home/mysterious|__HOME__.*__HOME__' "$ROOT" \
-    --glob '!tests/smoke.sh'; then
+    --glob '!**/tests/smoke.sh'; then
     printf 'A machine-specific home path remains in the repository.\n' >&2
     exit 1
 fi

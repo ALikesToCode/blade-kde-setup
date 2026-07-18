@@ -74,7 +74,7 @@ if [[ -t 1 && ${TERM:-dumb} != dumb ]]; then
     BOLD=$'\033[1m'
     RESET=$'\033[0m'
 else
-    BLUE= GREEN= YELLOW= RED= BOLD= RESET=
+    BLUE='' GREEN='' YELLOW='' RED='' BOLD='' RESET=''
 fi
 
 section() { printf '\n%s%s==>%s %s\n' "$BOLD" "$BLUE" "$RESET" "$*"; }
@@ -142,6 +142,74 @@ install_template() {
     rm -f -- "$temporary"
 }
 
+install_zen_preferences() {
+    local profiles_file="$HOME/.zen/profiles.ini"
+    local profile_path profile_dir target temporary
+
+    if [[ ! -f $profiles_file ]]; then
+        info 'Zen profile not created yet; its launcher will still request KWin decorations.'
+        return 0
+    fi
+
+    profile_path=$(awk -F= '
+        /^\[Install/ { in_install = 1; next }
+        /^\[/ { in_install = 0 }
+        in_install && $1 == "Default" { print substr($0, index($0, "=") + 1); exit }
+    ' "$profiles_file")
+    if [[ -z $profile_path ]]; then
+        profile_path=$(awk -F= '
+            $1 == "Path" { path = substr($0, index($0, "=") + 1) }
+            $1 == "Default" && $2 == "1" { print path; exit }
+        ' "$profiles_file")
+    fi
+    if [[ -z $profile_path ]]; then
+        warn 'Could not identify Zen default profile; skipping its titlebar preference.'
+        return 0
+    fi
+
+    profile_dir=$profile_path
+    [[ $profile_path = /* ]] || profile_dir="$HOME/.zen/$profile_path"
+    target="$profile_dir/user.js"
+
+    if [[ -f $target ]] && \
+       grep -Eq '^user_pref\("browser\.tabs\.inTitlebar",[[:space:]]*0\);[[:space:]]*$' "$target"; then
+        info "Unchanged: ${target/#$HOME/~}"
+        return 0
+    fi
+
+    if ((DRY_RUN)); then
+        backup_target "$target"
+        printf '  merge browser.tabs.inTitlebar=0 into %q\n' "$target"
+        return 0
+    fi
+
+    backup_target "$target"
+    mkdir -p -- "$profile_dir"
+    temporary=$(mktemp)
+    if [[ -f $target ]]; then
+        awk '
+            BEGIN { done = 0 }
+            /^user_pref\("browser\.tabs\.inTitlebar",/ {
+                if (!done) print "user_pref(\"browser.tabs.inTitlebar\", 0);"
+                done = 1
+                next
+            }
+            { print }
+            END {
+                if (!done) {
+                    print ""
+                    print "// Let KWin/Klassy draw Zen titlebar and window controls."
+                    print "user_pref(\"browser.tabs.inTitlebar\", 0);"
+                }
+            }
+        ' "$target" > "$temporary"
+    else
+        cp -- "$ROOT/dotfiles/apps/zen/user.js" "$temporary"
+    fi
+    install -m 0644 -- "$temporary" "$target"
+    rm -f -- "$temporary"
+}
+
 install_tree() {
     local source=$1 target=$2
     if same_tree "$source" "$target"; then
@@ -193,6 +261,7 @@ install_user_files() {
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
+    install_zen_preferences
     install_file "$ROOT/dotfiles/apps/zed/zeditor" "$HOME/.local/bin/zeditor" 0755
     install_file "$ROOT/dotfiles/apps/antigravity/antigravity-flags.conf" \
         "$HOME/.config/antigravity-flags.conf"
@@ -200,6 +269,14 @@ install_user_files() {
         "$HOME/.local/share/applications/zen.desktop"
     install_template "$ROOT/dotfiles/apps/zed/dev.zed.Zed.desktop" \
         "$HOME/.local/share/applications/dev.zed.Zed.desktop"
+
+    local pnpm_home="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
+    if command -v pnpm >/dev/null 2>&1 || ((DRY_RUN)); then
+        run env PNPM_HOME="$pnpm_home" PATH="$pnpm_home/bin:$PATH" \
+            pnpm add --global wrangler@latest
+    else
+        warn 'pnpm is unavailable; Wrangler CLI was not installed.'
+    fi
 
     install_tree "$ROOT/kde/look-and-feel/org.mysterious.artixdarkrounded.desktop" \
         "$HOME/.local/share/plasma/look-and-feel/org.mysterious.artixdarkrounded.desktop"

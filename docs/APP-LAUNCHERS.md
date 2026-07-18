@@ -6,10 +6,14 @@ available for CUDA and compute workloads.
 
 ## Zen Browser
 
-`~/.local/bin/zen-browser` sets `MOZ_ENABLE_WAYLAND=1` and launches the packaged
-browser. The local `zen.desktop` override routes launcher actions and URL opens
-through that wrapper. Native Wayland avoids the extra XWayland presentation copy
-and keeps mixed-DPI input and 120 Hz output behavior consistent.
+`~/.local/bin/zen-browser` enables native Wayland and requests system window
+decorations before launching the packaged browser. The installer also merges
+`browser.tabs.inTitlebar=0` into Zen's default profile. Together these settings
+let KWin/Klassy draw the same titlebar buttons used by Konsole instead of Zen's
+GTK client-side controls. The local `zen.desktop` override routes launcher
+actions and URL opens through that wrapper. Native Wayland avoids the extra
+XWayland presentation copy and keeps mixed-DPI input and 120 Hz output behavior
+consistent.
 
 No forced WebRender, VA-API, sandbox, or driver-workaround preferences are used.
 Zen/Firefox already chooses those from its runtime graphics probe, and stale

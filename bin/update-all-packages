@@ -48,7 +48,7 @@ if [[ -t 1 && ${TERM:-dumb} != dumb ]]; then
     BOLD=$'\033[1m'
     RESET=$'\033[0m'
 else
-    BLUE= GREEN= YELLOW= RED= MUTED= BOLD= RESET=
+    BLUE='' GREEN='' YELLOW='' RED='' MUTED='' BOLD='' RESET=''
 fi
 
 declare -a COMPLETED=()
@@ -168,22 +168,38 @@ fi
 
 printf '\n%sDetected update sources:%s\n' "$BOLD" "$RESET"
 
+# Keep the 32-bit JACK compatibility provider aligned with the installed
+# system audio stack. Some AUR packages (notably lib32-gstreamer) declare the
+# virtual `lib32-jack` build dependency. With --noconfirm, pacman otherwise
+# selects lib32-jack2 by default, which pulls jack2 and conflicts with an
+# installed pipewire-jack provider.
+arch_provider_targets=()
+if have pacman; then
+    if pacman -Qq pipewire-jack >/dev/null 2>&1 && \
+       pacman -Si lib32-pipewire-jack >/dev/null 2>&1; then
+        arch_provider_targets+=(lib32-pipewire-jack)
+    elif pacman -Qq jack2 >/dev/null 2>&1 && \
+         pacman -Si lib32-jack2 >/dev/null 2>&1; then
+        arch_provider_targets+=(lib32-jack2)
+    fi
+fi
+
 # Arch repositories and the AUR. yay already delegates repository work to
 # pacman, so running pacman separately would perform the same upgrade twice.
 if have yay; then
-    arch_command=(yay -Syu --needed)
+    arch_command=(yay -Syu --needed "${arch_provider_targets[@]}")
     if ((YES)); then
         arch_command+=(--noconfirm --answerclean None --answerdiff None --answeredit None)
     fi
     printf '  %s•%s Arch repositories + AUR (yay)\n' "$GREEN" "$RESET"
     run_step 'Arch repositories + AUR' "${arch_command[@]}"
 elif have paru; then
-    arch_command=(paru -Syu --needed)
+    arch_command=(paru -Syu --needed "${arch_provider_targets[@]}")
     ((YES)) && arch_command+=(--noconfirm)
     printf '  %s•%s Arch repositories + AUR (paru)\n' "$GREEN" "$RESET"
     run_step 'Arch repositories + AUR' "${arch_command[@]}"
 elif have pacman; then
-    arch_command=(sudo pacman -Syu --needed)
+    arch_command=(sudo pacman -Syu --needed "${arch_provider_targets[@]}")
     ((YES)) && arch_command+=(--noconfirm)
     printf '  %s•%s Arch repositories (pacman)\n' "$GREEN" "$RESET"
     run_step 'Arch repositories' "${arch_command[@]}"
@@ -448,7 +464,7 @@ if ((${#FAILED[@]})); then
 fi
 
 if ((DRY_RUN)); then
-    printf '\n%sDry run complete. Run `updateall -y` to apply this plan.%s\n' "$YELLOW" "$RESET"
+    printf '\n%sDry run complete. Run "updateall -y" to apply this plan.%s\n' "$YELLOW" "$RESET"
 else
     printf '\n%sEverything available finished successfully.%s\n' "$GREEN" "$RESET"
 fi

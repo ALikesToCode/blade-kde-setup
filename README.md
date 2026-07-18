@@ -14,6 +14,7 @@ The setup includes:
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
 - Matching Artix Material You SDDM login screen
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, aria2, Yay, and makepkg defaults
+- pnpm-first interactive Node workflow and a globally accessible Wrangler CLI
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine
 - Native Wayland launch profiles for Zen and Antigravity, plus deterministic
@@ -55,6 +56,8 @@ decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md).
 ./scripts/verify-app-launchers.sh  # verify Zen, Antigravity, and Zed launch paths
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
+wrangler whoami           # verify Cloudflare CLI authentication
+npm-system --version      # bypass the interactive npm -> pnpm alias
 ```
 
 ## Design notes

@@ -58,6 +58,11 @@ Klassy release may reject the import; the installer does not force an invalid
 preset into a newer version. Open **System Settings → Colors & Themes → Window
 Decorations** and load `Artix Dark Rounded` after reviewing it.
 
+The package manifest installs Node.js, npm, and pnpm. User setup then installs
+the current Wrangler v4 CLI into `PNPM_HOME`. Interactive Bash maps `npm` to
+`pnpm` and `npx` to `pnpm dlx`; use `npm-system` or `npx-system` whenever a tool
+specifically requires the Arch npm executable.
+
 ## Restore
 
 Each changed destination is mirrored inside its timestamped backup directory.
