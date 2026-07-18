@@ -1,0 +1,66 @@
+# Installation
+
+## Recommended flow
+
+Run the doctor, preview every action, then install:
+
+```bash
+./scripts/doctor.sh
+./install.sh --dry-run --all
+./install.sh --all -y
+```
+
+The installer is idempotent: files that already match are skipped. Before a
+different user file or system file is replaced, its current version is copied to
+a timestamped directory under:
+
+```text
+~/.local/state/blade-kde-backups/
+```
+
+## Modes
+
+`./install.sh` with no mode is equivalent to `--user --apply`.
+
+| Mode | Effect | Privilege |
+|---|---|---|
+| `--user` | Dotfiles, commands, icons, wallpapers, Konsole, Klassy preset, and local theme assets | User |
+| `--apply` | Activates the color, icon, cursor, Plasma, Klassy, Konsole, and wallpaper settings | User |
+| `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
+| `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
+| `--all` | Runs all four modes | Mixed |
+
+Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
+non-interactive package-manager confirmation.
+
+## System changes
+
+The system mode makes four bounded changes:
+
+1. Sets `ParallelDownloads = 15` in `/etc/pacman.conf`. The rest of Pacman’s
+   configuration is preserved.
+2. Installs `system/reflector.conf` and enables `reflector.timer`. The list is
+   restricted to recent HTTPS mirrors in India and nearby high-throughput Asian
+   regions, then sorted by measured rate.
+3. Installs `artix-material-you` below `/usr/share/sddm/themes/`.
+4. Selects that theme through `/etc/sddm.conf.d/zz-artix-qylock.conf`.
+
+The installer does not restart SDDM or terminate the current Plasma session.
+
+## Package notes
+
+Klassy is installed from the AUR, so Yay must already be available for the
+`--packages` mode to install it automatically. If Yay is absent, the installer
+finishes the official package list and prints the remaining manual action.
+
+The Klassy preset records the version it was built with. A future incompatible
+Klassy release may reject the import; the installer does not force an invalid
+preset into a newer version. Open **System Settings → Colors & Themes → Window
+Decorations** and load `Artix Dark Rounded` after reviewing it.
+
+## Restore
+
+Each changed destination is mirrored inside its timestamped backup directory.
+Copy the wanted file or directory back to the same absolute path. System files
+need `sudo`. For SDDM, restoring the previous file in `/etc/sddm.conf.d/` is
+enough; no display-manager restart is required until you are ready to log out.

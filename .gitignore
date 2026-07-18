@@ -1,0 +1,24 @@
+# Secrets and local identity
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials.json
+
+# Generated and machine-local state
+*.log
+*.tmp
+*.bak
+*~
+.cache/
+.idea/
+.vscode/
+__pycache__/
+node_modules/
+target/
+blade-kde-backups/

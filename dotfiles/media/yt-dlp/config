@@ -1,0 +1,11 @@
+# Fast, resilient, archival-quality downloads. Use --ignore-config when a
+# one-off command should not inherit these defaults.
+
+--concurrent-fragments 8
+--retries 10
+--fragment-retries 10
+--file-access-retries 3
+--merge-output-format mkv
+--embed-metadata
+--embed-chapters
+--embed-thumbnail

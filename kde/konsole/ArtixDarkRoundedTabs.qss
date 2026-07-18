@@ -1,0 +1,46 @@
+QTabBar {
+    background: #0b1016;
+    border: none;
+    qproperty-drawBase: false;
+}
+
+QTabBar::tab {
+    min-width: 112px;
+    min-height: 22px;
+    margin: 0;
+    padding: 5px 12px;
+    color: #9eacba;
+    background: #0b1016;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+}
+
+QTabBar::tab:selected {
+    color: #f0f6fc;
+    background: #0b1016;
+    border-bottom-color: #4aa3e8;
+}
+
+QTabBar::tab:hover:!selected {
+    color: #d5dee8;
+    background: #0b1016;
+    border-bottom-color: #263545;
+}
+
+QTabBar::close-button {
+    subcontrol-position: right;
+    width: 8px;
+    height: 8px;
+    margin: 0 6px 0 5px;
+    image: url(__HOME__/.local/share/konsole/artix-tab-close.svg);
+    background: transparent;
+    border: none;
+}
+
+QTabBar::close-button:hover,
+QTabBar::close-button:pressed {
+    image: url(__HOME__/.local/share/konsole/artix-tab-close.svg);
+    background: transparent;
+    border: none;
+}

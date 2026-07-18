@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Local Artix Dark Rounded profile"
+            }
+        ],
+        "Category": "",
+        "Description": "Flat black Plasma theme with blue accents, Candy icons, and minimal Google-pastel traffic-light controls",
+        "Id": "org.mysterious.artixdarkrounded.desktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "Artix Dark Rounded",
+        "Version": "2.1"
+    },
+    "X-Plasma-APIVersion": "2"
+}

@@ -1,0 +1,25 @@
+# Core KDE, media, download, shell, and validation dependencies.
+aria2
+bash-completion
+breeze
+breeze-cursors
+breeze-gtk
+breeze-icons
+git
+konsole
+mpv
+neovim
+noto-fonts
+noto-fonts-cjk
+noto-fonts-emoji
+plasma-meta
+qt6-5compat
+qt6-declarative
+qt6-svg
+reflector
+sddm
+tmux
+ttf-jetbrains-mono-nerd
+python
+yt-dlp
+yt-dlp-ejs

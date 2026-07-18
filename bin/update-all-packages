@@ -1,0 +1,454 @@
+#!/usr/bin/env bash
+
+# Update system packages and user-level package-manager tools in one pass.
+# The sudo credential is acquired once and refreshed while this script runs.
+
+set -uo pipefail
+
+YES=0
+DRY_RUN=0
+
+usage() {
+    cat <<'EOF'
+Usage: updateall [-y|--yes] [--dry-run]
+       update-all-packages [-y|--yes] [--dry-run]
+
+Update every supported package manager found on this machine.
+
+Options:
+  -y, --yes     Use non-interactive/automatic confirmation where supported
+  -n, --dry-run Show the update plan without sudo, downloads, or changes
+  -h, --help    Show this help
+
+The command updates system/AUR packages, Flatpaks, and globally installed
+user tools. It does not rewrite dependency files inside project directories.
+EOF
+}
+
+while (($#)); do
+    case $1 in
+        -y|--yes) YES=1 ;;
+        -n|--dry-run) DRY_RUN=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *)
+            printf 'updateall: unknown option: %s\n\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+if [[ -t 1 && ${TERM:-dumb} != dumb ]]; then
+    BLUE=$'\033[38;2;56;189;248m'
+    GREEN=$'\033[38;2;80;250;123m'
+    YELLOW=$'\033[38;2;255;203;107m'
+    RED=$'\033[38;2;255;107;129m'
+    MUTED=$'\033[38;2;140;150;165m'
+    BOLD=$'\033[1m'
+    RESET=$'\033[0m'
+else
+    BLUE= GREEN= YELLOW= RED= MUTED= BOLD= RESET=
+fi
+
+declare -a COMPLETED=()
+declare -a FAILED=()
+declare -a SKIPPED=()
+
+have() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+print_command() {
+    local arg
+    printf '  %s$%s' "$MUTED" "$RESET"
+    for arg in "$@"; do
+        printf ' %q' "$arg"
+    done
+    printf '\n'
+}
+
+run_step() {
+    local label=$1
+    shift
+
+    printf '\n%s%s==>%s %s\n' "$BLUE" "$BOLD" "$RESET" "$label"
+    print_command "$@"
+
+    if ((DRY_RUN)); then
+        COMPLETED+=("$label (planned)")
+        return 0
+    fi
+
+    if "$@"; then
+        printf '%s✓%s %s\n' "$GREEN" "$RESET" "$label"
+        COMPLETED+=("$label")
+    else
+        local status=$?
+        printf '%s✗%s %s (exit %d)\n' "$RED" "$RESET" "$label" "$status" >&2
+        FAILED+=("$label (exit $status)")
+    fi
+}
+
+run_custom_step() {
+    local label=$1
+    local display=$2
+    local function_name=$3
+
+    printf '\n%s%s==>%s %s\n' "$BLUE" "$BOLD" "$RESET" "$label"
+    printf '  %s$%s %s\n' "$MUTED" "$RESET" "$display"
+
+    if ((DRY_RUN)); then
+        COMPLETED+=("$label (planned)")
+        return 0
+    fi
+
+    if "$function_name"; then
+        printf '%s✓%s %s\n' "$GREEN" "$RESET" "$label"
+        COMPLETED+=("$label")
+    else
+        local status=$?
+        printf '%s✗%s %s (exit %d)\n' "$RED" "$RESET" "$label" "$status" >&2
+        FAILED+=("$label (exit $status)")
+    fi
+}
+
+skip_step() {
+    local label=$1
+    local reason=$2
+    printf '%s–%s %-18s %s\n' "$MUTED" "$RESET" "$label" "$reason"
+    SKIPPED+=("$label: $reason")
+}
+
+SUDO_KEEPALIVE_PID=
+cleanup() {
+    if [[ -n ${SUDO_KEEPALIVE_PID:-} ]]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+        wait "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+
+if ((DRY_RUN == 0)); then
+    lock_directory=${XDG_CACHE_HOME:-$HOME/.cache}/update-all-packages
+    mkdir -p -- "$lock_directory"
+    chmod 0700 "$lock_directory"
+    lock_file=$lock_directory/run.lock
+    if have flock; then
+        exec 9>"$lock_file"
+        if ! flock -n 9; then
+            printf 'updateall: another update is already running.\n' >&2
+            exit 3
+        fi
+    fi
+fi
+
+printf '%s%sUpdate all packages%s\n' "$BOLD" "$BLUE" "$RESET"
+if ((DRY_RUN)); then
+    printf '%sDry run: nothing will be downloaded or changed.%s\n' "$YELLOW" "$RESET"
+else
+    if ! have sudo; then
+        printf 'updateall: sudo is required for system updates.\n' >&2
+        exit 4
+    fi
+
+    printf '%sAuthenticate once for all system-level updates.%s\n' "$MUTED" "$RESET"
+    sudo -v || exit $?
+
+    # Refresh the timestamp without prompting again while long AUR builds run.
+    (
+        while sleep 45; do
+            sudo -n -v >/dev/null 2>&1 || exit
+        done
+    ) &
+    SUDO_KEEPALIVE_PID=$!
+fi
+
+printf '\n%sDetected update sources:%s\n' "$BOLD" "$RESET"
+
+# Arch repositories and the AUR. yay already delegates repository work to
+# pacman, so running pacman separately would perform the same upgrade twice.
+if have yay; then
+    arch_command=(yay -Syu --needed)
+    if ((YES)); then
+        arch_command+=(--noconfirm --answerclean None --answerdiff None --answeredit None)
+    fi
+    printf '  %s•%s Arch repositories + AUR (yay)\n' "$GREEN" "$RESET"
+    run_step 'Arch repositories + AUR' "${arch_command[@]}"
+elif have paru; then
+    arch_command=(paru -Syu --needed)
+    ((YES)) && arch_command+=(--noconfirm)
+    printf '  %s•%s Arch repositories + AUR (paru)\n' "$GREEN" "$RESET"
+    run_step 'Arch repositories + AUR' "${arch_command[@]}"
+elif have pacman; then
+    arch_command=(sudo pacman -Syu --needed)
+    ((YES)) && arch_command+=(--noconfirm)
+    printf '  %s•%s Arch repositories (pacman)\n' "$GREEN" "$RESET"
+    run_step 'Arch repositories' "${arch_command[@]}"
+else
+    skip_step 'System packages' 'no supported system package manager found'
+fi
+
+# Flatpak keeps system and per-user installations separate.
+if have flatpak; then
+    if flatpak remotes --system --columns=name 2>/dev/null | grep -q .; then
+        flatpak_system=(sudo flatpak update --system)
+        ((YES)) && flatpak_system+=(-y --noninteractive)
+        run_step 'System Flatpaks' "${flatpak_system[@]}"
+    else
+        skip_step 'System Flatpaks' 'no system remotes configured'
+    fi
+
+    if flatpak remotes --user --columns=name 2>/dev/null | grep -q .; then
+        flatpak_user=(flatpak update --user)
+        ((YES)) && flatpak_user+=(-y --noninteractive)
+        run_step 'User Flatpaks' "${flatpak_user[@]}"
+    else
+        skip_step 'User Flatpaks' 'no user remotes configured'
+    fi
+else
+    skip_step 'Flatpak' 'not installed'
+fi
+
+# Snap packages are system-level and refresh non-interactively by design.
+if have snap; then
+    run_step 'Snap packages' sudo snap refresh
+else
+    skip_step 'Snap' 'not installed'
+fi
+
+npm_unowned_packages() {
+    local global_root path name
+    global_root=$(npm root -g 2>/dev/null) || return 1
+    [[ -d $global_root ]] || return 0
+
+    while IFS= read -r path; do
+        [[ -n $path && -f $path/package.json ]] || continue
+        if have pacman && pacman -Qqo "$path" >/dev/null 2>&1; then
+            continue
+        fi
+        name=$(node -e 'process.stdout.write(require(process.argv[1]).name || "")' \
+            "$path/package.json" 2>/dev/null) || continue
+        [[ -n $name ]] && printf '%s\n' "$name"
+    done < <(find "$global_root" -mindepth 1 -maxdepth 3 -type f -name package.json \
+        -printf '%h\n' 2>/dev/null | sort -u)
+}
+
+if have npm && have node; then
+    npm_prefix=$(npm config get prefix 2>/dev/null || true)
+    mapfile -t npm_packages < <(npm_unowned_packages)
+    if ((${#npm_packages[@]})); then
+        npm_command=(npm update --global --no-fund --no-audit "${npm_packages[@]}")
+        if [[ ! -w $npm_prefix ]]; then
+            npm_command=(sudo "${npm_command[@]}")
+        fi
+        run_step 'npm global tools' "${npm_command[@]}"
+    else
+        skip_step 'npm globals' 'all global packages are pacman-owned or none are installed'
+    fi
+else
+    skip_step 'npm' 'not installed'
+fi
+
+# pnpm, Yarn and Bun use user-owned global stores.
+if have pnpm; then
+    pnpm_command=(pnpm update --global --latest)
+    ((YES)) && pnpm_command+=(--no-confirm)
+    run_step 'pnpm global tools' "${pnpm_command[@]}"
+else
+    skip_step 'pnpm' 'not installed'
+fi
+
+if have yarn; then
+    yarn_global_dir=$(yarn global dir 2>/dev/null || true)
+    if [[ -f $yarn_global_dir/package.json ]] && \
+       node -e 'const p=require(process.argv[1]); process.exit(Object.keys(p.dependencies||{}).length ? 0 : 1)' \
+            "$yarn_global_dir/package.json" 2>/dev/null; then
+        yarn_command=(yarn global upgrade --latest)
+        ((YES)) && yarn_command+=(--non-interactive)
+        run_step 'Yarn global tools' "${yarn_command[@]}"
+    else
+        skip_step 'Yarn globals' 'no Yarn global packages installed'
+    fi
+else
+    skip_step 'Yarn' 'not installed'
+fi
+
+if have bun; then
+    run_step 'Bun global tools' bun update --global
+else
+    skip_step 'Bun' 'not installed'
+fi
+
+update_pip_user_packages() {
+    local python_command=$1
+    local json
+    local -a packages=()
+
+    json=$("$python_command" -m pip list --user --outdated --format=json) || return
+    mapfile -t packages < <(
+        "$python_command" -c \
+            'import json,sys; print(*(p["name"] for p in json.load(sys.stdin)), sep="\n")' \
+            <<<"$json"
+    )
+    ((${#packages[@]})) || return 0
+
+    local -a command=("$python_command" -m pip install --user --upgrade)
+    if "$python_command" -m pip install --help 2>/dev/null | grep -q -- '--break-system-packages'; then
+        command+=(--break-system-packages)
+    fi
+    command+=("${packages[@]}")
+    "${command[@]}"
+}
+
+# Bound after python/python3 detection; the value is resolved when invoked.
+update_python_packages() {
+    update_pip_user_packages "$python_command"
+}
+
+python_command=
+if have python; then
+    python_command=python
+elif have python3; then
+    python_command=python3
+fi
+
+if [[ -n $python_command ]] && "$python_command" -m pip --version >/dev/null 2>&1; then
+    if "$python_command" -m pip list --user --format=json 2>/dev/null | \
+       "$python_command" -c 'import json,sys; raise SystemExit(not bool(json.load(sys.stdin)))'; then
+        run_custom_step 'Python user packages' \
+            "$python_command -m pip list --user --outdated; $python_command -m pip install --user --upgrade …" \
+            update_python_packages
+    else
+        skip_step 'Python user packages' 'none installed outside pacman'
+    fi
+else
+    skip_step 'pip' 'not installed'
+fi
+
+if have pipx; then
+    if pipx list --short 2>/dev/null | grep -q .; then
+        pipx_command=(pipx upgrade-all --include-injected)
+        run_step 'pipx applications' "${pipx_command[@]}"
+    else
+        skip_step 'pipx' 'no pipx applications installed'
+    fi
+else
+    skip_step 'pipx' 'not installed'
+fi
+
+if have uv; then
+    run_step 'uv tools' uv tool upgrade --all
+else
+    skip_step 'uv' 'not installed'
+fi
+
+update_cargo_without_helper() {
+    local crate
+    local failed=0
+    while IFS= read -r crate; do
+        [[ -n $crate ]] || continue
+        cargo install "$crate" --locked || failed=1
+    done < <(cargo install --list 2>/dev/null | sed -n 's/^\([^[:space:]]\+\) v[^:]*:$/\1/p')
+    return "$failed"
+}
+
+if have cargo; then
+    if ! cargo install --list 2>/dev/null | grep -q '^[^[:space:]]'; then
+        skip_step 'Cargo tools' 'no cargo-installed tools found'
+    elif have cargo-install-update; then
+        cargo_command=(cargo install-update --all)
+        ((YES)) && cargo_command+=(--yes)
+        run_step 'Cargo tools' "${cargo_command[@]}"
+    else
+        run_custom_step 'Cargo tools' 'cargo install <each installed crate> --locked' \
+            update_cargo_without_helper
+    fi
+else
+    skip_step 'Cargo' 'not installed'
+fi
+
+if have rustup; then
+    run_step 'Rust toolchains' rustup update
+else
+    skip_step 'rustup' 'not installed'
+fi
+
+update_go_tools() {
+    local binary import_path
+    local failed=0
+    local -A seen=()
+
+    while IFS= read -r -d '' binary; do
+        import_path=$(go version -m "$binary" 2>/dev/null | \
+            awk -F '\t' '$2 == "path" { print $3; exit } $1 == "path" { print $2; exit }')
+        [[ -n $import_path && -z ${seen[$import_path]:-} ]] || continue
+        seen[$import_path]=1
+        printf 'Updating %s\n' "$import_path"
+        go install "${import_path}@latest" || failed=1
+    done < <(find "${GOBIN:-$(go env GOPATH 2>/dev/null)/bin}" \
+        -maxdepth 1 -type f -perm -u+x -print0 2>/dev/null)
+    return "$failed"
+}
+
+if have go; then
+    go_bin=${GOBIN:-$(go env GOPATH 2>/dev/null)/bin}
+    if [[ -d $go_bin ]] && find "$go_bin" -maxdepth 1 -type f -perm -u+x -print -quit 2>/dev/null | grep -q .; then
+        run_custom_step 'Go tools' 'go install <each installed Go command>@latest' update_go_tools
+    else
+        skip_step 'Go tools' 'no Go-installed commands found'
+    fi
+else
+    skip_step 'Go' 'not installed'
+fi
+
+if have gem; then
+    if gem list --user-install 2>/dev/null | grep -q .; then
+        gem_command=(gem update --user-install --no-document)
+        run_step 'Ruby user gems' "${gem_command[@]}"
+    else
+        skip_step 'Ruby user gems' 'none installed outside pacman'
+    fi
+else
+    skip_step 'RubyGems' 'not installed'
+fi
+
+if have composer; then
+    composer_home=$(composer config --global home 2>/dev/null || true)
+    if [[ -f $composer_home/composer.json ]]; then
+        composer_command=(composer global update)
+        ((YES)) && composer_command+=(--no-interaction)
+        run_step 'Composer global tools' "${composer_command[@]}"
+    else
+        skip_step 'Composer' 'no global Composer project found'
+    fi
+else
+    skip_step 'Composer' 'not installed'
+fi
+
+if have brew; then
+    run_step 'Homebrew metadata' brew update
+    brew_command=(brew upgrade)
+    run_step 'Homebrew packages' "${brew_command[@]}"
+else
+    skip_step 'Homebrew' 'not installed'
+fi
+
+printf '\n%s%sSummary%s\n' "$BOLD" "$BLUE" "$RESET"
+printf '  %s✓%s completed/planned: %d\n' "$GREEN" "$RESET" "${#COMPLETED[@]}"
+printf '  %s–%s skipped:           %d\n' "$MUTED" "$RESET" "${#SKIPPED[@]}"
+printf '  %s✗%s failed:            %d\n' "$RED" "$RESET" "${#FAILED[@]}"
+
+if ((${#FAILED[@]})); then
+    printf '\n%sFailed updates:%s\n' "$RED" "$RESET" >&2
+    printf '  - %s\n' "${FAILED[@]}" >&2
+    exit 1
+fi
+
+if ((DRY_RUN)); then
+    printf '\n%sDry run complete. Run `updateall -y` to apply this plan.%s\n' "$YELLOW" "$RESET"
+else
+    printf '\n%sEverything available finished successfully.%s\n' "$GREEN" "$RESET"
+fi

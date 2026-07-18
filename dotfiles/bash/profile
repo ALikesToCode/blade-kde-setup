@@ -1,0 +1,11 @@
+# Environment shared by login shells and desktop-launched terminal sessions.
+
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+export PAGER="${PAGER:-less}"
+export LESS="${LESS:--R}"

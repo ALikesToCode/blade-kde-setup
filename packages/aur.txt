@@ -1,0 +1,2 @@
+# Built from the AUR through yay when --packages is requested.
+klassy
