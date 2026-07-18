@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <style>.ColorScheme-Text{color:#c4c7c5}</style>
-  <path class="ColorScheme-Text" d="m4.25 9.75 3.75-3.75 3.75 3.75" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><style>.ColorScheme-Text{color:#c4c7c5}</style><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="m4.25 9.75 3.75-3.75 3.75 3.75" class="ColorScheme-Text"/></svg>
