@@ -20,13 +20,37 @@ for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv 
     fi
 done
 
-for command in yay klassy-settings reflector node pnpm wrangler; do
+for command in yay klassy-settings reflector node pnpm wrangler openwiki officecli uv \
+    code-review-graph; do
     if command -v "$command" >/dev/null 2>&1; then
         ok "$command"
     else
         warn "$command is optional or not installed yet"
     fi
 done
+
+printf '\nCodex skills\n'
+for skill in officecli caveman cavecrew ask-matt tdd hallmark ecc-guide \
+    karpathy-guidelines emil-design-eng; do
+    if [[ -f $HOME/.agents/skills/$skill/SKILL.md ]]; then
+        ok "$skill"
+    else
+        warn "$skill is not installed in ~/.agents/skills"
+    fi
+done
+
+if codex mcp get code-review-graph --json >/dev/null 2>&1; then
+    ok 'code-review-graph MCP'
+else
+    warn 'code-review-graph MCP is not registered with Codex'
+fi
+agency_agent_count=$(find "$HOME/.codex/agents" -maxdepth 1 -type f -name '*.toml' \
+    2>/dev/null | wc -l)
+if ((agency_agent_count >= 263)); then
+    ok "$agency_agent_count Codex custom agents"
+else
+    warn "only $agency_agent_count Codex custom agents are installed"
+fi
 if command -v qmllint6 >/dev/null 2>&1 || command -v qmllint >/dev/null 2>&1; then
     ok 'QML validator'
 else

@@ -7,6 +7,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh"
+bash -n "$ROOT/scripts/install-codex-tools.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh"
 bash -n \
@@ -45,6 +46,10 @@ required=(
     README.md
     docs/CONFIGURATION-INVENTORY.md
     packages/pacman.txt
+    packages/npm-global.txt
+    packages/python-tools.lock
+    packages/codex-skills.lock
+    packages/codex-agents.lock
     kde/color-schemes/ArtixDarkRounded.colors
     kde/look-and-feel/org.mysterious.artixdarkrounded.desktop/metadata.json
     kde/desktoptheme/artix-dark-rounded/metadata.json
@@ -67,6 +72,7 @@ required=(
     dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
+    scripts/install-codex-tools.sh
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
     extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh
@@ -80,6 +86,23 @@ grep -Fqx "    alias vi='nvim'" "$ROOT/dotfiles/bash/bashrc"
 grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 rg -q '^### Atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
+
+[[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
+grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
+grep -Fqx 'code-review-graph==2.3.7' "$ROOT/packages/python-tools.lock"
+rg -q '^Nutlope/hallmark\|[0-9a-f]{40}\|skills/hallmark\|hallmark$' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^affaan-m/ECC\|[0-9a-f]{40}\|skills\|\*$' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^multica-ai/andrej-karpathy-skills\|[0-9a-f]{40}\|' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^emilkowalski/skills\|[0-9a-f]{40}\|' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^tirth8205/code-review-graph\|[0-9a-f]{40}\|' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^msitarzewski/agency-agents\|[0-9a-f]{40}\|codex$' \
+    "$ROOT/packages/codex-agents.lock"
+grep -Fqx '@__HOME__/.codex/RTK.md' "$ROOT/dotfiles/agents/AGENTS.md"
 
 if find "$ROOT/extras/hardened-workspace" -name '.codex-safe-verification*' -print -quit | grep -q .; then
     printf 'Verification scratch data must not be bundled.\n' >&2
@@ -101,5 +124,6 @@ fi
 
 "$ROOT/install.sh" --dry-run --all >/dev/null
 "$ROOT/install.sh" --dry-run --hardened >/dev/null
+"$ROOT/scripts/install-codex-tools.sh" --dry-run >/dev/null
 
 printf 'Smoke tests passed.\n'
