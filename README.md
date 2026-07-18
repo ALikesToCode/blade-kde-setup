@@ -17,6 +17,8 @@ The setup includes:
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
 - Matching Artix Material You SDDM login screen
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, aria2, Yay, and makepkg defaults
+- Global modular-development, verification, atomic-commit, identity, and
+  destructive-action guardrails for assisted coding sessions
 - pnpm-first interactive Node workflow and a globally accessible Wrangler CLI
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine

@@ -71,6 +71,12 @@ the current Wrangler v4 CLI into `PNPM_HOME`. Interactive Bash maps `npm` to
 `pnpm` and `npx` to `pnpm dlx`; use `npm-system` or `npx-system` whenever a tool
 specifically requires the Arch npm executable.
 
+User setup also installs the global development policy after backing up an
+existing version. It requires modular changes, focused verification, independent
+commits, preservation of the configured Git/GitHub identity, and explicit
+approval before destructive work. The Bash profile maps both `vi` and `vim` to
+the included Neovim configuration when `nvim` is available.
+
 ## Restore
 
 Each changed destination is mirrored inside its timestamped backup directory.

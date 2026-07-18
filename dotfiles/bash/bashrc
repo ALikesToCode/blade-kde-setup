@@ -1,8 +1,8 @@
 
 # ~/.bashrc — interactive Bash configuration
 
-# User-installed commands, including Codex, without duplicating PATH entries
-# when this file is sourced more than once.
+# User-installed development commands without duplicating PATH entries when
+# this file is sourced more than once.
 case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;
@@ -86,6 +86,12 @@ fi
 
 if command -v bat >/dev/null 2>&1; then
     alias bcat='bat --paging=never'
+fi
+
+# Use Neovim for the traditional vi and vim commands.
+if command -v nvim >/dev/null 2>&1; then
+    alias vi='nvim'
+    alias vim='nvim'
 fi
 
 alias ..='cd ..'

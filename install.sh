@@ -258,6 +258,7 @@ install_user_files() {
     install_file "$ROOT/dotfiles/media/yt-dlp/config" "$HOME/.config/yt-dlp/config"
     install_file "$ROOT/dotfiles/nvim/init.lua" "$HOME/.config/nvim/init.lua"
     install_file "$ROOT/dotfiles/tmux/tmux.conf" "$HOME/.tmux.conf"
+    install_file "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755

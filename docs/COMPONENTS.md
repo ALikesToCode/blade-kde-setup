@@ -17,6 +17,7 @@
 | Node/Cloudflare CLI | `dotfiles/bash/`, `packages/pacman.txt` | pnpm-first aliases and `~/.local/share/pnpm/bin/wrangler` |
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |
 | Editors/tools | `dotfiles/nvim/`, `dotfiles/tmux/` | `~/.config/nvim/init.lua`, `~/.tmux.conf` |
+| Development policy | `dotfiles/agents/AGENTS.md` | Global engineering, verification, Git, and safety instructions |
 | Download tuning | `dotfiles/downloads/` | `~/.aria2/aria2.conf`, `~/.makepkg.conf` |
 | Safe Git defaults | `dotfiles/git/` | Included from the user’s existing global Git config |
 | Package updater | `bin/` | `~/.local/bin/updateall` and `update-all-packages` |

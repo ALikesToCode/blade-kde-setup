@@ -42,12 +42,19 @@ required=(
     dotfiles/apps/antigravity/antigravity-flags.conf
     dotfiles/apps/zed/zeditor
     dotfiles/apps/zed/dev.zed.Zed.desktop
+    dotfiles/agents/AGENTS.md
+    dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
 done
+
+grep -Fqx "    alias vi='nvim'" "$ROOT/dotfiles/bash/bashrc"
+grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
+rg -q '^### Atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
 
 if rg -n --hidden --glob '!.git/**' \
     '(sk-navy-[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9]{20,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)' \
