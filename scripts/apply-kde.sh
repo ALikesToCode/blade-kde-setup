@@ -40,7 +40,7 @@ run kwriteconfig6 --file kdeglobals --group General --key ColorScheme ArtixDarkR
 run kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons
 run kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
 run kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
-run kwriteconfig6 --file plasmarc --group Theme --key name breeze-dark
+run kwriteconfig6 --file plasmarc --group Theme --key name artix-dark-rounded
 
 run kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key library org.kde.klassy
 run kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key theme Klassy
