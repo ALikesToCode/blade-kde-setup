@@ -1,0 +1,24 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "ALikesToCode"
+            }
+        ],
+        "Category": "Date and Time",
+        "Description": "A large blue and green desktop clock coordinated with the Blade SDDM theme",
+        "EnabledByDefault": true,
+        "FormFactors": [
+            "desktop"
+        ],
+        "Icon": "preferences-system-time",
+        "Id": "org.mysterious.bladeclock",
+        "License": "MIT",
+        "Name": "Blade SDDM Clock",
+        "Version": "1.0.0"
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}

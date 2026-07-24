@@ -6,14 +6,16 @@ available for CUDA and compute workloads.
 
 ## Zen Browser
 
-`~/.local/bin/zen-browser` enables native Wayland and requests system window
-decorations before launching the packaged browser. The installer also merges
-`browser.tabs.inTitlebar=0` into Zen's default profile. Together these settings
-let KWin/Klassy draw the same titlebar buttons used by Konsole instead of Zen's
-GTK client-side controls. The local `zen.desktop` override routes launcher
-actions and URL opens through that wrapper. Native Wayland avoids the extra
-XWayland presentation copy and keeps mixed-DPI input and 120 Hz output behavior
-consistent.
+`~/.local/bin/zen-browser` enables native Wayland without forcing a separate
+system title bar. The installer merges `browser.tabs.inTitlebar=1` into Zen's
+default profile so its controls stay integrated with the tab strip. A narrowly
+scoped `userChrome.css` import supplies a horizontal dash, single window outline,
+overlapping restore outlines, and compact X. This deliberately bypasses GTK's
+symbolic-icon lookup: Zen can otherwise resolve Breeze/Klassy chevrons even while
+Candy is the selected desktop icon theme. Existing userChrome rules are preserved.
+The local `zen.desktop` override routes launcher actions and URL opens through
+that wrapper. Native Wayland avoids the extra XWayland presentation copy and
+keeps mixed-DPI input and high-refresh output behavior consistent.
 
 No forced WebRender, VA-API, sandbox, or driver-workaround preferences are used.
 Zen/Firefox already chooses those from its runtime graphics probe, and stale
@@ -59,8 +61,11 @@ Close every window of an application before testing a changed launcher; Zen and
 Antigravity otherwise forward the request to the already-running process.
 
 To return to package defaults, remove the two local desktop overrides, the two
-wrappers, and `~/.config/antigravity-flags.conf`. The system package files under
-`/usr` are never modified.
+wrappers, and `~/.config/antigravity-flags.conf`, then remove the single
+`browser.tabs.inTitlebar` and
+`toolkit.legacyUserProfileCustomizations.stylesheets` lines from Zen's profile
+`user.js`, and remove the Blade import from its `chrome/userChrome.css`. The
+system package files under `/usr` are never modified.
 
 References: [Zen Linux installation](https://docs.zen-browser.app/guides/install-linux),
 [Zed on Linux](https://zed.dev/docs/linux), and

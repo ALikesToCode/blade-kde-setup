@@ -24,7 +24,7 @@ a timestamped directory under:
 
 | Mode | Effect | Privilege |
 |---|---|---|
-| `--user` | Dotfiles, commands, launcher artwork, icons, wallpapers, Konsole, Klassy preset, and local theme assets | User |
+| `--user` | Dotfiles, commands, launcher artwork, icons, wallpapers, Konsole, Klassy preset, Event Calendar, and local theme assets | User |
 | `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
@@ -61,6 +61,12 @@ is configured and missing widgets are added, while unrelated panels and
 existing pinned launchers remain intact. Plasma's applet configuration is
 backed up before the live change. Exact panel replacement requires the separate
 explicit command documented in [Plasma panels](PANELS.md).
+
+Event Calendar is installed from a checksum-verified Plasma 6 revision. The
+installer stages the source in a temporary directory, applies the Blade
+Material overlay, backs up an older installed package, and uses
+`kpackagetool6`. Replacing the built-in Digital Clock remains a separate,
+explicit `apply-panels.sh --replace-clock --yes` action.
 
 ## Package notes
 

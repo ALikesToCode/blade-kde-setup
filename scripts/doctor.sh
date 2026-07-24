@@ -12,7 +12,8 @@ warn() { printf '  [--] %s\n' "$*"; warnings=$((warnings + 1)); }
 bad() { printf '  [!!] %s\n' "$*"; failures=$((failures + 1)); }
 
 printf 'Blade KDE doctor\n\nCommands\n'
-for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv git; do
+for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv git \
+    kpackagetool6 patch; do
     if command -v "$command" >/dev/null 2>&1; then
         ok "$command"
     else
@@ -61,6 +62,8 @@ printf '\nUser assets\n'
 declare -a assets=(
     "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
     "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded/metadata.json"
+    "$HOME/.local/share/plasma/plasmoids/org.mysterious.bladeclock/metadata.json"
+    "$HOME/.local/share/plasma/plasmoids/org.kde.plasma.eventcalendar/metadata.json"
     "$HOME/.local/share/icons/candy-icons/index.theme"
     "$HOME/.local/share/konsole/Artix Dark Rounded.profile"
     "$HOME/.local/share/klassy/Artix_Dark_Rounded.klpw"

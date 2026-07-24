@@ -1,0 +1,251 @@
+diff --git a/package/contents/ui/BladeMaterial.qml b/package/contents/ui/BladeMaterial.qml
+new file mode 100644
+index 0000000..19e37fd
+--- /dev/null
++++ b/package/contents/ui/BladeMaterial.qml
+@@ -0,0 +1,19 @@
++import QtQuick
++import org.kde.kirigami as Kirigami
++
++QtObject {
++    readonly property color background: "#080d14"
++    readonly property color surface: "#0d1520"
++    readonly property color elevated: "#111c29"
++    readonly property color outline: "#263b55"
++    readonly property color blue: "#8ab4f8"
++    readonly property color green: "#81c995"
++    readonly property color cyan: "#54d1ff"
++    readonly property color text: "#f0f6fc"
++    readonly property color muted: "#9aa7b5"
++
++    readonly property int popupRadius: Math.round(Kirigami.Units.gridUnit * 1.05)
++    readonly property int cardRadius: Math.round(Kirigami.Units.gridUnit * 0.75)
++    readonly property int contentPadding: Kirigami.Units.largeSpacing
++    readonly property int accentHeight: Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 2))
++}
+diff --git a/package/contents/ui/main.qml b/package/contents/ui/main.qml
+index 4484ca7..c403fd1 100644
+--- a/package/contents/ui/main.qml
++++ b/package/contents/ui/main.qml
+@@ -153,10 +153,11 @@ PlasmoidItem {
+ 		property bool isPinVisible: {
+ 			return plasmoid.location != PlasmaCore.Types.Floating
+ 		}
+ 		padding: {
++			var materialPadding = Kirigami.Units.largeSpacing
+ 			if (isPinVisible && !(plasmoid.configuration.widgetShowTimer || plasmoid.configuration.widgetShowMeteogram)) {
+-				return pinButton.height
++				return Math.max(materialPadding, pinButton.height)
+ 			} else {
+-				return 0
++				return materialPadding
+ 			}
+ 		}
+diff --git a/package/contents/ui/PopupView.qml b/package/contents/ui/PopupView.qml
+index 51df884..02ada94 100644
+--- a/package/contents/ui/PopupView.qml
++++ b/package/contents/ui/PopupView.qml
+@@ -8,10 +8,36 @@ import "./weather/WeatherApi.js" as WeatherApi
+ 
+ MouseArea {
+ 	id: popup
++	clip: true
+ 
+ 	onClicked: focus = true
+ 
++	BladeMaterial { id: bladeMaterial }
++
++	Rectangle {
++		anchors.fill: parent
++		color: bladeMaterial.background
++		border.width: 1
++		border.color: bladeMaterial.outline
++		radius: bladeMaterial.popupRadius
++		z: -2
++	}
++
++	Rectangle {
++		anchors.top: parent.top
++		anchors.left: parent.left
++		anchors.right: parent.right
++		height: bladeMaterial.accentHeight
++		gradient: Gradient {
++			orientation: Gradient.Horizontal
++			GradientStop { position: 0; color: bladeMaterial.blue }
++			GradientStop { position: 0.62; color: bladeMaterial.cyan }
++			GradientStop { position: 1; color: bladeMaterial.green }
++		}
++		z: -1
++	}
++
+ 	property int padding: 0 // Assigned in main.qml
+-	property int spacing: 10
++	property int spacing: Kirigami.Units.largeSpacing
+ 
+ 	property real screenWidth: Screen.width > 0 ? Screen.width : plasmoid.screenGeometry.width
+diff --git a/package/contents/ui/MonthView.qml b/package/contents/ui/MonthView.qml
+index f38722f..490dc1b 100644
+--- a/package/contents/ui/MonthView.qml
++++ b/package/contents/ui/MonthView.qml
+@@ -30,3 +30,15 @@ PinchArea {
+ 	id: root
++	clip: true
++
++	BladeMaterial { id: bladeMaterial }
++
++	Rectangle {
++		anchors.fill: parent
++		color: bladeMaterial.surface
++		border.width: 1
++		border.color: bladeMaterial.outline
++		radius: bladeMaterial.cardRadius
++		z: -1
++	}
+ 
+ 	property alias selectedMonth: calendarBackend.monthName
+@@ -263,5 +275,6 @@ PinchArea {
+ 		id: stack
+ 
+ 		anchors.fill: parent
++		anchors.margins: bladeMaterial.contentPadding
+ 
+ 		pushEnter: Transition {
+diff --git a/package/contents/ui/AgendaView.qml b/package/contents/ui/AgendaView.qml
+index f67a14e..3dc6991 100644
+--- a/package/contents/ui/AgendaView.qml
++++ b/package/contents/ui/AgendaView.qml
+@@ -9,3 +9,14 @@ Item {
+ 	id: agendaView
+ 
++	BladeMaterial { id: bladeMaterial }
++
++	Rectangle {
++		anchors.fill: parent
++		color: bladeMaterial.surface
++		border.width: 1
++		border.color: bladeMaterial.outline
++		radius: bladeMaterial.cardRadius
++		z: -1
++	}
++
+ 	property int scrollbarWidth: 0
+@@ -68,4 +79,5 @@ Item {
+ 	QQC2.ScrollView {
+ 		id: agendaScrollView
+ 		anchors.fill: parent
++		anchors.margins: bladeMaterial.contentPadding
+ 		// clip: true
+diff --git a/package/contents/ui/ClockView.qml b/package/contents/ui/ClockView.qml
+index 93a26cd..c632f83 100644
+--- a/package/contents/ui/ClockView.qml
++++ b/package/contents/ui/ClockView.qml
+@@ -28,3 +28,5 @@ Item {
+ 	id: clock
+ 
++	BladeMaterial { id: bladeMaterial }
++
+ 	property int horizontalFixedLineWidth: 300 * Screen.devicePixelRatio
+@@ -89,2 +91,3 @@ Item {
+ 				verticalAlignment: Text.AlignVCenter
+ 				smooth: true
++				color: bladeMaterial.blue
+@@ -123,2 +126,3 @@ Item {
+ 				verticalAlignment: Text.AlignVCenter
+ 				smooth: true
++				color: bladeMaterial.green
+diff --git a/package/contents/ui/DaysCalendar.qml b/package/contents/ui/DaysCalendar.qml
+index c391738..c432683 100644
+--- a/package/contents/ui/DaysCalendar.qml
++++ b/package/contents/ui/DaysCalendar.qml
+@@ -99,4 +99,5 @@ Item {
+ 			level: root.headingFontLevel
+ 			wrapMode: Text.NoWrap
+ 			elide: Text.ElideRight
++			color: "#8ab4f8"
+ 			font.capitalization: Font.Capitalize
+diff --git a/package/contents/ui/DateTimeSelector.qml b/package/contents/ui/DateTimeSelector.qml
+--- a/package/contents/ui/DateTimeSelector.qml
++++ b/package/contents/ui/DateTimeSelector.qml
+@@ -7,6 +7,5 @@ GridLayout {
+ 	id: dateTimeSelector
+ 	property var dateTime: new Date()
+-	property bool enabled: true
+ 	property bool showTime: true
+ 	property alias dateFormat: dateSelector.dateFormat
+ 	property alias timeFormat: timeSelector.timeFormat
+diff --git a/package/contents/ui/DurationSelector.qml b/package/contents/ui/DurationSelector.qml
+--- a/package/contents/ui/DurationSelector.qml
++++ b/package/contents/ui/DurationSelector.qml
+@@ -11,7 +11,6 @@ Flow {
+ 	property alias startDateTime: startTimeSelector.dateTime
+ 	property alias endDateTime: endTimeSelector.dateTime
+ 
+-	property bool enabled: true
+ 	property bool showTime: false
+ 
+ 	spacing: 0
+diff --git a/package/contents/ui/LinkRect.qml b/package/contents/ui/LinkRect.qml
+--- a/package/contents/ui/LinkRect.qml
++++ b/package/contents/ui/LinkRect.qml
+@@ -15,7 +15,6 @@ Rectangle {
+ 	property string tooltipMainText
+ 	property string tooltipSubText
+ 	property alias acceptedButtons: mouseArea.acceptedButtons
+-	property bool enabled: true
+ 	readonly property alias hovered: mouseArea.containsMouse
+ 
+ 	signal clicked(var mouse)
+diff --git a/package/contents/ui/lib/GoogleOAuthConfig.js b/package/contents/ui/lib/GoogleOAuthConfig.js
+--- a/package/contents/ui/lib/GoogleOAuthConfig.js
++++ b/package/contents/ui/lib/GoogleOAuthConfig.js
+@@ -1,4 +1,4 @@
+-var builtInClientUnavailableMessage = "The built-in Google OAuth client is currently rejected by Google because it requires a client secret. Add your own Google OAuth client ID, or switch back to a previously stored secret-based client."
++var builtInClientUnavailableMessage = "The bundled Google OAuth client is enabled with PKCE and a localhost callback."
+ 
+ function normalizedClientValue(value) {
+ 	return value ? String(value).trim() : ""
+@@ -34,9 +34,6 @@ function authConfigurationError(clientId, clientSecret, defaultClientId) {
+ 	if (!clientId) {
+ 		return "Missing Google OAuth client ID."
+ 	}
+-	if (!clientSecret && clientId === defaultClientId) {
+-		return builtInClientUnavailableMessage
+-	}
+ 	return ""
+ }
+ 
+diff --git a/package/contents/ui/config/ConfigGoogleCalendar.qml b/package/contents/ui/config/ConfigGoogleCalendar.qml
+--- a/package/contents/ui/config/ConfigGoogleCalendar.qml
++++ b/package/contents/ui/config/ConfigGoogleCalendar.qml
+@@ -360,19 +360,19 @@ ConfigPage {
+ 		Component.onCompleted: credentialsReady = true
+ 
+ 		MessageWidget {
+-			messageType: MessageWidget.MessageType.Warning
++			messageType: authConfigurationMessage ? MessageWidget.MessageType.Warning : MessageWidget.MessageType.Information
+ 			closeButtonVisible: false
+ 			text: authConfigurationMessage
+ 				? authConfigurationMessage
+ 				: googleLoginManager.normalizedClientValue(page.configBridge.read("customClientId", ""))
+ 				? ""
+ 				: page.configBridge.read("latestClientSecret", "")
+ 					? i18n("Using a previously stored Google OAuth client for compatibility. If login still fails, add your own client ID and client secret.")
+-					: i18n("The built-in Google OAuth client is currently rejected by Google because it requires a client secret. Provide your own client ID and client secret to enable Google sync.")
++					: i18n("Using the bundled Google OAuth client with PKCE and a localhost callback.")
+ 		}
+ 		Label {
+ 			Layout.fillWidth: true
+-			text: i18n("Provide a Google Cloud OAuth Desktop client ID, or a Web client ID and secret with the redirect URI set to %1. Leaving these empty only works if a previously stored secret-based client is available.", googleLoginManager.redirectUri)
++			text: i18n("The bundled client uses the localhost callback %1. You can optionally provide your own Google Cloud OAuth Desktop client ID, or a Web client ID and secret configured for that redirect URI.", googleLoginManager.redirectUri)
+ 			color: readableNegativeTextColor
+ 			wrapMode: Text.Wrap
+ 		}
+@@ -386,7 +386,7 @@ ConfigPage {
+ 			id: useDesktopClientToggle
+ 			configKey: "useDesktopClient"
+ 			visible: !googleLoginManager.normalizedClientValue(page.configBridge.read("customClientId", ""))
+-			text: i18n("Try desktop built-in client (no secret)")
++			text: i18n("Use bundled Google OAuth client (PKCE)")
+ 			onCheckedChanged: {
+ 				if (!credentialsSection.credentialsReady) {
+ 					return

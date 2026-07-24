@@ -6,19 +6,26 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
-    "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh"
+    "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
+    "$ROOT/scripts/install-event-calendar.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh"
+bash -n "$ROOT/tests/network-speed-widget.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
-    "$ROOT/scripts/verify-app-launchers.sh"
+    "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
+    "$ROOT/tests/zen-window-controls.sh" "$ROOT/scripts/apply-desktop-clock.sh" \
+    "$ROOT/tests/desktop-clock.sh" \
+    "$ROOT/tests/event-calendar.sh"
 bash -n \
     "$ROOT/extras/hardened-workspace/install.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh" \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/self-test-inner.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/doctor.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/test-sandbox.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/uninstall.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/cloakserve" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/codex-safe" \
+    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-cli" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-safe"
 
@@ -55,6 +62,8 @@ required=(
     kde/desktoptheme/artix-dark-rounded/metadata.json
     kde/desktoptheme/artix-dark-rounded/colors
     kde/sddm/artix-material-you/Main.qml
+    kde/plasma/plasmoids/org.mysterious.bladeclock/metadata.json
+    kde/plasma/plasmoids/org.mysterious.bladeclock/contents/ui/main.qml
     assets/icons/candy-icons/index.theme
     assets/branding/launcher/a-candy-icon.png
     assets/branding/launcher/hicolor/64x64/apps/mysterious-a.png
@@ -65,6 +74,11 @@ required=(
     dotfiles/apps/zen/zen-browser
     dotfiles/apps/zen/zen.desktop
     dotfiles/apps/zen/user.js
+    dotfiles/apps/zen/chrome/blade-window-controls.css
+    dotfiles/apps/zen/chrome/blade-window-minimize.svg
+    dotfiles/apps/zen/chrome/blade-window-maximize.svg
+    dotfiles/apps/zen/chrome/blade-window-restore.svg
+    dotfiles/apps/zen/chrome/blade-window-close.svg
     dotfiles/apps/antigravity/antigravity-flags.conf
     dotfiles/apps/zed/zeditor
     dotfiles/apps/zed/dev.zed.Zed.desktop
@@ -72,11 +86,17 @@ required=(
     dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
+    scripts/install-event-calendar.sh
+    extras/eventcalendar/blade-material.patch
+    extras/eventcalendar/upstream.sha256
+    scripts/apply-desktop-clock.sh
     scripts/install-codex-tools.sh
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
     extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh
+    extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh
     extras/hardened-workspace/payload/home/.local/bin/codex-safe
+    extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
@@ -84,8 +104,28 @@ done
 
 grep -Fqx "    alias vi='nvim'" "$ROOT/dotfiles/bash/bashrc"
 grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
+"$ROOT/tests/sddm-theme.sh" >/dev/null
+"$ROOT/tests/zen-window-controls.sh" >/dev/null
+"$ROOT/tests/desktop-clock.sh" >/dev/null
+"$ROOT/tests/event-calendar.sh" >/dev/null
+bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
+bash "$ROOT/tests/update-all-packages.sh" >/dev/null
+rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
+rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
+grep -Fq 'mcp_oauth_credentials_store="keyring"' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
+grep -Fq 'shell_environment_policy.exclude=["DBUS_SESSION_BUS_ADDRESS"' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
+rg -q 'blacklist \$\{HOME\}/\.local/share/codex-safe/keyring' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile"
+grep -Fqx 'gnome-keyring' "$ROOT/packages/pacman.txt"
+rg -q 'systemctl --user mask --now gnome-keyring-daemon\.socket' \
+    "$ROOT/extras/hardened-workspace/install.sh"
 rg -q '^### Atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"

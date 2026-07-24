@@ -13,8 +13,9 @@ reviewed before it changes a system.
 | Rounded window controls | Klassy preset, right-side compact controls, and pastel yellow/green/coral hover states | `--user --apply` |
 | Solid Konsole chrome | Matching profile and colors, native clickable tabs, hidden normal close glyphs, and disabled process-wide stylesheet | `--user --apply` |
 | Dark multi-monitor panels | One application panel per display, primary visible and additional panels auto-hidden | `--apply` |
-| Desktop widgets | Native media, calendar/clock, Wi-Fi, Bluetooth, audio, battery, notifications, workspaces, and CPU/RAM/GPU donuts | `--apply` |
-| Login and lock flow | Qylock-compatible Artix Material You files and SDDM selection | `--user`, then `--system` |
+| Desktop widgets | SDDM-inspired desktop clock plus native media, Wi-Fi, Bluetooth, audio, battery, notifications, workspaces, live download/upload speed, and CPU/RAM/GPU donuts | `--user --apply` |
+| Event Calendar | Pinned Plasma 6 calendar/agenda source, reviewed checksums, dark Material card overlay, blue/green panel clock, event badges, optional weather/Google sync, and recurring iCalendar dependencies | `--user --apply` |
+| Login and lock flow | Qylock-compatible Artix Material You files, blue/green power/session/reboot/sleep icons, runtime QML regression test, and SDDM selection | `--user`, then `--system` |
 | Coordinated wallpapers | Separate native 16:10 4K and 3440×1440 ultrawide login/desktop images with checksums | `--user --apply`, plus `--system` for SDDM |
 | Shell and prompt | Bash PATH/history/completion, green/blue Nerd Font prompt, pnpm-first aliases, and `vi`/`vim` to Neovim | `--user` |
 | Editor and terminal tools | Neovim, tmux, and Readline configurations | `--user` |
@@ -22,7 +23,7 @@ reviewed before it changes a system.
 | Fast mirrors | Rate-sorted India/Asia Reflector policy and enabled weekly timer | `--system` |
 | Unified updates | `updateall -y` and the full detected-manager updater, including PipeWire/JACK provider handling | `--user` |
 | Node tooling | pnpm aliases, explicit system npm escape hatches, and global Wrangler installation | `--user` |
-| Application launch tuning | Native Wayland Zen/Antigravity launchers and deterministic Vulkan Zed selection | `--user` |
+| Application launch tuning | Native Wayland Zen/Antigravity launchers, corrected integrated Candy controls for borderless Zen, and deterministic Vulkan Zed selection | `--user` |
 | Safe publication workflow | Global modularity, verification, independent-commit, existing-identity, and destructive-action rules | `--user` |
 | Hardened interactive launcher | Firejail/Landlock policy, terminal-preserving runtime, browser wrappers, checksums, doctor, self-test, and reversible manifest installer | `--hardened` |
 
@@ -38,7 +39,7 @@ hardcoded:
   `BLADE_GPU_TITLE` adapt the donut to other hardware.
 - Plasma screen count is read from the live session. Existing pinned
   applications and unrelated panels are preserved by default.
-- Zen's active profile is discovered from `profiles.ini`; only the system
+- Zen's active profile is discovered from `profiles.ini`; only the integrated
   titlebar preference is merged.
 
 ## Intentionally excluded

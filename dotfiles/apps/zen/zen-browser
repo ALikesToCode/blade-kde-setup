@@ -6,6 +6,5 @@ set -Eeuo pipefail
 
 export MOZ_ENABLE_WAYLAND=1
 export MOZ_DBUS_REMOTE=1
-export MOZ_GTK_TITLEBAR_DECORATION=system
 
 exec /usr/bin/zen-browser "$@"

@@ -8,6 +8,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 DRY_RUN=0
 REPLACE_EXISTING=0
 CONFIRM_REPLACE=0
+REPLACE_CLOCK=0
 GPU_PREFIX=${BLADE_GPU_SENSOR_PREFIX:-gpu/gpu1}
 GPU_TITLE=${BLADE_GPU_TITLE:-RTX 5090 GPU}
 ICON_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/blade-kde/branding/launcher/a-candy-icon.png"
@@ -22,6 +23,7 @@ widgets. It does not remove panels or duplicate widgets.
 Options:
   -n, --dry-run        Print the intended layout without changing Plasma
   --replace-existing   Back up and replace every panel with the exact layout
+  --replace-clock      Replace KDE Digital Clock with Blade Event Calendar
   -y, --yes            Required acknowledgement for --replace-existing
   -h, --help           Show this help
 
@@ -35,6 +37,7 @@ while (($#)); do
     case $1 in
         -n|--dry-run) DRY_RUN=1 ;;
         --replace-existing) REPLACE_EXISTING=1 ;;
+        --replace-clock) REPLACE_CLOCK=1 ;;
         -y|--yes) CONFIRM_REPLACE=1 ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'apply-panels: unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -44,6 +47,11 @@ done
 
 if ((REPLACE_EXISTING && !CONFIRM_REPLACE)); then
     printf 'apply-panels: --replace-existing also requires --yes because it removes current panels.\n' >&2
+    exit 2
+fi
+
+if ((REPLACE_CLOCK && !CONFIRM_REPLACE)); then
+    printf 'apply-panels: --replace-clock also requires --yes because it removes the existing Digital Clock widgets.\n' >&2
     exit 2
 fi
 
@@ -57,11 +65,12 @@ done
 if ((DRY_RUN)); then
     printf 'Blade Plasma panel plan:\n'
     printf '  mode: %s\n' "$([[ $REPLACE_EXISTING == 1 ]] && printf exact-replacement || printf safe-ensure)"
-    printf '  primary: bottom, 46px, floating, opaque, always visible\n'
+    printf '  primary: bottom, 52px, floating, opaque, always visible\n'
     printf '  additional displays: same application panel, auto-hide on hover edge\n'
-    printf '  widgets: launcher, tasks, media, CPU/RAM/GPU donuts, workspaces, status, calendar clock\n'
+    printf '  widgets: launcher, six pinned apps, media, CPU/RAM/GPU donuts, live download/upload speed, workspaces, status, Event Calendar\n'
     printf '  status: Wi-Fi, Bluetooth, audio, battery, notifications\n'
-    printf '  accent: blue primary with green telemetry highlight\n'
+    printf '  accent: pastel blue primary with green and cyan telemetry highlights\n'
+    printf '  clock: %s\n' "$([[ $REPLACE_CLOCK == 1 ]] && printf 'replace Digital Clock with Event Calendar' || printf 'preserve existing clocks')"
     exit 0
 fi
 
@@ -95,11 +104,12 @@ if [[ -f $config ]]; then
     printf 'Backed up the existing Plasma layout to %s\n' "$backup_dir"
 fi
 
-script=$(printf 'var BLADE_ICON_PATH = "%s";\nvar BLADE_GPU_PREFIX = "%s";\nvar BLADE_GPU_TITLE = "%s";\nvar BLADE_REPLACE_EXISTING = %s;\n' \
+script=$(printf 'var BLADE_ICON_PATH = "%s";\nvar BLADE_GPU_PREFIX = "%s";\nvar BLADE_GPU_TITLE = "%s";\nvar BLADE_REPLACE_EXISTING = %s;\nvar BLADE_REPLACE_CLOCK = %s;\nvar BLADE_POSITION_ONLY = false;\n' \
     "$(escape_js "$ICON_PATH")" \
     "$(escape_js "$GPU_PREFIX")" \
     "$(escape_js "$GPU_TITLE")" \
-    "$([[ $REPLACE_EXISTING == 1 ]] && printf true || printf false)")
+    "$([[ $REPLACE_EXISTING == 1 ]] && printf true || printf false)" \
+    "$([[ $REPLACE_CLOCK == 1 ]] && printf true || printf false)")
 script+=$(<"$ROOT/kde/plasma/blade-panels.js")
 
 if ! output=$($QDBUS org.kde.plasmashell /PlasmaShell \
@@ -109,4 +119,17 @@ if ! output=$($QDBUS org.kde.plasmashell /PlasmaShell \
 fi
 
 [[ -n $output ]] && printf '%s\n' "$output"
+
+# A new applet is initially appended after evaluateScript returns. Run a
+# placement-only pass after creation has settled so the network display lands
+# beside the existing CPU/RAM/GPU telemetry on a fresh layout too.
+position_script=${script/var BLADE_POSITION_ONLY = false;/var BLADE_POSITION_ONLY = true;}
+if ! position_output=$($QDBUS org.kde.plasmashell /PlasmaShell \
+    org.kde.PlasmaShell.evaluateScript "$position_script" 2>&1); then
+    printf 'apply-panels: Plasma could not position the network widget: %s\n' \
+        "$position_output" >&2
+    exit 1
+fi
+[[ -n $position_output ]] && printf '%s\n' "$position_output"
+
 printf 'Blade panels are configured. Additional displays use auto-hide.\n'

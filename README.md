@@ -11,11 +11,15 @@ The setup includes:
 - Candy icon theme
 - Custom blue/green Candy-style **A** application launcher
 - Dual-display native Plasma panels with media, calendar, Wi-Fi, Bluetooth,
-  audio, battery, notifications, and CPU/RAM/GPU donut widgets
+  audio, battery, notifications, live download/upload speed, and CPU/RAM/GPU
+  donut widgets
+- Plasma 6 Event Calendar with a dark Material card layout, agenda, event
+  badges, optional weather/Google sync, and a blue/green two-line panel clock
+- SDDM-inspired blue/green desktop clock on every display
 - Klassy rounded decoration with compact pastel window controls
 - Native, reliable Konsole tabs and a matching dark profile
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
-- Matching Artix Material You SDDM login screen
+- Matching Artix Material You SDDM login screen with blue/green quick-setting icons
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, aria2, Yay, and makepkg defaults
 - Global modular-development, verification, atomic-commit, identity, and
   destructive-action guardrails for assisted coding sessions
@@ -24,8 +28,8 @@ The setup includes:
   Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine
-- Native Wayland launch profiles for Zen and Antigravity, plus deterministic
-  Vulkan GPU selection for Zed on the Blade hybrid-graphics layout
+- Native Wayland launch profiles and corrected integrated Candy window controls
+  for Zen, plus Antigravity Wayland and deterministic Vulkan selection for Zed
 - Optional fail-closed Firejail/Landlock workspace launcher with a pinned
   CloakBrowser and terminal-preserving interactive startup
 
@@ -75,6 +79,7 @@ The request-by-request audit is in
 ./tests/smoke.sh          # syntax, manifest, portability, and secret checks
 ./scripts/verify-app-launchers.sh  # verify Zen, Antigravity, and Zed launch paths
 ./scripts/apply-panels.sh --dry-run  # preview the multi-monitor panel layout
+./scripts/apply-desktop-clock.sh --dry-run  # preview the SDDM-style desktop clock
 ~/.config/codex-safe/doctor.sh --run  # verify the optional sandbox boundary
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication

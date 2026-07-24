@@ -19,10 +19,10 @@ Rectangle {
     readonly property color primary: "#8AB4F8"
     readonly property color softBlue: "#AECBFA"
     readonly property color softGreen: "#81C995"
-    readonly property color onSurface: "#F0F6FC"
+    readonly property color foreground: "#F0F6FC"
     readonly property color muted: "#8B949E"
     readonly property color selection: "#274C77"
-    readonly property color error: "#F28B82"
+    readonly property color errorColor: "#F28B82"
 
     // Background
     Image {
@@ -198,7 +198,7 @@ Rectangle {
                     font.pixelSize: 11 * s
                     font.bold: true
                     font.letterSpacing: 1 * s
-                    color: root.onSurface
+                    color: root.foreground
                 }
             }
         }
@@ -244,19 +244,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
 
                             Image {
-                                id: powerIcon
-                                source: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18.36 6.64a9 9 0 1 1-12.73 0'></path><line x1='12' y1='2' x2='12' y2='12'></line></svg>"
+                                source: "icons/power.svg"
                                 anchors.centerIn: parent
-                                width: 20 * s
-                                height: 20 * s
-                                sourceSize.width: 40 * s
-                                sourceSize.height: 40 * s
-                                visible: false
-                            }
-                            ColorOverlay {
-                                anchors.fill: powerIcon
-                                source: powerIcon
-                                color: root.primary
+                                width: 22 * s
+                                height: 22 * s
+                                sourceSize.width: 44 * s
+                                sourceSize.height: 44 * s
+                                opacity: powerMouse.containsMouse ? 1 : 0.82
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
                         }
 
@@ -269,14 +264,14 @@ Rectangle {
                                 font.family: root.sansFont
                                 font.pixelSize: 12 * s
                                 font.bold: true
-                                color: powerMouse.containsMouse ? root.softBlue : root.onSurface
+                                color: powerMouse.containsMouse ? root.softBlue : root.foreground
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                             Text {
                                 text: "SHUT DOWN"
                                 font.family: root.sansFont
                                 font.pixelSize: 9 * s
-                                color: powerMouse.containsMouse ? root.onSurface : root.muted
+                                color: powerMouse.containsMouse ? root.foreground : root.muted
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                         }
@@ -312,19 +307,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
 
                             Image {
-                                id: sessionIcon
-                                source: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'></circle><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'></path></svg>"
+                                source: "icons/session.svg"
                                 anchors.centerIn: parent
-                                width: 20 * s
-                                height: 20 * s
-                                sourceSize.width: 40 * s
-                                sourceSize.height: 40 * s
-                                visible: false
-                            }
-                            ColorOverlay {
-                                anchors.fill: sessionIcon
-                                source: sessionIcon
-                                color: root.primary
+                                width: 22 * s
+                                height: 22 * s
+                                sourceSize.width: 44 * s
+                                sourceSize.height: 44 * s
+                                opacity: sessionMouse.containsMouse ? 1 : 0.82
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
                         }
 
@@ -337,14 +327,14 @@ Rectangle {
                                 font.family: root.sansFont
                                 font.pixelSize: 12 * s
                                 font.bold: true
-                                color: sessionMouse.containsMouse ? root.softBlue : root.onSurface
+                                color: sessionMouse.containsMouse ? root.softBlue : root.foreground
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                             Text {
                                 text: ((sessionHelper.currentItem && sessionHelper.currentItem.sName) ? sessionHelper.currentItem.sName : "PLASMA").toUpperCase()
                                 font.family: root.sansFont
                                 font.pixelSize: 9 * s
-                                color: sessionMouse.containsMouse ? root.onSurface : root.muted
+                                color: sessionMouse.containsMouse ? root.foreground : root.muted
                                 Behavior on color { ColorAnimation { duration: 150 } }
                                 elide: Text.ElideRight
                                 width: 90 * s
@@ -386,19 +376,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
 
                             Image {
-                                id: rebootIcon
-                                source: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='23 4 23 10 17 10'></polyline><path d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10'></path></svg>"
+                                source: "icons/reboot.svg"
                                 anchors.centerIn: parent
-                                width: 20 * s
-                                height: 20 * s
-                                sourceSize.width: 40 * s
-                                sourceSize.height: 40 * s
-                                visible: false
-                            }
-                            ColorOverlay {
-                                anchors.fill: rebootIcon
-                                source: rebootIcon
-                                color: root.primary
+                                width: 22 * s
+                                height: 22 * s
+                                sourceSize.width: 44 * s
+                                sourceSize.height: 44 * s
+                                opacity: rebootMouse.containsMouse ? 1 : 0.82
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
                         }
 
@@ -411,14 +396,14 @@ Rectangle {
                                 font.family: root.sansFont
                                 font.pixelSize: 12 * s
                                 font.bold: true
-                                color: rebootMouse.containsMouse ? root.softBlue : root.onSurface
+                                color: rebootMouse.containsMouse ? root.softBlue : root.foreground
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                             Text {
                                 text: "RESTART"
                                 font.family: root.sansFont
                                 font.pixelSize: 9 * s
-                                color: rebootMouse.containsMouse ? root.onSurface : root.muted
+                                color: rebootMouse.containsMouse ? root.foreground : root.muted
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                         }
@@ -454,19 +439,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
 
                             Image {
-                                id: suspendIcon
-                                source: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'></path></svg>"
+                                source: "icons/sleep.svg"
                                 anchors.centerIn: parent
-                                width: 20 * s
-                                height: 20 * s
-                                sourceSize.width: 40 * s
-                                sourceSize.height: 40 * s
-                                visible: false
-                            }
-                            ColorOverlay {
-                                anchors.fill: suspendIcon
-                                source: suspendIcon
-                                color: root.primary
+                                width: 22 * s
+                                height: 22 * s
+                                sourceSize.width: 44 * s
+                                sourceSize.height: 44 * s
+                                opacity: suspendMouse.containsMouse ? 1 : 0.82
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
                         }
 
@@ -479,14 +459,14 @@ Rectangle {
                                 font.family: root.sansFont
                                 font.pixelSize: 12 * s
                                 font.bold: true
-                                color: suspendMouse.containsMouse ? root.softBlue : root.onSurface
+                                color: suspendMouse.containsMouse ? root.softBlue : root.foreground
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                             Text {
                                 text: "SUSPEND"
                                 font.family: root.sansFont
                                 font.pixelSize: 9 * s
-                                color: suspendMouse.containsMouse ? root.onSurface : root.muted
+                                color: suspendMouse.containsMouse ? root.foreground : root.muted
                                 Behavior on color { ColorAnimation { duration: 150 } }
                             }
                         }
@@ -563,7 +543,7 @@ Rectangle {
                         height: 52 * s
                         radius: 26 * s
                         color: root.surfaceRaised
-                        border.color: root.errorMessage !== "" ? root.error : (pwd.activeFocus ? root.primary : "transparent")
+                        border.color: root.errorMessage !== "" ? root.errorColor : (pwd.activeFocus ? root.primary : "transparent")
                         border.width: pwd.activeFocus ? 2 * s : 0
                         Behavior on border.color { ColorAnimation { duration: 150 } }
 
@@ -575,7 +555,7 @@ Rectangle {
                             font.family: root.sansFont
                             font.pixelSize: 18 * s
                             font.letterSpacing: 6 * s
-                            color: root.onSurface
+                            color: root.foreground
                             echoMode: TextInput.Password
                             passwordCharacter: "•"
                             horizontalAlignment: TextInput.AlignHCenter
@@ -596,7 +576,7 @@ Rectangle {
                                 font.pixelSize: 11 * s
                                 font.bold: true
                                 font.letterSpacing: 1.5 * s
-                                color: root.errorMessage !== "" ? root.error : root.muted
+                                color: root.errorMessage !== "" ? root.errorColor : root.muted
                                 opacity: pwd.text === "" && (!pwd.activeFocus || (!pwd.wasClicked && pwd.text.length === 0)) ? 1 : 0
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
@@ -606,7 +586,7 @@ Rectangle {
                                 id: customCursor
                                 width: 2 * s
                                 height: 18 * s
-                                color: root.onSurface
+                                color: root.foreground
                                 anchors.verticalCenter: parent.verticalCenter
                                 x: pwd.cursorRectangle.x
                                 visible: pwd.activeFocus && (pwd.text.length > 0 || pwd.wasClicked) && root.errorMessage === ""
@@ -660,7 +640,7 @@ Rectangle {
                                 font.pixelSize: 10 * s
                                 font.bold: true
                                 font.letterSpacing: 1 * s
-                                color: root.onSurface
+                                color: root.foreground
                             }
 
                             MouseArea {

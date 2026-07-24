@@ -150,10 +150,11 @@ install_template() {
 
 install_zen_preferences() {
     local profiles_file="$HOME/.zen/profiles.ini"
-    local profile_path profile_dir target temporary
+    local profile_path profile_dir target chrome_dir chrome_target temporary
+    local preferences_ready=0
 
     if [[ ! -f $profiles_file ]]; then
-        info 'Zen profile not created yet; its launcher will still request KWin decorations.'
+        info 'Zen profile not created yet; launch Zen once, then rerun --user to install its integrated controls.'
         return 0
     fi
 
@@ -169,7 +170,7 @@ install_zen_preferences() {
         ' "$profiles_file")
     fi
     if [[ -z $profile_path ]]; then
-        warn 'Could not identify Zen default profile; skipping its titlebar preference.'
+        warn 'Could not identify Zen default profile; skipping its integrated window controls.'
         return 0
     fi
 
@@ -178,42 +179,78 @@ install_zen_preferences() {
     target="$profile_dir/user.js"
 
     if [[ -f $target ]] && \
-       grep -Eq '^user_pref\("browser\.tabs\.inTitlebar",[[:space:]]*0\);[[:space:]]*$' "$target"; then
+       grep -Eq '^user_pref\("browser\.tabs\.inTitlebar",[[:space:]]*1\);[[:space:]]*$' "$target" && \
+       grep -Eq '^user_pref\("toolkit\.legacyUserProfileCustomizations\.stylesheets",[[:space:]]*true\);[[:space:]]*$' "$target"; then
+        preferences_ready=1
         info "Unchanged: ${target/#$HOME/~}"
-        return 0
     fi
 
-    if ((DRY_RUN)); then
+    if ((preferences_ready == 0 && DRY_RUN)); then
         backup_target "$target"
-        printf '  merge browser.tabs.inTitlebar=0 into %q\n' "$target"
-        return 0
-    fi
-
-    backup_target "$target"
-    mkdir -p -- "$profile_dir"
-    temporary=$(mktemp)
-    if [[ -f $target ]]; then
+        printf '  merge Zen integrated-titlebar and userChrome preferences into %q\n' "$target"
+    elif ((preferences_ready == 0)); then
+        backup_target "$target"
+        mkdir -p -- "$profile_dir"
+        temporary=$(mktemp)
         awk '
-            BEGIN { done = 0 }
+            BEGIN { titlebar = 0; stylesheets = 0 }
             /^user_pref\("browser\.tabs\.inTitlebar",/ {
-                if (!done) print "user_pref(\"browser.tabs.inTitlebar\", 0);"
-                done = 1
+                if (!titlebar) print "user_pref(\"browser.tabs.inTitlebar\", 1);"
+                titlebar = 1
+                next
+            }
+            /^user_pref\("toolkit\.legacyUserProfileCustomizations\.stylesheets",/ {
+                if (!stylesheets) print "user_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);"
+                stylesheets = 1
                 next
             }
             { print }
             END {
-                if (!done) {
+                if (!titlebar || !stylesheets) {
                     print ""
-                    print "// Let KWin/Klassy draw Zen titlebar and window controls."
-                    print "user_pref(\"browser.tabs.inTitlebar\", 0);"
+                    print "// Keep Zen controls integrated and load the Blade-owned CSD glyphs."
+                    if (!titlebar) print "user_pref(\"browser.tabs.inTitlebar\", 1);"
+                    if (!stylesheets) print "user_pref(\"toolkit.legacyUserProfileCustomizations.stylesheets\", true);"
                 }
             }
-        ' "$target" > "$temporary"
-    else
-        cp -- "$ROOT/dotfiles/apps/zen/user.js" "$temporary"
+        ' "$target" > "$temporary" 2>/dev/null || \
+            cp -- "$ROOT/dotfiles/apps/zen/user.js" "$temporary"
+        install -m 0644 -- "$temporary" "$target"
+        rm -f -- "$temporary"
     fi
-    install -m 0644 -- "$temporary" "$target"
-    rm -f -- "$temporary"
+
+    chrome_dir="$profile_dir/chrome"
+    install_file "$ROOT/dotfiles/apps/zen/chrome/blade-window-controls.css" \
+        "$chrome_dir/blade-window-controls.css"
+    install_file "$ROOT/dotfiles/apps/zen/chrome/blade-window-minimize.svg" \
+        "$chrome_dir/blade-window-minimize.svg"
+    install_file "$ROOT/dotfiles/apps/zen/chrome/blade-window-maximize.svg" \
+        "$chrome_dir/blade-window-maximize.svg"
+    install_file "$ROOT/dotfiles/apps/zen/chrome/blade-window-restore.svg" \
+        "$chrome_dir/blade-window-restore.svg"
+    install_file "$ROOT/dotfiles/apps/zen/chrome/blade-window-close.svg" \
+        "$chrome_dir/blade-window-close.svg"
+
+    chrome_target="$chrome_dir/userChrome.css"
+    if [[ -f $chrome_target ]] && \
+       grep -Fxq '@import url("blade-window-controls.css");' "$chrome_target"; then
+        info "Unchanged: ${chrome_target/#$HOME/~}"
+    elif ((DRY_RUN)); then
+        backup_target "$chrome_target"
+        printf '  merge Blade window-control import into %q\n' "$chrome_target"
+    else
+        backup_target "$chrome_target"
+        mkdir -p -- "$chrome_dir"
+        temporary=$(mktemp)
+        awk 'BEGIN {
+            print "@import url(\"blade-window-controls.css\");"
+            print ""
+        }
+        { print }' "$chrome_target" > "$temporary" 2>/dev/null || \
+            printf '@import url("blade-window-controls.css");\n' > "$temporary"
+        install -m 0644 -- "$temporary" "$chrome_target"
+        rm -f -- "$temporary"
+    fi
 }
 
 install_tree() {
@@ -289,6 +326,13 @@ install_user_files() {
         "$HOME/.local/share/plasma/look-and-feel/org.mysterious.artixdarkrounded.desktop"
     install_tree "$ROOT/kde/desktoptheme/artix-dark-rounded" \
         "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded"
+    install_tree "$ROOT/kde/plasma/plasmoids/org.mysterious.bladeclock" \
+        "$HOME/.local/share/plasma/plasmoids/org.mysterious.bladeclock"
+    if ((DRY_RUN)); then
+        "$ROOT/scripts/install-event-calendar.sh" --dry-run
+    else
+        "$ROOT/scripts/install-event-calendar.sh"
+    fi
     install_file "$ROOT/kde/color-schemes/ArtixDarkRounded.colors" \
         "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
     install_tree "$ROOT/assets/icons/candy-icons" "$HOME/.local/share/icons/candy-icons"
@@ -460,9 +504,15 @@ configure_system() {
     local sddm_theme=/usr/share/sddm/themes/artix-material-you
     backup_system_target "$sddm_theme"
     run sudo install -d -m 0755 "$sddm_theme"
+    run sudo install -d -m 0755 "$sddm_theme/icons"
     run sudo install -m 0644 "$ROOT/kde/sddm/artix-material-you/Main.qml" "$sddm_theme/Main.qml"
     run sudo install -m 0644 "$ROOT/kde/sddm/artix-material-you/metadata.desktop" "$sddm_theme/metadata.desktop"
     run sudo install -m 0644 "$ROOT/kde/sddm/artix-material-you/theme.conf" "$sddm_theme/theme.conf"
+    local sddm_icon
+    for sddm_icon in power session reboot sleep; do
+        run sudo install -m 0644 "$ROOT/kde/sddm/artix-material-you/icons/$sddm_icon.svg" \
+            "$sddm_theme/icons/$sddm_icon.svg"
+    done
     run sudo install -m 0644 "$ROOT/assets/wallpapers/login/login-ultrawide-3440x1440.png" \
         "$sddm_theme/login-ultrawide-3440x1440.png"
     run sudo install -m 0644 "$ROOT/assets/wallpapers/login/login-16x10-3840x2400.png" \
@@ -511,10 +561,14 @@ if ((DO_APPLY)); then
     if ((DRY_RUN)); then
         run "$ROOT/scripts/apply-kde.sh" --dry-run
         run "$ROOT/scripts/apply-panels.sh" --dry-run
+        run "$ROOT/scripts/apply-desktop-clock.sh" --dry-run
     else
         "$ROOT/scripts/apply-kde.sh"
         if ! "$ROOT/scripts/apply-panels.sh"; then
             warn 'The panel layout was installed but could not be applied to this Plasma session.'
+        fi
+        if ! "$ROOT/scripts/apply-desktop-clock.sh"; then
+            warn 'The desktop clock was installed but could not be applied to this Plasma session.'
         fi
     fi
 fi

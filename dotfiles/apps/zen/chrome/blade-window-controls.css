@@ -1,0 +1,26 @@
+/* Blade-owned Zen CSD glyphs. Keep this independent from GTK icon lookup. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  .titlebar-button > .toolbarbutton-icon {
+    -moz-context-properties: stroke, fill !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 14px 14px !important;
+  }
+
+  .titlebar-min > .toolbarbutton-icon {
+    background-image: url("blade-window-minimize.svg") !important;
+  }
+
+  .titlebar-max > .toolbarbutton-icon {
+    background-image: url("blade-window-maximize.svg") !important;
+  }
+
+  .titlebar-restore > .toolbarbutton-icon {
+    background-image: url("blade-window-restore.svg") !important;
+  }
+
+  .titlebar-close > .toolbarbutton-icon {
+    background-image: url("blade-window-close.svg") !important;
+    background-size: 12px 12px !important;
+  }
+}
