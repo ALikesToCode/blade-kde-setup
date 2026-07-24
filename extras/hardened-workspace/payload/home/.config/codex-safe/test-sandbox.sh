@@ -64,10 +64,12 @@ printf 'Verification repository: %s\n' "$test_root"
 
 for script in \
   "$HOME/.local/bin/codex-safe" \
+  "$HOME/.local/bin/codex-safe-migrate-mcp" \
   "$HOME/.local/bin/cloakserve" \
   "$HOME/.local/bin/playwright-cli" \
   "$HOME/.local/bin/playwright-mcp-safe" \
   "$config_dir/runtime-inner.sh" \
+  "$config_dir/keyring-stack.sh" \
   "$config_dir/self-test-inner.sh" \
   "$config_dir/doctor.sh" \
   "$config_dir/test-sandbox.sh" \
@@ -115,8 +117,12 @@ original_pwd=$PWD
 cd "$test_root"
 printf 'hard-link-risk\n' >hardlink-source
 ln hardlink-source hardlink-alias
-run_expect_failure 'refuse suspicious multiply linked workspace files by default' "$launcher" --version
+run_expect_success 'allow hard links when every inode alias is internal' "$launcher" --version
 rm -f hardlink-source hardlink-alias
+printf 'external-hard-link-risk\n' >"$outside_dir/hardlink-source"
+ln "$outside_dir/hardlink-source" hardlink-external-alias
+run_expect_failure 'refuse hard links with an external inode alias' "$launcher" --version
+rm -f hardlink-external-alias "$outside_dir/hardlink-source"
 run_expect_failure 'fail closed when CloakBrowser unavailable' env CODEX_SAFE_SIMULATE_CLOAK_MISSING=1 "$launcher" --version
 run_expect_failure 'fail closed on invalid Firejail profile' env CODEX_SAFE_SIMULATE_INVALID_PROFILE=1 "$launcher" --version
 run_expect_failure 'fail closed on simulated rejected Firejail user' env CODEX_SAFE_SIMULATE_FIREJAIL_DENY=1 "$launcher" --version

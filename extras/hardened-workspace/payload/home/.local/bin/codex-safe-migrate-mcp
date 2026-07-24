@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Copy only Codex MCP OAuth records from the current desktop Secret Service to
+# the dedicated codex-safe keyring. Secret values stay in process pipes and are
+# never printed or written to a temporary plaintext file.
+set -Eeuo pipefail
+umask 077
+
+die() { printf 'codex-safe-migrate-mcp: ERROR: %s\n' "$*" >&2; exit 1; }
+
+[[ "${CODEX_SAFE_ACTIVE-}" != 1 ]] || die "run this command outside codex-safe"
+[[ -n "${DBUS_SESSION_BUS_ADDRESS-}" ]] || die "desktop Secret Service is unavailable"
+host_bus=$DBUS_SESSION_BUS_ADDRESS
+
+config_file="$HOME/.config/codex-safe/config"
+[[ -r "$config_file" ]] || die "codex-safe config is missing"
+# shellcheck source=/dev/null
+source "$config_file"
+[[ -r "$CODEX_SAFE_KEYRING_LIB" ]] || die "private keyring helper is missing"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_KEYRING_LIB"
+command -v secret-tool >/dev/null 2>&1 || die "secret-tool is missing"
+
+cleanup() {
+  local rc=$?
+  codex_safe_keyring_stop
+  return "$rc"
+}
+trap cleanup EXIT
+codex_safe_keyring_start || die "private keyring failed to start"
+private_bus=$CODEX_SAFE_KEYRING_BUS_ADDRESS
+
+coproc HOST_SEARCH {
+  DBUS_SESSION_BUS_ADDRESS="$host_bus" secret-tool search --all \
+    application rust-keyring service 'Codex MCP Credentials' target default 2>/dev/null
+}
+search_pid=$HOST_SEARCH_PID
+exec {search_fd}<&"${HOST_SEARCH[0]}"
+
+label=''
+count=0
+while IFS= read -r line <&"$search_fd"; do
+  case "$line" in
+    'label = '*) label=${line#label = } ;;
+    'secret = '*)
+      [[ "$label" == *'@Codex MCP Credentials:default (keyring v'*')' ]] || \
+        die "unexpected Codex credential label"
+      username=${label%%@Codex MCP Credentials:default \(keyring v*}
+      [[ "$username" =~ ^[A-Za-z0-9._:-]+\|[0-9a-f]{16}$ ]] || \
+        die "unexpected Codex credential username"
+      secret=${line#secret = }
+      printf '%s' "$secret" | DBUS_SESSION_BUS_ADDRESS="$private_bus" \
+        secret-tool store --label="$label" \
+          application rust-keyring \
+          service 'Codex MCP Credentials' \
+          username "$username" \
+          target default >/dev/null
+      unset secret
+      printf 'Imported MCP credential for %s\n' "${username%%|*}"
+      count=$((count + 1))
+      label=''
+      ;;
+  esac
+done
+exec {search_fd}<&-
+set +e
+wait "$search_pid"
+search_rc=$?
+set -e
+(( search_rc == 0 )) || die "desktop keyring search failed"
+(( count > 0 )) || die "no logged-in Codex MCP credentials were found in the desktop keyring"
+printf 'Imported %d MCP credential(s) into the private codex-safe keyring.\n' "$count"

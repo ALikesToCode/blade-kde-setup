@@ -45,6 +45,23 @@ check_outer_status() {
   if [[ "$(findmnt --target "$CODEX_SAFE_EPHEMERAL_ROOT" --noheadings --output FSTYPE | tail -n 1)" == tmpfs ]]; then pass 'private Codex/browser state tmpfs active'; else fail 'private Codex/browser state tmpfs active'; fi
   if [[ ! -S /run/docker.sock ]]; then pass 'host Docker control socket hidden'; else fail 'host Docker control socket hidden'; fi
   if [[ ! -e "/run/user/$(id -u)/bus" ]]; then pass 'user D-Bus socket hidden'; else fail 'user D-Bus socket hidden'; fi
+  if [[ "${DBUS_SESSION_BUS_ADDRESS-}" == "${CODEX_SAFE_KEYRING_BUS_ADDRESS-}" && \
+        "$DBUS_SESSION_BUS_ADDRESS" == "unix:path=$CODEX_SAFE_KEYRING_RUNTIME_ROOT/session."*'/bus' ]]; then
+    pass 'private MCP credential bus selected'
+  else
+    fail 'private MCP credential bus selected'
+  fi
+  if busctl --user --list --no-pager 2>/dev/null | grep -Fq org.freedesktop.secrets; then
+    pass 'private MCP Secret Service reachable'
+  else
+    fail 'private MCP Secret Service reachable'
+  fi
+  if [[ ! -e "$CODEX_SAFE_KEYRING_PASSWORD" && \
+        -z $(find "$CODEX_SAFE_KEYRING_STATE" -mindepth 1 -print -quit 2>/dev/null) ]]; then
+    pass 'private keyring files hidden'
+  else
+    fail 'private keyring files hidden'
+  fi
 }
 
 check_filesystem() {

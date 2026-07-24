@@ -13,7 +13,8 @@ nonewprivs
 caps.drop all
 seccomp
 protocol unix,inet,inet6,netlink
-dbus-user none
+# The host user bus remains blacklisted below. The launcher supplies one
+# per-session D-Bus socket connected only to the private codex-safe keyring.
 dbus-system none
 noautopulse
 nosound
@@ -53,6 +54,7 @@ blacklist ${HOME}/.config/gh
 blacklist ${HOME}/.config/gcloud
 blacklist ${HOME}/.config/rclone
 blacklist ${HOME}/.local/share/keyrings
+blacklist ${HOME}/.local/share/codex-safe/keyring
 blacklist ${HOME}/.password-store
 blacklist ${HOME}/.netrc
 blacklist ${HOME}/.npmrc

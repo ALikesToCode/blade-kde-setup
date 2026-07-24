@@ -13,7 +13,11 @@ downloads, test repositories, and third-party binary archives are excluded.
 ## Preconditions
 
 The normal package manifest supplies Firejail, curl, jq, pipx, ripgrep, and the
-other command-line dependencies. Before staging, the target username must be a
+other command-line dependencies. Install `gnome-keyring` as the isolated MCP
+Secret Service broker; it does not replace KDE Wallet as the desktop backend.
+The installer masks the package's user socket/service for this account and
+starts the daemon only on codex-safe's private bus.
+Before staging, the target username must be a
 standalone line in `/etc/firejail/firejail.users`; this bounded system change is
 left manual so the installer never edits an access-control list implicitly.
 
@@ -44,7 +48,9 @@ Preview the repository-level integration:
 Then stage the wrappers and add the shell/browser policy:
 
 ```bash
+sudo pacman -S --needed gnome-keyring
 ./install.sh --hardened
+codex-safe-migrate-mcp
 ```
 
 The installer records a pre-install baseline beneath
@@ -57,12 +63,27 @@ Start it from a normal project directory—not `/`, the home directory, a mount
 root, or a temporary-system root:
 
 ```bash
+codex
+```
+
+The hardened launcher remains available only when invoked explicitly:
+
+```bash
 codex-safe
 codex-safe exec "inspect this project"
 ```
 
-The wrapper rejects unsafe launch roots, linked-file aliases, missing sandbox
-controls, changed browser hashes, and unavailable local CDP endpoints. Run the
+`codex` remains the normal launcher and is not aliased to `codex-safe`.
+Commands spawned by an explicit `codex-safe` session, its subagents, and the
+`playwright_safe` MCP server receive the same per-session CloakBrowser CDP
+endpoint.
+MCP OAuth records persist in a dedicated encrypted keyring whose files and
+unlock key are hidden from the jail. The host KDE Wallet is never mounted or
+exposed over D-Bus.
+
+The wrapper rejects unsafe launch roots, hard links whose inode counts prove an
+external alias, missing sandbox controls, changed browser hashes, and
+unavailable local CDP endpoints. Internal-only hard links are accepted. Run the
 read-only doctor first, then the contained self-test when wanted:
 
 ```bash

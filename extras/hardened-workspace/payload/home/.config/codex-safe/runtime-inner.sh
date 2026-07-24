@@ -214,8 +214,16 @@ export CODEX_SAFE_RUNTIME_DIR=$runtime_dir
 export XDG_RUNTIME_DIR=$xdg_runtime
 export XDG_CACHE_HOME=$xdg_cache
 export XDG_CONFIG_HOME=$xdg_config
-export DBUS_SESSION_BUS_ADDRESS=disabled:
+[[ "${CODEX_SAFE_KEYRING_BUS_ADDRESS-}" == \
+    "unix:path=$CODEX_SAFE_KEYRING_RUNTIME_ROOT/session."*'/bus' ]] || \
+  die "private MCP credential bus address is invalid"
+keyring_bus_socket=${CODEX_SAFE_KEYRING_BUS_ADDRESS#unix:path=}
+[[ -S "$keyring_bus_socket" ]] || die "private MCP credential bus socket is unavailable"
+export DBUS_SESSION_BUS_ADDRESS=$CODEX_SAFE_KEYRING_BUS_ADDRESS
 export DBUS_SYSTEM_BUS_ADDRESS=disabled:
+if ! busctl --user --list --no-pager 2>/dev/null | grep -Fq org.freedesktop.secrets; then
+  die "private MCP credential service is unavailable"
+fi
 
 if [[ -n "${NODE_OPTIONS-}" ]]; then
   export NODE_OPTIONS="--require=$CODEX_SAFE_NODE_PRELOAD $NODE_OPTIONS"
@@ -268,8 +276,22 @@ codex_policy_args=(
   -c 'sandbox_workspace_write.exclude_tmpdir_env_var=false'
   -c 'sandbox_workspace_write.exclude_slash_tmp=false'
   -c 'features.use_legacy_landlock=true'
+  -c 'mcp_oauth_credentials_store="keyring"'
+  -c 'shell_environment_policy.exclude=["DBUS_SESSION_BUS_ADDRESS","CODEX_SAFE_KEYRING_BUS_ADDRESS","CODEX_SAFE_KEYRING_RUNTIME_ROOT","CODEX_SAFE_KEYRING_STATE","CODEX_SAFE_KEYRING_PASSWORD"]'
   -c "mcp_servers.playwright_safe.command=\"$PLAYWRIGHT_MCP_SAFE\""
   -c 'mcp_servers.playwright_safe.startup_timeout_sec=30'
+  -c 'mcp_servers.playwright_safe.env.CODEX_SAFE_ACTIVE="1"'
+  -c "mcp_servers.playwright_safe.env.CLOAK_CDP_ENDPOINT=\"$endpoint\""
+  -c "mcp_servers.playwright_safe.env.PLAYWRIGHT_MCP_CONFIG=\"$playwright_mcp_config\""
+  -c "mcp_servers.playwright_safe.env.PLAYWRIGHT_MCP_OUTPUT_DIR=\"$artifact_dir\""
+  -c 'shell_environment_policy.set.CODEX_SAFE_ACTIVE="1"'
+  -c "shell_environment_policy.set.CODEX_SAFE_SESSION_ID=\"$CODEX_SAFE_SESSION_ID\""
+  -c "shell_environment_policy.set.CLOAK_CDP_ENDPOINT=\"$endpoint\""
+  -c "shell_environment_policy.set.PLAYWRIGHT_MCP_CDP_ENDPOINT=\"$endpoint\""
+  -c "shell_environment_policy.set.PLAYWRIGHT_MCP_CONFIG=\"$playwright_mcp_config\""
+  -c "shell_environment_policy.set.PLAYWRIGHT_MCP_OUTPUT_DIR=\"$artifact_dir\""
+  -c "shell_environment_policy.set.PLAYWRIGHT_CLI_OUTPUT_DIR=\"$artifact_dir\""
+  -c "shell_environment_policy.set.XDG_RUNTIME_DIR=\"$xdg_runtime\""
 )
 
 # Bash redirects stdin from /dev/null for asynchronous commands when job control

@@ -26,7 +26,9 @@ printf '  Codex sandbox: workspace-write; approval: on-request; network: enabled
 printf '  Codex compatibility: features.use_legacy_landlock=true in temporary runtime overrides only\n'
 printf '  browser: CloakBrowser %s -> loopback CDP -> Playwright CLI/MCP/scripts\n' "$CLOAKBROWSER_VERSION"
 printf '  browser state: dedicated private state tmpfs; artifacts: <workspace>/.playwright-cli\n'
-printf '  D-Bus: user/system disabled; capabilities: all dropped; nonewprivs+seccomp: enabled\n'
+printf '  D-Bus: host buses disabled; private MCP Secret Service broker only\n'
+printf '  MCP credentials: encrypted dedicated keyring; keyring files hidden inside jail\n'
+printf '  capabilities: all dropped; nonewprivs+seccomp: enabled\n'
 
 if [[ $(. /etc/os-release; printf '%s' "$ID") == arch ]]; then pass 'Arch Linux detected'; else fail 'Arch Linux detected'; fi
 if ps -p 1 -o comm= 2>/dev/null | grep -qx systemd; then pass 'systemd init detected'; else fail 'systemd init detected'; fi
@@ -37,6 +39,8 @@ check_exec "$HOME/.local/bin/playwright-cli"
 check_exec "$HOME/.local/bin/playwright-mcp-safe"
 check_exec "$CODEX_SAFE_INNER"
 check_exec "$CODEX_SAFE_SELF_TEST_INNER"
+check_file "$CODEX_SAFE_KEYRING_LIB"
+check_exec "$HOME/.local/bin/codex-safe-migrate-mcp"
 check_file "$CODEX_SAFE_PROFILE"
 check_exec "$CODEX_ORIGINAL_BIN_LINK"
 check_exec "$CLOAKSERVE_BIN"
@@ -45,6 +49,11 @@ check_exec "$PLAYWRIGHT_CLI_REAL"
 check_exec "$PLAYWRIGHT_MCP_REAL"
 check_exec "$SHELLCHECK_REAL"
 check_file "$HOME/.config/codex-safe/PROVENANCE.md"
+if command -v gnome-keyring-daemon >/dev/null; then pass 'private keyring daemon installed'; else fail 'private keyring daemon installed'; fi
+if [[ $(systemctl --user is-enabled gnome-keyring-daemon.socket 2>/dev/null || true) == masked && \
+      $(systemctl --user is-enabled gnome-keyring-daemon.service 2>/dev/null || true) == masked ]]; then pass 'desktop gnome-keyring units masked'; else fail 'desktop gnome-keyring units masked'; fi
+if [[ -d "$CODEX_SAFE_KEYRING_STATE" && ! -L "$CODEX_SAFE_KEYRING_STATE" ]]; then pass 'private keyring state directory'; else fail 'private keyring state directory'; fi
+if [[ -f "$CODEX_SAFE_KEYRING_PASSWORD" && ! -L "$CODEX_SAFE_KEYRING_PASSWORD" && $(stat -Lc '%a' "$CODEX_SAFE_KEYRING_PASSWORD") == 600 ]]; then pass 'private keyring unlock file protected'; else fail 'private keyring unlock file protected'; fi
 if [[ -d "$CODEX_SAFE_EPHEMERAL_ROOT" && ! -L "$CODEX_SAFE_EPHEMERAL_ROOT" ]] && [[ -z $(find "$CODEX_SAFE_EPHEMERAL_ROOT" -mindepth 1 -print -quit 2>/dev/null) ]]; then pass 'host ephemeral mountpoint exists and is empty'; else fail 'host ephemeral mountpoint exists and is empty'; fi
 if [[ -x "$SHELLCHECK_REAL" ]] && [[ $(sha256sum "$SHELLCHECK_REAL" | awk '{print $1}') == "$SHELLCHECK_SHA256" ]]; then pass 'pinned standalone ShellCheck checksum'; else fail 'pinned standalone ShellCheck checksum'; fi
 

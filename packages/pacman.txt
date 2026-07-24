@@ -8,6 +8,7 @@ breeze-icons
 curl
 firejail
 git
+gnome-keyring
 iproute2
 jq
 konsole

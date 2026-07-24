@@ -20,6 +20,13 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Keep the change tightly scoped to the request. Do not mix unrelated cleanup, formatting, dependency upgrades, or refactors into the work.
 - Preserve user-authored and pre-existing uncommitted changes. Never overwrite them to make an implementation easier.
 
+### Skill and configuration access
+
+- Files and directories under `~/.agents` and `~/.codex` are explicitly in scope for read-only access whenever they are needed for skills, instructions, configuration, documentation, diagnostics, or task context.
+- Listing, searching, traversing, and reading those paths does not require destructive-action approval. Do not interpret the filesystem safety rules as a prohibition on reading them, and do not claim they are inaccessible unless a tool returns a concrete access error.
+- Follow referenced skill and instruction files directly from those locations. If a particular tool is sandboxed, use another available read-only mechanism or report the exact failing operation rather than treating the whole directory as forbidden.
+- This read authorization does not authorize deletion. Deleting, moving, replacing, or otherwise destructively changing anything under `~/.agents` or `~/.codex` still requires explicit user approval immediately before the action; ordinary edits remain subject to the task scope and the destructive-action rules below.
+
 ### Design for clarity and modularity
 
 - Give each module, class, component, and function one clear responsibility and a small, explicit public interface.

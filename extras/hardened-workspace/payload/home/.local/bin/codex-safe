@@ -64,6 +64,8 @@ require_regular_secure_file "$config_file"
 # shellcheck source=/dev/null
 source "$config_file"
 export CODEX_SAFE_PROFILE CODEX_SAFE_INNER CODEX_SAFE_SELF_TEST_INNER
+export CODEX_SAFE_KEYRING_LIB CODEX_SAFE_KEYRING_RUNTIME_ROOT
+export CODEX_SAFE_KEYRING_STATE CODEX_SAFE_KEYRING_PASSWORD
 export CODEX_SAFE_NODE_PRELOAD CODEX_SAFE_PYTHON_DIR CLOAKSERVE_BIN
 export CLOAKBROWSER_VERSION CLOAKBROWSER_BINARY_PATH PLAYWRIGHT_CLI_REAL
 export CLOAKSERVE_SOURCE_SHA256 CLOAKBROWSER_BINARY_SHA256
@@ -84,8 +86,11 @@ grep -Fxq -- "$(id -un)" /etc/firejail/firejail.users || die "current user is no
 require_regular_secure_file "$CODEX_SAFE_PROFILE"
 require_regular_secure_file "$CODEX_SAFE_INNER"
 require_regular_secure_file "$CODEX_SAFE_SELF_TEST_INNER"
+require_regular_secure_file "$CODEX_SAFE_KEYRING_LIB"
 require_regular_secure_file "$CODEX_SAFE_NODE_PRELOAD"
 [[ -d "$CODEX_SAFE_PYTHON_DIR" ]] || die "Python Playwright policy directory is missing"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_KEYRING_LIB"
 
 workspace=$(realpath -e -- /proc/self/cwd 2>/dev/null) || die "cannot resolve the launch directory"
 [[ -n "$workspace" && -d "$workspace" && "$workspace" == /* ]] || die "launch directory is empty, unresolved, or not absolute"
@@ -118,14 +123,42 @@ while IFS= read -r nested_mount; do
   fi
 done < <(findmnt --json --real --output TARGET | jq -r '.. | objects | .target? // empty')
 
-hardlink_probe=''
-if ! hardlink_probe=$(find "$workspace" -xdev -type f -links +1 -print -quit 2>/dev/null); then
-  die "hard-link scan failed"
-fi
-if [[ -n "$hardlink_probe" ]]; then
+declare -A hardlink_count=()
+declare -A hardlink_expected=()
+declare -A hardlink_example=()
+coproc HARDLINK_SCAN {
+  find "$workspace" -xdev -type f -links +1 -printf '%D %i %n\0%p\0' 2>/dev/null
+}
+hardlink_scan_pid=$HARDLINK_SCAN_PID
+exec {hardlink_scan_fd}<&"${HARDLINK_SCAN[0]}"
+while IFS= read -r -d '' metadata <&"$hardlink_scan_fd" && \
+      IFS= read -r -d '' pathname <&"$hardlink_scan_fd"; do
+  read -r device inode link_count <<<"$metadata"
+  [[ "$device" =~ ^[0-9]+$ && "$inode" =~ ^[0-9]+$ && "$link_count" =~ ^[0-9]+$ ]] || \
+    die "invalid hard-link scan record"
+  hardlink_key="$device:$inode"
+  hardlink_count[$hardlink_key]=$(( ${hardlink_count[$hardlink_key]:-0} + 1 ))
+  hardlink_expected[$hardlink_key]=$link_count
+  hardlink_example[$hardlink_key]=$pathname
+done
+exec {hardlink_scan_fd}<&-
+set +e
+wait "$hardlink_scan_pid"
+hardlink_scan_rc=$?
+set -e
+(( hardlink_scan_rc == 0 )) || die "hard-link scan failed"
+
+external_hardlink=''
+for hardlink_key in "${!hardlink_count[@]}"; do
+  if (( hardlink_count[$hardlink_key] != hardlink_expected[$hardlink_key] )); then
+    external_hardlink=${hardlink_example[$hardlink_key]}
+    break
+  fi
+done
+if [[ -n "$external_hardlink" ]]; then
   if [[ "${CODEX_SAFE_ALLOW_HARDLINKS-0}" != 1 ]]; then
-    printf 'codex-safe: suspicious multiply linked file: %q\n' "$hardlink_probe" >&2
-    die "refusing hard-linked workspace; set CODEX_SAFE_ALLOW_HARDLINKS=1 only after reviewing inode aliases"
+    printf 'codex-safe: hard-linked file has an alias outside the workspace: %q\n' "$external_hardlink" >&2
+    die "refusing external inode alias; set CODEX_SAFE_ALLOW_HARDLINKS=1 only after reviewing every alias"
   fi
   warn "hard-link override active; external inode aliases remain a persistent-write risk"
 fi
@@ -260,8 +293,29 @@ export CODEX_SAFE_PROXY=$proxy_value
 CODEX_SAFE_SESSION_ID="$(printf '%s-%s-%s' "$$" "$(date +%s)" "$RANDOM")"
 export CODEX_SAFE_SESSION_ID
 export TMPDIR=/tmp
-export DBUS_SESSION_BUS_ADDRESS=disabled:
 export DBUS_SYSTEM_BUS_ADDRESS=disabled:
+
+jail_pid=''
+outer_cleanup_done=0
+cleanup_outer() {
+  local rc=$?
+  (( outer_cleanup_done == 0 )) || return "$rc"
+  outer_cleanup_done=1
+  set +e
+  if [[ -n "$jail_pid" ]] && kill -0 "$jail_pid" 2>/dev/null; then
+    kill -TERM "$jail_pid" 2>/dev/null || true
+    wait "$jail_pid" 2>/dev/null || true
+  fi
+  codex_safe_keyring_stop
+  return "$rc"
+}
+trap cleanup_outer EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+codex_safe_keyring_start || die "private MCP credential broker failed to start"
+export DBUS_SESSION_BUS_ADDRESS=$CODEX_SAFE_KEYRING_BUS_ADDRESS
 
 profile_to_use=$CODEX_SAFE_PROFILE
 if [[ "${CODEX_SAFE_SIMULATE_INVALID_PROFILE-0}" == 1 ]]; then
@@ -271,7 +325,7 @@ fi
 # Firejail's Landlock rules are inherited across nested namespaces. Chromium may
 # create its own restricted namespaces, but neither it nor Codex can remount a
 # writable host view outside the workspace. The verification suite tests this.
-exec /usr/bin/firejail \
+/usr/bin/firejail \
   --profile="$profile_to_use" \
   --name="codex-safe-$CODEX_SAFE_SESSION_ID" \
   --read-write="$workspace" \
@@ -285,4 +339,11 @@ exec /usr/bin/firejail \
   --landlock.fs.makeipc=/tmp \
   --landlock.fs.makeipc="$ephemeral_real" \
   --landlock.enforce \
-  "$CODEX_SAFE_INNER" "${forward[@]}"
+  "$CODEX_SAFE_INNER" "${forward[@]}" 0<&0 &
+jail_pid=$!
+set +e
+wait "$jail_pid"
+rc=$?
+set -e
+jail_pid=''
+exit "$rc"

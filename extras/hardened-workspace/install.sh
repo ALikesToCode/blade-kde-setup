@@ -75,7 +75,8 @@ append_block() {
 if [[ "$action" == stage ]]; then
   os_id=$(. /etc/os-release; printf '%s' "$ID")
   [[ "$os_id" == arch || "$os_id" == artix ]] || die "this installer supports Arch/Artix only"
-  for command_name in firejail node npm npx python pipx jq curl ss findmnt git realpath sha256sum; do
+  for command_name in firejail node npm npx python pipx jq curl ss findmnt git realpath sha256sum \
+      openssl dbus-daemon busctl secret-tool gnome-keyring-daemon systemctl; do
     command -v "$command_name" >/dev/null 2>&1 || die "missing command: $command_name"
   done
   [[ -r /etc/firejail/firejail.users ]] || die "install /etc/firejail/firejail.users before staging"
@@ -103,10 +104,48 @@ if [[ "$action" == stage ]]; then
     chmod 700 "$ephemeral_mount"
   fi
 
+  keyring_runtime="$HOME/.cache/codex-safe-keyring-runtime"
+  keyring_state="$HOME/.local/share/codex-safe/keyring"
+  keyring_password="$keyring_state/unlock.key"
+  for managed_dir in "$keyring_runtime" "$keyring_state"; do
+    if [[ ! -e "$managed_dir" && ! -L "$managed_dir" ]]; then
+      backup_target "$managed_dir"
+      install -d -m 700 "$managed_dir"
+    else
+      [[ -d "$managed_dir" && ! -L "$managed_dir" ]] || die "unsafe managed directory: $managed_dir"
+      [[ $(stat -Lc '%u' -- "$managed_dir") == "$(id -u)" ]] || die "wrong owner on $managed_dir"
+      managed_mode=$(stat -Lc '%a' -- "$managed_dir")
+      (( (8#$managed_mode & 8#077) == 0 )) || die "group/world-accessible managed directory: $managed_dir"
+      chmod 700 "$managed_dir"
+    fi
+  done
+  install -d -m 700 "$keyring_state/home" "$keyring_state/data" "$keyring_state/config"
+  if [[ ! -e "$keyring_password" && ! -L "$keyring_password" ]]; then
+    backup_target "$keyring_password"
+    openssl rand -out "$keyring_password" -base64 48
+    chmod 600 "$keyring_password"
+  else
+    [[ -f "$keyring_password" && ! -L "$keyring_password" ]] || die "unsafe private keyring unlock file"
+    [[ $(stat -Lc '%u' -- "$keyring_password") == "$(id -u)" ]] || die "wrong owner on private keyring unlock file"
+    [[ $(stat -Lc '%a' -- "$keyring_password") == 600 ]] || die "unsafe mode on private keyring unlock file"
+  fi
+
+  # The package ships a globally enabled user socket. Mask it for this account
+  # so KDE's ksecretd remains the desktop Secret Service; codex-safe invokes the
+  # daemon binary directly on a private bus and is unaffected by these masks.
+  for keyring_unit in gnome-keyring-daemon.socket gnome-keyring-daemon.service; do
+    mask_path="$HOME/.config/systemd/user/$keyring_unit"
+    if [[ ! -L "$mask_path" || $(readlink -- "$mask_path" 2>/dev/null || true) != /dev/null ]]; then
+      backup_target "$mask_path"
+    fi
+  done
+  systemctl --user mask --now gnome-keyring-daemon.socket gnome-keyring-daemon.service >/dev/null
+
   install -d -m 700 "$HOME/.config/codex-safe" "$HOME/.config/codex-safe/python" "$HOME/.config/firejail"
   install -d -m 755 "$HOME/.local/bin" "$HOME/.local/share/codex-safe"
   install_payload_file .config/firejail/codex-safe.profile 644
   install_payload_file .config/codex-safe/config 600
+  install_payload_file .config/codex-safe/keyring-stack.sh 600
   install_payload_file .config/codex-safe/runtime-inner.sh 755
   install_payload_file .config/codex-safe/self-test-inner.sh 755
   install_payload_file .config/codex-safe/node-playwright-preload.cjs 644
@@ -118,6 +157,7 @@ if [[ "$action" == stage ]]; then
   install_payload_file .config/codex-safe/test-sandbox.sh 755
   install_payload_file .config/codex-safe/uninstall.sh 755
   install_payload_file .local/bin/codex-safe 755
+  install_payload_file .local/bin/codex-safe-migrate-mcp 755
   install_payload_file .local/bin/cloakserve 755
   install_payload_file .local/bin/playwright-cli 755
   install_payload_file .local/bin/playwright-mcp-safe 755
@@ -147,9 +187,4 @@ Search APIs may be used only to discover sources and URLs. Do not claim that bui
 Do not use CloakBrowser stealth functionality to bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.'
 append_block "$HOME/.codex/AGENTS.md" "$agents_begin" "$agents_end" "$agents_content"
 
-if [[ -f "$HOME/.zshrc" ]] && rg -q '(^|[[:space:]])(alias[[:space:]]+codex=|function[[:space:]]+codex|codex\(\))' "$HOME/.zshrc"; then
-  note "conflicting codex alias/function found in ~/.zshrc; alias was not added"
-else
-  append_block "$HOME/.zshrc" '# >>> codex-safe alias >>>' '# <<< codex-safe alias <<<' "alias codex='codex-safe'"
-fi
-note "shell/browser integration installed"
+note "browser policy integration installed"

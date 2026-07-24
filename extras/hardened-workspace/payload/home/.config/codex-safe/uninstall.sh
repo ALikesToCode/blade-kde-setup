@@ -56,11 +56,13 @@ fi
 
 created=(
   "$HOME/.local/bin/codex-safe"
+  "$HOME/.local/bin/codex-safe-migrate-mcp"
   "$HOME/.local/bin/cloakserve"
   "$HOME/.local/bin/playwright-cli"
   "$HOME/.local/bin/playwright-mcp-safe"
   "$HOME/.config/firejail/codex-safe.profile"
   "$HOME/.config/codex-safe/config"
+  "$HOME/.config/codex-safe/keyring-stack.sh"
   "$HOME/.config/codex-safe/runtime-inner.sh"
   "$HOME/.config/codex-safe/self-test-inner.sh"
   "$HOME/.config/codex-safe/node-playwright-preload.cjs"
@@ -73,13 +75,20 @@ created=(
   "$HOME/.config/codex-safe/uninstall.sh"
   "$HOME/.config/codex-safe/codex-original"
   "$HOME/.config/codex-safe/install-state"
+  "$HOME/.config/systemd/user/gnome-keyring-daemon.socket"
+  "$HOME/.config/systemd/user/gnome-keyring-daemon.service"
 )
 for target in "${created[@]}"; do
   [[ -n "${restored[$target]-}" ]] || rm -f -- "$target"
 done
+systemctl --user daemon-reload >/dev/null 2>&1 || true
 runtime_mount="$HOME/.cache/codex-safe-runtime"
 if [[ -z "${restored[$runtime_mount]-}" ]]; then
   rmdir -- "$runtime_mount" 2>/dev/null || printf 'kept non-empty runtime mountpoint %s\n' "$runtime_mount"
+fi
+keyring_runtime="$HOME/.cache/codex-safe-keyring-runtime"
+if [[ -z "${restored[$keyring_runtime]-}" ]]; then
+  rmdir -- "$keyring_runtime" 2>/dev/null || printf 'kept non-empty keyring runtime directory %s\n' "$keyring_runtime"
 fi
 if awk -F '\t' -v target="$HOME/.zshrc" '$1=="CREATED" && $2==target {found=1} END {exit !found}' "$manifest" 2>/dev/null && [[ -f "$HOME/.zshrc" && ! -s "$HOME/.zshrc" ]]; then
   rm -f -- "$HOME/.zshrc"
@@ -90,10 +99,14 @@ if [[ -r /etc/firejail/firejail.users ]] && grep -Fxq "$(id -un)" /etc/firejail/
 fi
 
 if (( purge == 1 )); then
-  printf '%s\n' 'WARNING: --purge removes the CloakBrowser pipx environment, verified browser cache, and dedicated Playwright npm tree.'
+  printf '%s\n' 'WARNING: --purge removes the private MCP keyring, CloakBrowser pipx environment, verified browser cache, and dedicated Playwright npm tree.'
   pipx uninstall cloakbrowser 2>/dev/null || true
   if [[ "$HOME/.local/share/codex-safe" == "$HOME/"* ]]; then rm -rf -- "$HOME/.local/share/codex-safe"; fi
   if [[ "$HOME/.cloakbrowser" == "$HOME/"* ]]; then rm -rf -- "$HOME/.cloakbrowser"; fi
+fi
+
+if (( purge == 0 )) && [[ -d "$HOME/.local/share/codex-safe/keyring" ]]; then
+  printf 'Preserved private MCP credentials at %s\n' "$HOME/.local/share/codex-safe/keyring"
 fi
 
 printf 'Backups remain at %s\n' "$HOME/.config/codex-safe/backups"

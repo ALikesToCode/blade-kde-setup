@@ -16,14 +16,15 @@ codex-safe exec "your task"
 codex-safe --search
 ```
 
-After verified shell integration, `codex` is an alias for `codex-safe` in
-`~/.zshrc`. The original executable is recorded by the
-`~/.config/codex-safe/codex-original` symlink. No silent unsafe-host launcher is
-installed.
+`codex` remains the normal launcher and is not aliased to `codex-safe`. The
+hardened launcher is used only when `codex-safe` is invoked explicitly. The
+original executable is recorded by the
+`~/.config/codex-safe/codex-original` symlink.
 
 The launcher refuses `/`, `$HOME`, `/tmp`, `/var/tmp`, `/run`, any mount root,
-unresolved paths, nested mounts, and workspaces containing multiply linked
-regular files. A reviewed hard-link exception requires the explicit
+unresolved paths and nested mounts. Multiply linked files are accepted when the
+inode link count proves every alias is inside the workspace. If any alias is
+external, a reviewed exception requires the explicit
 `CODEX_SAFE_ALLOW_HARDLINKS=1` environment variable. Hard links alias an inode,
 so editing a workspace pathname can still alter an external pathname that names
 the same inode; Firejail path mounts cannot split that inode identity.
@@ -46,8 +47,14 @@ standalone clone or disposable full repository when commits are required.
   with mode `0600` into a per-session private `CODEX_HOME`; skills, plugins,
   packages, and vendor imports are linked read-only. Mutable session databases,
   logs, browser state, and caches disappear on exit.
+- MCP OAuth records use a separate encrypted keyring under
+  `~/.local/share/codex-safe/keyring`. A trusted broker runs outside the jail
+  and exposes only a private per-session Secret Service socket. The keyring
+  files and unlock key are blacklisted inside the jail, and the host KDE Wallet
+  and user D-Bus remain inaccessible. The package's desktop user units are
+  masked so KDE's `ksecretd` remains the normal desktop Secret Service.
 - Firejail drops all capabilities, enables `nonewprivs`, seccomp, a private PID/
-  IPC/device/tmp view, disables user/system D-Bus, and applies inherited
+  IPC/device/tmp view, disables the host user/system D-Bus, and applies inherited
   Landlock write rules. Chromium may create its own *restricted* namespaces for
   its internal sandbox, but inherited Landlock and read-only mounts prevent a
   second namespace from recovering an external writable host view.
@@ -71,7 +78,9 @@ Only then is Codex started. The environment exports `CLOAK_CDP_ENDPOINT`,
 `PLAYWRIGHT_MCP_CDP_ENDPOINT`, `PLAYWRIGHT_MCP_CONFIG`,
 `PLAYWRIGHT_MCP_OUTPUT_DIR`, and `CLOAKBROWSER_AUTO_UPDATE=false`. Official
 Playwright CLI/MCP attach over CDP. Node and Python Playwright launch calls are
-intercepted and attached to the same endpoint. Stock browser paths and
+intercepted and attached to the same endpoint. The dynamic CDP and artifact
+variables are also injected into Codex-spawned commands and the Playwright MCP
+server, so delegated agents use the same browser session. Stock browser paths and
 Playwright browser caches are hidden; failure never falls back to stock
 Chromium. Screenshots, snapshots, traces, downloads, and output belong in
 `<workspace>/.playwright-cli/`.
@@ -84,12 +93,18 @@ Chromium necessarily receives proxy configuration in its own process arguments.
 ## Operations
 
 ```sh
+codex-safe-migrate-mcp
 ~/.config/codex-safe/doctor.sh
 ~/.config/codex-safe/doctor.sh --run
 CODEX_SAFE_KEEP_TEST_REPO=1 ~/.config/codex-safe/test-sandbox.sh
 ~/.config/codex-safe/uninstall.sh
 ~/.config/codex-safe/uninstall.sh --purge
 ```
+
+Run `codex-safe-migrate-mcp` once after installation to copy only the existing
+Codex MCP OAuth records from the desktop Secret Service. Secret values move
+through process pipes and are never printed or placed in a plaintext temporary
+file. Future refreshes and logins persist in the dedicated keyring.
 
 `playwright-cli` deliberately fails outside `codex-safe`. Search APIs can
 discover sources and URLs, but their traffic is not claimed to pass through
