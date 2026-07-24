@@ -256,7 +256,15 @@ if have npm && have node; then
     npm_prefix=$(npm config get prefix 2>/dev/null || true)
     mapfile -t npm_packages < <(npm_unowned_packages)
     if ((${#npm_packages[@]})); then
-        npm_command=(npm update --global --no-fund --no-audit "${npm_packages[@]}")
+        npm_targets=()
+        for package in "${npm_packages[@]}"; do
+            npm_targets+=("$package@latest")
+        done
+        # `npm update -g` walks the complete global tree, including
+        # distribution-owned packages whose workspace manifests may use
+        # protocols npm cannot resolve. Explicit install targets stay scoped to
+        # the non-distribution packages selected above.
+        npm_command=(npm install --global --no-fund --no-audit "${npm_targets[@]}")
         if [[ ! -w $npm_prefix ]]; then
             npm_command=(sudo "${npm_command[@]}")
         fi
@@ -271,7 +279,7 @@ fi
 # pnpm, Yarn and Bun use user-owned global stores.
 if have pnpm; then
     pnpm_command=(pnpm update --global --latest)
-    ((YES)) && pnpm_command+=(--no-confirm)
+    ((YES)) && pnpm_command+=(--yes)
     run_step 'pnpm global tools' "${pnpm_command[@]}"
 else
     skip_step 'pnpm' 'not installed'
