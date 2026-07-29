@@ -38,6 +38,18 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Keep APIs backward compatible unless a breaking change is explicitly requested. Document important tradeoffs and explain *why* in comments; let the code express *what* it does.
 - Choose the simplest design that fully solves the present requirement. Do not add speculative abstractions, compatibility layers, or dependencies without a demonstrated need.
 
+### Maintainable module and file boundaries
+
+- Design module boundaries before implementing work that spans multiple responsibilities. Keep orchestration separate from domain rules, UI rendering, persistence, filesystem access, and external integrations.
+- Do not create or further expand a hand-written source file beyond 1,000 lines. Treat approximately 500 lines as a strong refactoring signal—not a target—and split earlier whenever distinct responsibilities or independent reasons to change appear.
+- When a requested change touches an existing hand-written file over 1,000 lines, first look for a safe, task-relevant extraction into cohesive modules. Do not turn a scoped task into a risky whole-file rewrite; if extraction is not safe within scope, make the minimum correct change and report the remaining oversized file with a concrete split recommendation.
+- Treat functions longer than roughly 60 lines, nesting deeper than three levels, classes or components coordinating unrelated behavior, and repeated multi-step blocks as review signals. Prefer named helpers, early returns, composition, and explicit collaborators.
+- Split along behavior and ownership boundaries: UI components from state and data access; transport handlers from application and domain logic; persistence behind repositories or adapters; CLI parsing from orchestration and provider integrations.
+- Keep dependencies directional and interfaces small. Avoid circular imports, cross-module hidden state, catch-all managers, and generic `utils` dumping grounds.
+- Do not game size limits with trivial pass-through files, one-line wrappers, arbitrary fragmentation, or moving a monolith unchanged into a differently named module. Every extraction must improve cohesion, testability, reuse, or ownership.
+- Generated code, vendored sources, lockfiles, schema snapshots, migrations, fixtures, and data or asset manifests are exempt when their tooling or format requires a single large file. Do not hand-edit generated or vendored artifacts unless the task explicitly requires it.
+- Before handoff, inspect the sizes of changed hand-written source files. Explicitly report any that remain over 1,000 lines, why they remain, and the safest follow-up boundary.
+
 ### Verification and quality
 
 - Add or update focused tests for changed behavior, including important failure paths and edge cases.
@@ -49,11 +61,22 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 ### Atomic and independent commits
 
 - When commits are requested or are part of the authorized development workflow, make each commit one complete logical change that can be reviewed, tested, reverted, and understood independently.
+- Default to the smallest complete commit that passes its relevant checks. Do not bundle independent changes merely because they were produced during the same request or working session.
 - Keep refactors, behavior changes, tests, formatting, generated files, and dependency updates in separate commits when they represent separable concerns. A test may stay with the behavior it verifies.
 - Do not leave an intentionally broken intermediate commit. Each commit should build and pass its relevant checks whenever the repository permits it.
 - Stage files selectively and inspect the staged diff before committing. Never include unrelated user changes.
+- Immediately before each commit, review `git status`, the staged file list, `git diff --cached`, and `git diff --cached --check`. If the staged diff has more than one independent intent, unstage and split it.
+- Follow the repository's established commit-message convention. When it uses Conventional Commits, choose an accurate type and useful scope such as `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, or `chore`; never hide a feature or bug fix behind a vague `update` or misleading `chore`.
 - Use concise imperative commit subjects that explain the outcome; add a body when motivation, risk, migration, or verification details are not obvious.
 - Do not amend, squash, rebase, reset, force-push, rewrite published history, or create a commit unless the user has authorized that Git action.
+
+### Repository-authored publication voice
+
+- Write commit messages, pull requests, issues, release notes, and code comments in the repository author's established voice, terminology, and level of detail. Match the project's existing history and contribution conventions.
+- Describe the software change directly: the problem, decision, behavior, tradeoff, migration impact, and verified result. Do not narrate the prompt, working session, tools, agent workflow, model, or content-generation process.
+- Prefer short, specific prose over canned templates, excessive headings, generic filler, marketing language, or repeated summaries. Use a project template only when the repository already requires it.
+- Never fabricate personal experience, manual steps, review activity, benchmarks, or test results. Repository-author voice must remain factual and supported by the work actually performed.
+- Before publication, remove generic generated-sounding phrasing, unsupported claims, process commentary, and any attribution that does not belong to the configured human author.
 
 ### GitHub identity and publication attribution
 
@@ -76,7 +99,29 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 <!-- codex-safe browser policy: begin -->
 ## Hardened browser policy
 
-Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, interacting with, screenshotting, extracting from, scraping, dynamically inspecting, or visually validating a webpage. Use the `playwright-cli` wrapper or the `playwright_safe` MCP server supplied by `codex-safe`; both attach to the session `CLOAK_CDP_ENDPOINT`.
+Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, interacting with, screenshotting, extracting from, scraping, dynamically inspecting, or visually validating a webpage. In ordinary Codex sessions, use the `playwright_safe` MCP server; it starts a verified, loopback-only CloakBrowser for the MCP session. Inside `codex-safe`, use either the `playwright-cli` wrapper or `playwright_safe`; both attach to that hardened session's `CLOAK_CDP_ENDPOINT`.
+
+### Browser mode declaration and cursor isolation
+
+- Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed` in a commentary update and give the reason for that choice.
+- In ordinary Codex sessions, use `playwright_safe` for headless work and `playwright_safe_headed` for headed work. Use exactly one browser server for a task; never start both modes speculatively.
+- Default to headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed when the user asks to see the browser or visible GUI rendering is part of the requirement.
+- Headed always means visible: it opens `CloakBrowser Automation (CDP only)` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
+- The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display, and a KWin rule makes the Xephyr window non-focusable with Extreme focus-stealing prevention. Its appearance must not interrupt the user's active application.
+- CloakBrowser uses Chromium's `basic` password backend only inside its disposable `0700` profile and receives no desktop D-Bus address. Browser automation must never request access to KDE Wallet or another desktop credential store.
+- Keep all page interaction inside Playwright over CDP. Never use Computer Use, `xdotool`, `ydotool`, `wtype`, KWin scripting, desktop coordinates, OS mouse movement, or OS keyboard injection for browser work.
+- The visible automation window is intentionally read-only to host keyboard input. If a workflow requires manual login, CAPTCHA, permission prompt, or other physical desktop interaction, stop and ask the user to perform that step in their own browser. Never take control of the host pointer or keyboard.
+- Inside `codex-safe`, the selected mode is fixed when the session starts (`CODEX_SAFE_HEADED=true` selects headed). If the active mode does not match the declared mode, stop and request a correctly configured fresh session instead of silently changing modes.
+
+### Playwright skill protocol
+
+- Invoke the installed `playwright` skill for browser navigation, form interaction, screenshots, responsive checks, console/network inspection, accessibility-tree inspection, or end-to-end UI debugging.
+- In ordinary Codex, use `playwright_safe` MCP tools only. Never run `npx @playwright/cli`, install browsers, invoke the skill's CLI fallback, or silently substitute stock Chromium.
+- Start with `browser_navigate`, then capture `browser_snapshot`. Use refs only from the latest snapshot and refresh the snapshot after navigation or major DOM changes.
+- Use snapshots for semantic understanding and refs; use `browser_take_screenshot` for visual evidence. For important journeys, inspect console messages and network requests after reproduction.
+- Keep browser profiles, downloads, traces, screenshots, and other artifacts inside the active workspace or its repository-prescribed evidence directory.
+- Use synthetic or repository-provided data. Do not bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.
+- If the MCP namespace is unavailable, run the read-only check `codex mcp get playwright_safe`, report that Codex must be restarted, and do not fall back to another browser.
 
 Search APIs may be used only to discover sources and URLs. Do not claim that built-in search traffic itself passes through CloakBrowser. Do not fall back silently to stock Chromium. If CloakBrowser or its CDP endpoint is unavailable, report the failure.
 
