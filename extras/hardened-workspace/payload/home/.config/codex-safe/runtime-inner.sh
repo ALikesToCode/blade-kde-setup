@@ -27,6 +27,9 @@ contains_mount_flag() {
 [[ "${container-}" == firejail ]] || die "Firejail container marker is absent"
 [[ -n "${CODEX_SAFE_WORKSPACE-}" && -d "$CODEX_SAFE_WORKSPACE" ]] || die "workspace is missing"
 [[ "$(realpath -e -- "$PWD")" == "$CODEX_SAFE_WORKSPACE" ]] || die "working directory changed before sandbox entry"
+[[ -r "${CODEX_SAFE_NESTED_DISPLAY_LIB-}" ]] || die "nested-display library is missing"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_NESTED_DISPLAY_LIB"
 
 status_value=$(awk '$1=="NoNewPrivs:" {print $2}' /proc/self/status)
 [[ "$status_value" == 1 ]] || die "NoNewPrivs is not active"
@@ -120,9 +123,22 @@ cloak_args=(
   "--fingerprint=$fingerprint_seed"
   "--fingerprint-locale=$CODEX_SAFE_LOCALE"
   "--fingerprint-timezone=$CODEX_SAFE_TIMEZONE"
+  "--password-store=basic"
 )
+browser_mode=headless
+nested_display=''
+nested_xauthority=''
 case "${CODEX_SAFE_HEADED,,}" in
-  true|1|yes) cloak_args+=("--headless=false") ;;
+  true|1|yes)
+    browser_mode=headed
+    nested_display=${CODEX_SAFE_NESTED_DISPLAY-}
+    nested_xauthority="$runtime_dir/nested.Xauthority"
+    codex_safe_write_nested_authority \
+      "$nested_xauthority" \
+      "$nested_display" \
+      "${CODEX_SAFE_NESTED_COOKIE-}" || die "cannot enter the visible nested display"
+    cloak_args+=("--headless=false" "--ozone-platform=x11")
+    ;;
   false|0|no)
     # cloakserve v0.4.11 tracks a headless boolean internally but its direct
     # Chromium spawn path does not currently emit Chromium's headless switch.
@@ -130,6 +146,7 @@ case "${CODEX_SAFE_HEADED,,}" in
     cloak_args+=("--headless=new")
     ;;
 esac
+unset CODEX_SAFE_NESTED_COOKIE CODEX_SAFE_NESTED_DISPLAY
 if [[ -n "${CODEX_SAFE_PROXY-}" ]]; then
   cloak_args+=("--proxy-server=$CODEX_SAFE_PROXY")
 fi
@@ -138,8 +155,18 @@ export CLOAKBROWSER_AUTO_UPDATE=false
 export CLOAKBROWSER_BINARY_PATH=$cloak_binary_real
 export CLOAKBROWSER_CACHE_DIR="$HOME/.cloakbrowser"
 export CLOAKSERVE_IDLE_TIMEOUT=0
-HOME="$browser_home" XDG_RUNTIME_DIR="$xdg_runtime" XDG_CACHE_HOME="$browser_cache" XDG_CONFIG_HOME="$browser_config" \
-  setsid "$CLOAKSERVE_BIN" "${cloak_args[@]}" >"$runtime_dir/cloakserve.log" 2>&1 &
+export CODEX_SAFE_BROWSER_MODE=$browser_mode
+if [[ "$browser_mode" == headless ]]; then
+  HOME="$browser_home" XDG_RUNTIME_DIR="$xdg_runtime" XDG_CACHE_HOME="$browser_cache" XDG_CONFIG_HOME="$browser_config" \
+  DBUS_SESSION_BUS_ADDRESS=disabled: DBUS_SYSTEM_BUS_ADDRESS=disabled: \
+    setsid env -u DISPLAY -u WAYLAND_DISPLAY -u XAUTHORITY \
+      "$CLOAKSERVE_BIN" "${cloak_args[@]}" >"$runtime_dir/cloakserve.log" 2>&1 &
+else
+  HOME="$browser_home" XDG_RUNTIME_DIR="$xdg_runtime" XDG_CACHE_HOME="$browser_cache" XDG_CONFIG_HOME="$browser_config" \
+  DISPLAY="$nested_display" XAUTHORITY="$nested_xauthority" \
+  DBUS_SESSION_BUS_ADDRESS=disabled: DBUS_SYSTEM_BUS_ADDRESS=disabled: \
+    setsid "$CLOAKSERVE_BIN" "${cloak_args[@]}" >"$runtime_dir/cloakserve.log" 2>&1 &
+fi
 cloak_pid=$!
 
 health_url="http://127.0.0.1:$port/json/version?fingerprint=$fingerprint_seed&timezone=$CODEX_SAFE_TIMEZONE&locale=$CODEX_SAFE_LOCALE"
@@ -182,6 +209,30 @@ browser_exe=$(readlink -f -- "/proc/$browser_pid/exe" 2>/dev/null || true)
 [[ "$browser_exe" == "$cloak_binary_real" ]] || die "cloakserve-reported process is not the patched Chromium executable"
 browser_profile=$(realpath -e -- "$browser_state/$fingerprint_seed" 2>/dev/null) || die "private browser profile was not created"
 [[ "$browser_profile" == "$browser_state/"* ]] || die "browser profile escaped private runtime storage"
+
+server_headless_flag=''
+while IFS= read -r -d '' token; do
+  case "$token" in --headless|--headless=*) server_headless_flag=$token ;; esac
+done <"/proc/$cloak_pid/cmdline"
+browser_parent_pid=$(awk '$1=="PPid:" {print $2}' "/proc/$browser_pid/status")
+[[ "$browser_parent_pid" =~ ^[0-9]+$ ]] || die "cannot resolve the CloakBrowser parent process"
+server_display=''
+while IFS= read -r -d '' entry; do
+  case "$entry" in DISPLAY=*) server_display=${entry#DISPLAY=} ;; esac
+done <"/proc/$browser_parent_pid/environ"
+headless_flag=''
+while IFS= read -r -d '' token; do
+  case "$token" in --headless|--headless=*) headless_flag=$token ;; esac
+done <"/proc/$browser_pid/cmdline"
+if [[ "$browser_mode" == headless ]]; then
+  [[ "$server_headless_flag" == "--headless=new" ]] || die "cloakserve did not receive explicit headless mode"
+  [[ -z "$server_display" ]] || die "headless cloakserve unexpectedly has a desktop display"
+else
+  [[ "$server_headless_flag" == "--headless=false" ]] || die "cloakserve did not receive explicit headed mode"
+  [[ "$server_display" == "$nested_display" ]] || \
+    die "headed cloakserve is not using its visible nested display"
+  [[ -z "$headless_flag" ]] || die "headed Chromium unexpectedly retained a headless launch flag"
+fi
 
 artifact_dir="$CODEX_SAFE_WORKSPACE/.playwright-cli"
 install -d -m 700 "$artifact_dir"
@@ -279,13 +330,16 @@ codex_policy_args=(
   -c 'mcp_oauth_credentials_store="keyring"'
   -c 'shell_environment_policy.exclude=["DBUS_SESSION_BUS_ADDRESS","CODEX_SAFE_KEYRING_BUS_ADDRESS","CODEX_SAFE_KEYRING_RUNTIME_ROOT","CODEX_SAFE_KEYRING_STATE","CODEX_SAFE_KEYRING_PASSWORD"]'
   -c "mcp_servers.playwright_safe.command=\"$PLAYWRIGHT_MCP_SAFE\""
+  -c 'mcp_servers.playwright_safe.args=[]'
   -c 'mcp_servers.playwright_safe.startup_timeout_sec=30'
   -c 'mcp_servers.playwright_safe.env.CODEX_SAFE_ACTIVE="1"'
+  -c "mcp_servers.playwright_safe.env.CODEX_SAFE_BROWSER_MODE=\"$browser_mode\""
   -c "mcp_servers.playwright_safe.env.CLOAK_CDP_ENDPOINT=\"$endpoint\""
   -c "mcp_servers.playwright_safe.env.PLAYWRIGHT_MCP_CONFIG=\"$playwright_mcp_config\""
   -c "mcp_servers.playwright_safe.env.PLAYWRIGHT_MCP_OUTPUT_DIR=\"$artifact_dir\""
   -c 'shell_environment_policy.set.CODEX_SAFE_ACTIVE="1"'
   -c "shell_environment_policy.set.CODEX_SAFE_SESSION_ID=\"$CODEX_SAFE_SESSION_ID\""
+  -c "shell_environment_policy.set.CODEX_SAFE_BROWSER_MODE=\"$browser_mode\""
   -c "shell_environment_policy.set.CLOAK_CDP_ENDPOINT=\"$endpoint\""
   -c "shell_environment_policy.set.PLAYWRIGHT_MCP_CDP_ENDPOINT=\"$endpoint\""
   -c "shell_environment_policy.set.PLAYWRIGHT_MCP_CONFIG=\"$playwright_mcp_config\""

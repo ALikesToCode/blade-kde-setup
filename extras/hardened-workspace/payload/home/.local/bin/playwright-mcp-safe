@@ -15,4 +15,5 @@ config_file="$HOME/.config/codex-safe/config"
 source "$config_file"
 [[ -x "$PLAYWRIGHT_MCP_REAL" ]] || die "official @playwright/mcp executable is missing"
 cd "$PLAYWRIGHT_MCP_OUTPUT_DIR"
-exec "$PLAYWRIGHT_MCP_REAL" --config "$PLAYWRIGHT_MCP_CONFIG" "$@"
+exec env -u DISPLAY -u WAYLAND_DISPLAY -u XAUTHORITY \
+  "$PLAYWRIGHT_MCP_REAL" --config "$PLAYWRIGHT_MCP_CONFIG" "$@"

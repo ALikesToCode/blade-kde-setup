@@ -12,6 +12,7 @@ die() {
 [[ "${CODEX_SAFE_ACTIVE-}" == 1 ]] || die "CloakBrowser is available only inside codex-safe; launch 'codex-safe' from the target repository"
 [[ -n "${CLOAK_CDP_ENDPOINT-}" ]] || die "CLOAK_CDP_ENDPOINT is missing; stock Chromium fallback is forbidden"
 [[ -n "${PLAYWRIGHT_CLI_OUTPUT_DIR-}" && -d "$PLAYWRIGHT_CLI_OUTPUT_DIR" ]] || die "Playwright artifact directory is unavailable"
+unset DISPLAY WAYLAND_DISPLAY XAUTHORITY
 
 config_file="$HOME/.config/codex-safe/config"
 [[ -r "$config_file" ]] || die "codex-safe config is missing"

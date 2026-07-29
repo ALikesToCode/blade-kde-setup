@@ -67,6 +67,7 @@ export CODEX_SAFE_PROFILE CODEX_SAFE_INNER CODEX_SAFE_SELF_TEST_INNER
 export CODEX_SAFE_KEYRING_LIB CODEX_SAFE_KEYRING_RUNTIME_ROOT
 export CODEX_SAFE_KEYRING_STATE CODEX_SAFE_KEYRING_PASSWORD
 export CODEX_SAFE_NODE_PRELOAD CODEX_SAFE_PYTHON_DIR CLOAKSERVE_BIN
+export CODEX_SAFE_NESTED_DISPLAY_LIB
 export CLOAKBROWSER_VERSION CLOAKBROWSER_BINARY_PATH PLAYWRIGHT_CLI_REAL
 export CLOAKSERVE_SOURCE_SHA256 CLOAKBROWSER_BINARY_SHA256
 export PLAYWRIGHT_MCP_REAL PLAYWRIGHT_MCP_SAFE CODEX_SAFE_CDP_TIMEOUT_SECONDS
@@ -88,9 +89,12 @@ require_regular_secure_file "$CODEX_SAFE_INNER"
 require_regular_secure_file "$CODEX_SAFE_SELF_TEST_INNER"
 require_regular_secure_file "$CODEX_SAFE_KEYRING_LIB"
 require_regular_secure_file "$CODEX_SAFE_NODE_PRELOAD"
+require_regular_secure_file "$CODEX_SAFE_NESTED_DISPLAY_LIB"
 [[ -d "$CODEX_SAFE_PYTHON_DIR" ]] || die "Python Playwright policy directory is missing"
 # shellcheck source=/dev/null
 source "$CODEX_SAFE_KEYRING_LIB"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_NESTED_DISPLAY_LIB"
 
 workspace=$(realpath -e -- /proc/self/cwd 2>/dev/null) || die "cannot resolve the launch directory"
 [[ -n "$workspace" && -d "$workspace" && "$workspace" == /* ]] || die "launch directory is empty, unresolved, or not absolute"
@@ -296,6 +300,7 @@ export TMPDIR=/tmp
 export DBUS_SYSTEM_BUS_ADDRESS=disabled:
 
 jail_pid=''
+nested_host_state=''
 outer_cleanup_done=0
 cleanup_outer() {
   local rc=$?
@@ -306,6 +311,16 @@ cleanup_outer() {
     kill -TERM "$jail_pid" 2>/dev/null || true
     wait "$jail_pid" 2>/dev/null || true
   fi
+  codex_safe_stop_nested_display
+  if [[ -n "$nested_host_state" && \
+        "$nested_host_state" == "$ephemeral_real/host-display-"* ]]; then
+    rm -f -- \
+      "$nested_host_state/nested.Xauthority" \
+      "$nested_host_state/nested.Xauthority-c" \
+      "$nested_host_state/nested.Xauthority-l" \
+      "$nested_host_state/xephyr.log"
+    rmdir "$nested_host_state" 2>/dev/null || true
+  fi
   codex_safe_keyring_stop
   return "$rc"
 }
@@ -313,6 +328,16 @@ trap cleanup_outer EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+case "${headed_value,,}" in
+  true|1|yes)
+    nested_host_state="$ephemeral_real/host-display-$CODEX_SAFE_SESSION_ID"
+    codex_safe_start_nested_display \
+      "/tmp/codex-safe-nested-display-$(id -u)" \
+      "$nested_host_state" || die "cannot start the visible cursor-isolated display"
+    export CODEX_SAFE_NESTED_DISPLAY CODEX_SAFE_NESTED_COOKIE
+    ;;
+esac
 
 codex_safe_keyring_start || die "private MCP credential broker failed to start"
 export DBUS_SESSION_BUS_ADDRESS=$CODEX_SAFE_KEYRING_BUS_ADDRESS
@@ -325,7 +350,7 @@ fi
 # Firejail's Landlock rules are inherited across nested namespaces. Chromium may
 # create its own restricted namespaces, but neither it nor Codex can remount a
 # writable host view outside the workspace. The verification suite tests this.
-/usr/bin/firejail \
+env -u DISPLAY -u WAYLAND_DISPLAY -u XAUTHORITY /usr/bin/firejail \
   --profile="$profile_to_use" \
   --name="codex-safe-$CODEX_SAFE_SESSION_ID" \
   --read-write="$workspace" \

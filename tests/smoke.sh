@@ -9,7 +9,7 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh"
-bash -n "$ROOT/tests/network-speed-widget.sh"
+bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
     "$ROOT/tests/zen-window-controls.sh" "$ROOT/scripts/apply-desktop-clock.sh" \
@@ -17,6 +17,7 @@ bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" 
     "$ROOT/tests/event-calendar.sh"
 bash -n \
     "$ROOT/extras/hardened-workspace/install.sh" \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/self-test-inner.sh" \
@@ -27,6 +28,7 @@ bash -n \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/codex-safe" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-cli" \
+    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-safe"
 
 python3 -m json.tool "$ROOT/dotfiles/yay/config.json" >/dev/null
@@ -93,10 +95,13 @@ required=(
     scripts/install-codex-tools.sh
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
+    extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh
     extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh
     extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh
     extras/hardened-workspace/payload/home/.local/bin/codex-safe
     extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp
+    extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak
+    tests/browser-mode-isolation.sh
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
@@ -110,6 +115,7 @@ grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 "$ROOT/tests/event-calendar.sh" >/dev/null
 bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
+bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \
@@ -123,9 +129,31 @@ rg -q 'blacklist \$\{HOME\}/\.local/share/codex-safe/keyring' \
 grep -Fqx 'gnome-keyring' "$ROOT/packages/pacman.txt"
 rg -q 'systemctl --user mask --now gnome-keyring-daemon\.socket' \
     "$ROOT/extras/hardened-workspace/install.sh"
+rg -q 'configure_playwright_server playwright_safe headless' \
+    "$ROOT/extras/hardened-workspace/install.sh"
+rg -q 'configure_playwright_server playwright_safe_headed headed' \
+    "$ROOT/extras/hardened-workspace/install.sh"
 rg -q '^### Atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Maintainable module and file boundaries$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Repository-authored publication voice$' "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fq 'Do not create or further expand a hand-written source file beyond 1,000 lines.' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fq 'Do not bundle independent changes merely because they were produced during the same request or working session.' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fq 'Do not narrate the prompt, working session, tools, agent workflow, model, or content-generation process.' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Browser mode declaration and cursor isolation$' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+# shellcheck disable=SC2016
+grep -Fq 'Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed`' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fq 'Never take control of the host pointer or keyboard.' \
+    "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fq 'Headed always means visible:' "$ROOT/dotfiles/agents/AGENTS.md"
+grep -Fqx 'xorg-server-xephyr' "$ROOT/packages/pacman.txt"
+grep -Fqx 'xorg-xauth' "$ROOT/packages/pacman.txt"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"

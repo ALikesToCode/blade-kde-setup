@@ -86,8 +86,16 @@ Chromium. Screenshots, snapshots, traces, downloads, and output belong in
 `<workspace>/.playwright-cli/`.
 
 Overrides are `CODEX_SAFE_LOCALE`, `CODEX_SAFE_TIMEZONE`,
-`CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode requires a usable
-host display; D-Bus remains disabled. Proxy credentials are not logged, though
+`CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible
+Xephyr window on KDE. Xephyr starts outside the jail, while CloakBrowser inside
+the jail receives only the nested display and a one-session authority cookie;
+Chromium never receives the host display or host Xauthority. A KWin rule applies
+Extreme focus-stealing prevention and makes the Xephyr window non-focusable,
+leaving it as a visible read-only monitor for automation. Playwright input
+remains CDP-scoped, so neither browser mode controls the physical pointer or
+keyboard. Browser-side D-Bus is disabled and Chromium uses its `basic` password
+backend only in the disposable private profile, preventing KDE Wallet prompts
+without retaining browser credentials. Proxy credentials are not logged, though
 Chromium necessarily receives proxy configuration in its own process arguments.
 
 ## Operations

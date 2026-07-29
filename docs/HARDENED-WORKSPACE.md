@@ -12,9 +12,10 @@ downloads, test repositories, and third-party binary archives are excluded.
 
 ## Preconditions
 
-The normal package manifest supplies Firejail, curl, jq, pipx, ripgrep, and the
-other command-line dependencies. Install `gnome-keyring` as the isolated MCP
-Secret Service broker; it does not replace KDE Wallet as the desktop backend.
+The normal package manifest supplies Firejail, curl, jq, pipx, ripgrep, Xephyr,
+`xauth`, and the other command-line dependencies. Install `gnome-keyring` as
+the isolated MCP Secret Service broker; it does not replace KDE Wallet as the
+desktop backend.
 The installer masks the package's user socket/service for this account and
 starts the daemon only on codex-safe's private bus.
 Before staging, the target username must be a
@@ -80,6 +81,32 @@ endpoint.
 MCP OAuth records persist in a dedicated encrypted keyring whose files and
 unlock key are hidden from the jail. The host KDE Wallet is never mounted or
 exposed over D-Bus.
+
+Ordinary sessions expose separate, explicit browser servers. Use
+`playwright_safe` for headless work:
+
+```toml
+[mcp_servers.playwright_safe]
+command = "/home/USER/.local/bin/playwright-mcp-cloak"
+args = ["--browser-mode=headless"]
+
+[mcp_servers.playwright_safe_headed]
+command = "/home/USER/.local/bin/playwright-mcp-cloak"
+args = ["--browser-mode=headed"]
+```
+
+Replace `USER` with the account name because MCP command paths must be
+absolute.
+Headed mode opens a visible `CloakBrowser Automation (CDP only)` window on KDE.
+Xephyr hosts that window while CloakBrowser runs on Xephyr's nested X display,
+so CDP input cannot move the host pointer or type into another application.
+The installed KWin rule makes this window non-focusable and uses Extreme
+focus-stealing prevention, so it remains a visible read-only monitor for
+automation. Both modes remove display variables from the Playwright MCP process,
+disable desktop D-Bus for the browser, and select Chromium's `basic` password
+backend inside the disposable private profile. This prevents KDE Wallet prompts
+without persisting automation credentials. Automation must use Playwright page
+tools only. Restart Codex after adding or changing either server.
 
 The wrapper rejects unsafe launch roots, hard links whose inode counts prove an
 external alias, missing sandbox controls, changed browser hashes, and
