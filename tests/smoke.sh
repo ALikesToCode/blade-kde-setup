@@ -5,14 +5,14 @@ set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
-    "$ROOT/bin/aria2-daemon" \
+    "$ROOT/bin/aria2-daemon" "$ROOT/bin/ariang" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
-bash -n "$ROOT/scripts/install-codex-tools.sh"
+bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
     "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
-    "$ROOT/tests/aria2-daemon.sh"
+    "$ROOT/tests/aria2-daemon.sh" "$ROOT/tests/ariang.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
     "$ROOT/tests/zen-window-controls.sh" "$ROOT/scripts/apply-desktop-clock.sh" \
@@ -67,6 +67,13 @@ import sys
 path = pathlib.Path(sys.argv[1])
 compile(path.read_text(), str(path), "exec")
 PY
+python3 - "$ROOT/bin/ariang-server" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+compile(path.read_text(), str(path), "exec")
+PY
 
 required=(
     LICENSE
@@ -77,6 +84,7 @@ required=(
     packages/python-tools.lock
     packages/codex-skills.lock
     packages/codex-agents.lock
+    packages/ariang.lock
     kde/color-schemes/ArtixDarkRounded.colors
     kde/look-and-feel/org.mysterious.artixdarkrounded.desktop/metadata.json
     kde/desktoptheme/artix-dark-rounded/metadata.json
@@ -105,6 +113,8 @@ required=(
     dotfiles/agents/AGENTS.md
     dotfiles/downloads/aria2/daemon.conf
     dotfiles/systemd/user/aria2.service
+    dotfiles/systemd/user/ariang.service
+    dotfiles/apps/ariang/ariang.desktop
     dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
@@ -113,8 +123,13 @@ required=(
     extras/eventcalendar/upstream.sha256
     scripts/apply-desktop-clock.sh
     scripts/install-codex-tools.sh
+    scripts/install-ariang.sh
     bin/aria2-daemon
+    bin/ariang
+    bin/ariang-server
     extras/hardened-workspace/install.sh
+    extras/hardened-workspace/cloakserve-codex-safe.patch
+    extras/hardened-workspace/cloakserve-graceful-close-upgrade.patch
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
     extras/hardened-workspace/payload/home/.config/codex-safe/browser-profile.sh
     extras/hardened-workspace/payload/home/.config/codex-safe/clipboard-bridge.py
@@ -128,6 +143,7 @@ required=(
     tests/browser-mode-isolation.sh
     tests/browser-profile-persistence.sh
     tests/clipboard-bridge.sh
+    tests/ariang.sh
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
@@ -145,6 +161,7 @@ bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
 bash "$ROOT/tests/browser-profile-persistence.sh" >/dev/null
 bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
+bash "$ROOT/tests/ariang.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \
@@ -184,6 +201,8 @@ grep -Fq 'Headed always means visible:' "$ROOT/dotfiles/agents/AGENTS.md"
 grep -Fqx 'xorg-server-xephyr' "$ROOT/packages/pacman.txt"
 grep -Fqx 'xorg-xauth' "$ROOT/packages/pacman.txt"
 grep -Fqx 'xclip' "$ROOT/packages/pacman.txt"
+grep -Fq '14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/config"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
