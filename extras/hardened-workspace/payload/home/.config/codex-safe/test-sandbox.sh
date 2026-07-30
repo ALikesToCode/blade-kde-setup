@@ -130,6 +130,13 @@ run_expect_success 'live quick sandbox test' "$launcher" --codex-safe-self-test 
 run_expect_success 'filesystem security suite' env CODEX_SAFE_TEST_SENTINEL="$outside_sentinel" CODEX_SAFE_TEST_OUTSIDE_DIR="$outside_dir" "$launcher" --codex-safe-self-test filesystem
 run_expect_success 'Codex inner Landlock suite' "$launcher" --codex-safe-self-test codex-inner
 run_expect_success 'CloakBrowser and Playwright suite' "$launcher" --codex-safe-self-test browser
+persistence_marker="codexsafe-$(date +%s%N)"
+run_expect_success 'write browser cookie in first launcher session' \
+  env CODEX_SAFE_PERSISTENCE_MARKER="$persistence_marker" \
+  "$launcher" --codex-safe-self-test browser-persistence-write
+run_expect_success 'read browser cookie in second launcher session' \
+  env CODEX_SAFE_PERSISTENCE_MARKER="$persistence_marker" \
+  "$launcher" --codex-safe-self-test browser-persistence-read
 cd "$original_pwd"
 
 git -C "$test_root" worktree add -q -b codex-safe-linked-worktree "$test_root/linked-worktree"
@@ -157,7 +164,13 @@ if [[ -r "$metadata" ]]; then
   browser_state=$(awk -F= '$1=="browser_state" {print substr($0,index($0,"=")+1)}' "$metadata")
   if [[ -r "/proc/$browser_pid/stat" ]] && [[ $(awk '{print $22}' "/proc/$browser_pid/stat") == "$browser_starttime" ]]; then fail 'browser process terminated after session'; else pass 'browser process terminated after session'; fi
   if [[ ! -e "$runtime_dir" ]]; then pass 'private runtime state disappeared'; else fail 'private runtime state disappeared'; fi
-  if [[ ! -e "$browser_state" ]]; then pass 'browser profile state disappeared'; else fail 'browser profile state disappeared'; fi
+  if [[ "$browser_state" == "$HOME/.local/state/codex-safe/cloakbrowser-profile/browser-state" && \
+        -d "$browser_state" && ! -L "$browser_state" && \
+        $(stat -Lc '%a' "$browser_state") == 700 ]]; then
+    pass 'browser profile persists only in its private fixed location'
+  else
+    fail 'browser profile persists only in its private fixed location'
+  fi
 else
   fail 'browser runtime metadata created'
 fi

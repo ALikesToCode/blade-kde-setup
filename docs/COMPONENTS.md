@@ -25,7 +25,7 @@
 | Safe Git defaults | `dotfiles/git/` | Included from the user’s existing global Git config |
 | Package updater | `bin/` | `~/.local/bin/updateall` and `update-all-packages` |
 | Optimized app launchers | `dotfiles/apps/` | Native Wayland and integrated Candy controls for Zen, Wayland Antigravity, and Vulkan-pinned Zed |
-| Hardened workspace launcher | `extras/hardened-workspace/` | Optional fail-closed Firejail/Landlock runtime and browser wrappers |
+| Hardened workspace launcher | `extras/hardened-workspace/` | Optional fail-closed Firejail/Landlock runtime, fixed private CloakBrowser profile, and one-way headed paste bridge |
 | Package manifests | `packages/` | Consumed by `install.sh --packages` |
 | Mirror tuning | `system/reflector.conf` | `/etc/xdg/reflector/reflector.conf` |
 
@@ -40,8 +40,10 @@ keeping the normal title bar calm and cohesive.
 
 - `.env` files, API tokens, SSH/GPG keys, and credential stores
 - GitHub authentication and personal Git identity
-- caches, browser data, application databases, and histories; the single Zen
-  integrated-titlebar preference is merged without copying profile data
+- caches, browser data, application databases, and histories; the live
+  CloakBrowser profile stays outside the repository at its documented private
+  state path, and the single Zen integrated-titlebar preference is merged
+  without copying profile data
 - wallpaper generation masters and temporary image outputs
 - the previous process-wide Konsole stylesheet activation that caused mouse and
   tab-focus problems

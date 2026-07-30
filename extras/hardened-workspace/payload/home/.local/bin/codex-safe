@@ -66,8 +66,11 @@ source "$config_file"
 export CODEX_SAFE_PROFILE CODEX_SAFE_INNER CODEX_SAFE_SELF_TEST_INNER
 export CODEX_SAFE_KEYRING_LIB CODEX_SAFE_KEYRING_RUNTIME_ROOT
 export CODEX_SAFE_KEYRING_STATE CODEX_SAFE_KEYRING_PASSWORD
+export CODEX_SAFE_BROWSER_PROFILE_LIB CODEX_SAFE_BROWSER_PROFILE_ROOT
 export CODEX_SAFE_NODE_PRELOAD CODEX_SAFE_PYTHON_DIR CLOAKSERVE_BIN
-export CODEX_SAFE_NESTED_DISPLAY_LIB
+export CODEX_SAFE_NESTED_DISPLAY_LIB CODEX_SAFE_NESTED_WINDOW_MANAGER
+export CODEX_SAFE_CLIPBOARD_BRIDGE
+export CODEX_SAFE_XCLIP_BIN
 export CLOAKBROWSER_VERSION CLOAKBROWSER_BINARY_PATH PLAYWRIGHT_CLI_REAL
 export CLOAKSERVE_SOURCE_SHA256 CLOAKBROWSER_BINARY_SHA256
 export PLAYWRIGHT_MCP_REAL PLAYWRIGHT_MCP_SAFE CODEX_SAFE_CDP_TIMEOUT_SECONDS
@@ -88,11 +91,16 @@ require_regular_secure_file "$CODEX_SAFE_PROFILE"
 require_regular_secure_file "$CODEX_SAFE_INNER"
 require_regular_secure_file "$CODEX_SAFE_SELF_TEST_INNER"
 require_regular_secure_file "$CODEX_SAFE_KEYRING_LIB"
+require_regular_secure_file "$CODEX_SAFE_BROWSER_PROFILE_LIB"
 require_regular_secure_file "$CODEX_SAFE_NODE_PRELOAD"
 require_regular_secure_file "$CODEX_SAFE_NESTED_DISPLAY_LIB"
+require_regular_secure_file "$CODEX_SAFE_NESTED_WINDOW_MANAGER"
+require_regular_secure_file "$CODEX_SAFE_CLIPBOARD_BRIDGE"
 [[ -d "$CODEX_SAFE_PYTHON_DIR" ]] || die "Python Playwright policy directory is missing"
 # shellcheck source=/dev/null
 source "$CODEX_SAFE_KEYRING_LIB"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_BROWSER_PROFILE_LIB"
 # shellcheck source=/dev/null
 source "$CODEX_SAFE_NESTED_DISPLAY_LIB"
 
@@ -103,6 +111,7 @@ if LC_ALL=C grep -q '[[:cntrl:]]' <<<"$workspace"; then
 fi
 home_real=$(realpath -e -- "$HOME") || die "cannot resolve HOME"
 export CODEX_SAFE_HOST_HOME=$home_real
+codex_safe_browser_profile_acquire || die "cannot acquire the persistent browser profile"
 ephemeral_real=$(realpath -e -- "$CODEX_SAFE_EPHEMERAL_ROOT" 2>/dev/null) || die "ephemeral tmpfs mountpoint is missing"
 [[ "$ephemeral_real" == "$home_real/.cache/codex-safe-runtime" && -d "$ephemeral_real" && ! -L "$CODEX_SAFE_EPHEMERAL_ROOT" ]] || die "ephemeral tmpfs mountpoint is unsafe"
 [[ $(stat -Lc '%u' -- "$ephemeral_real") == "$(id -u)" ]] || die "ephemeral tmpfs mountpoint has the wrong owner"
@@ -133,6 +142,7 @@ declare -A hardlink_example=()
 coproc HARDLINK_SCAN {
   find "$workspace" -xdev -type f -links +1 -printf '%D %i %n\0%p\0' 2>/dev/null
 }
+# shellcheck disable=SC2153
 hardlink_scan_pid=$HARDLINK_SCAN_PID
 exec {hardlink_scan_fd}<&"${HARDLINK_SCAN[0]}"
 while IFS= read -r -d '' metadata <&"$hardlink_scan_fd" && \
@@ -274,7 +284,10 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 if [[ -n "$self_test_mode" ]]; then
-  case "$self_test_mode" in quick|filesystem|browser|codex-inner) ;; *) die "unknown self-test mode: $self_test_mode" ;; esac
+  case "$self_test_mode" in
+    quick|filesystem|browser|browser-persistence-write|browser-persistence-read|codex-inner) ;;
+    *) die "unknown self-test mode: $self_test_mode" ;;
+  esac
   export CODEX_SAFE_SELF_TEST_MODE=$self_test_mode
 fi
 
@@ -302,6 +315,8 @@ export DBUS_SYSTEM_BUS_ADDRESS=disabled:
 jail_pid=''
 nested_host_state=''
 outer_cleanup_done=0
+# Invoked indirectly by the EXIT trap.
+# shellcheck disable=SC2329
 cleanup_outer() {
   local rc=$?
   (( outer_cleanup_done == 0 )) || return "$rc"
@@ -312,12 +327,17 @@ cleanup_outer() {
     wait "$jail_pid" 2>/dev/null || true
   fi
   codex_safe_stop_nested_display
+  codex_safe_browser_profile_release
   if [[ -n "$nested_host_state" && \
         "$nested_host_state" == "$ephemeral_real/host-display-"* ]]; then
     rm -f -- \
+      "$nested_host_state/clipboard-bridge.ready" \
+      "$nested_host_state/clipboard-bridge.log" \
       "$nested_host_state/nested.Xauthority" \
       "$nested_host_state/nested.Xauthority-c" \
       "$nested_host_state/nested.Xauthority-l" \
+      "$nested_host_state/window-manager.ready" \
+      "$nested_host_state/window-manager.log" \
       "$nested_host_state/xephyr.log"
     rmdir "$nested_host_state" 2>/dev/null || true
   fi
@@ -354,13 +374,16 @@ env -u DISPLAY -u WAYLAND_DISPLAY -u XAUTHORITY /usr/bin/firejail \
   --profile="$profile_to_use" \
   --name="codex-safe-$CODEX_SAFE_SESSION_ID" \
   --read-write="$workspace" \
+  --read-write="$CODEX_SAFE_BROWSER_PROFILE_ROOT" \
   --landlock.fs.read=/ \
   --landlock.fs.execute=/ \
   --landlock.fs.write="$workspace" \
+  --landlock.fs.write="$CODEX_SAFE_BROWSER_PROFILE_ROOT" \
   --landlock.fs.write=/tmp \
   --landlock.fs.write=/dev \
   --landlock.fs.write="$ephemeral_real" \
   --landlock.fs.makeipc="$workspace" \
+  --landlock.fs.makeipc="$CODEX_SAFE_BROWSER_PROFILE_ROOT" \
   --landlock.fs.makeipc=/tmp \
   --landlock.fs.makeipc="$ephemeral_real" \
   --landlock.enforce \

@@ -40,6 +40,7 @@ ttf-jetbrains-mono-nerd
 util-linux
 uv
 wireplumber
+xclip
 xorg-server-xephyr
 xorg-xauth
 yt-dlp

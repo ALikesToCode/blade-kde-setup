@@ -41,6 +41,8 @@ check_outer_status() {
   if [[ ",$options," == *,ro,* ]]; then pass 'HOME mounted read-only'; else fail 'HOME mounted read-only'; fi
   options=$(findmnt --target "$CODEX_SAFE_WORKSPACE" --noheadings --output VFS-OPTIONS | tail -n 1)
   if [[ ",$options," == *,rw,* ]]; then pass 'workspace mounted read-write'; else fail 'workspace mounted read-write'; fi
+  options=$(findmnt --target "$CODEX_SAFE_BROWSER_PROFILE_ROOT" --noheadings --output VFS-OPTIONS | tail -n 1)
+  if [[ ",$options," == *,rw,* ]]; then pass 'persistent browser profile mounted read-write'; else fail 'persistent browser profile mounted read-write'; fi
   if [[ "$(findmnt --target /tmp --noheadings --output FSTYPE | tail -n 1)" == tmpfs ]]; then pass 'private tmpfs active'; else fail 'private tmpfs active'; fi
   if [[ "$(findmnt --target "$CODEX_SAFE_EPHEMERAL_ROOT" --noheadings --output FSTYPE | tail -n 1)" == tmpfs ]]; then pass 'private Codex/browser state tmpfs active'; else fail 'private Codex/browser state tmpfs active'; fi
   if [[ ! -S /run/docker.sock ]]; then pass 'host Docker control socket hidden'; else fail 'host Docker control socket hidden'; fi
@@ -192,6 +194,61 @@ check_browser() {
   if playwright-cli close >/dev/null 2>&1; then pass 'playwright-cli close'; else fail 'playwright-cli close'; fi
 }
 
+check_browser_persistence_write() {
+  local marker=${CODEX_SAFE_PERSISTENCE_MARKER-} expires output
+  [[ "$marker" =~ ^[A-Za-z0-9_-]{16,80}$ ]] || {
+    fail 'synthetic persistence marker is valid'
+    return
+  }
+  playwright-cli open https://example.com >/dev/null 2>&1 || {
+    fail 'open persistence test origin'
+    return
+  }
+  pass 'open persistence test origin'
+  playwright-cli cookie-delete codex_safe_persistence_probe >/dev/null 2>&1 || true
+  expires=$(( $(date +%s) + 3600 ))
+  if playwright-cli cookie-set \
+      codex_safe_persistence_probe "$marker" \
+      --domain=example.com --path=/ --expires="$expires" \
+      --secure --sameSite=Lax >/dev/null 2>&1; then
+    pass 'write synthetic persistent cookie'
+  else
+    fail 'write synthetic persistent cookie'
+  fi
+  output=$(playwright-cli cookie-get codex_safe_persistence_probe 2>/dev/null || true)
+  if grep -Fq -- "$marker" <<<"$output"; then
+    pass 'read synthetic cookie before restart'
+  else
+    fail 'read synthetic cookie before restart'
+  fi
+  if playwright-cli close >/dev/null 2>&1; then pass 'close persistence writer'; else fail 'close persistence writer'; fi
+}
+
+check_browser_persistence_read() {
+  local marker=${CODEX_SAFE_PERSISTENCE_MARKER-} output
+  [[ "$marker" =~ ^[A-Za-z0-9_-]{16,80}$ ]] || {
+    fail 'synthetic persistence marker is valid'
+    return
+  }
+  playwright-cli open https://example.com >/dev/null 2>&1 || {
+    fail 'reopen persistence test origin'
+    return
+  }
+  pass 'reopen persistence test origin'
+  output=$(playwright-cli cookie-get codex_safe_persistence_probe 2>/dev/null || true)
+  if grep -Fq -- "$marker" <<<"$output"; then
+    pass 'synthetic cookie survived a separate launcher session'
+  else
+    fail 'synthetic cookie survived a separate launcher session'
+  fi
+  if playwright-cli cookie-delete codex_safe_persistence_probe >/dev/null 2>&1; then
+    pass 'remove synthetic persistent cookie'
+  else
+    fail 'remove synthetic persistent cookie'
+  fi
+  if playwright-cli close >/dev/null 2>&1; then pass 'close persistence reader'; else fail 'close persistence reader'; fi
+}
+
 check_codex_inner() {
   local inner_home inner_root output direct_error direct_probe outside_probe
   inner_home="$CODEX_SAFE_RUNTIME_DIR/inner-codex-home"
@@ -248,6 +305,8 @@ case "$mode" in
   quick) ;;
   filesystem) check_filesystem ;;
   browser) check_browser ;;
+  browser-persistence-write) check_browser_persistence_write ;;
+  browser-persistence-read) check_browser_persistence_read ;;
   codex-inner) check_codex_inner ;;
   *) fail "unknown self-test mode: $mode" ;;
 esac

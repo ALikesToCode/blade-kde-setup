@@ -18,19 +18,21 @@ fi
 
 printf '%s\n' 'Effective codex-safe policy:'
 printf '  workspace: real launch directory only (dynamic)\n'
-printf '  persistent writable roots: [<resolved-launch-directory>]\n'
-printf '  ephemeral writable roots: [/tmp, /dev, private Codex/browser state]\n'
-printf '  ephemeral state mount: %s (private tmpfs in each jail; empty on host)\n' "$CODEX_SAFE_EPHEMERAL_ROOT"
+printf '  persistent writable roots: [<resolved-launch-directory>, %s]\n' "$CODEX_SAFE_BROWSER_PROFILE_ROOT"
+printf '  ephemeral writable roots: [/tmp, /dev, private Codex state]\n'
+printf '  ephemeral state mount: %s (private Codex tmpfs in each jail; empty on host)\n' "$CODEX_SAFE_EPHEMERAL_ROOT"
 printf '  read-only host roots: /, /home, /root, /etc, /usr, /var, /opt, /srv, /boot, /mnt, /media, /run/media\n'
 printf '  Codex sandbox: workspace-write; approval: on-request; network: enabled; extra writable_roots: []\n'
 printf '  Codex compatibility: features.use_legacy_landlock=true in temporary runtime overrides only\n'
 printf '  browser: CloakBrowser %s -> loopback CDP -> Playwright CLI/MCP/scripts\n' "$CLOAKBROWSER_VERSION"
-printf '  browser state: dedicated private state tmpfs; artifacts: <workspace>/.playwright-cli\n'
+printf '  browser state: fixed private profile; artifacts: <workspace>/.playwright-cli\n'
+printf '  headed paste: one-way host-to-Xephyr text bridge; no clipboard payload logging\n'
 printf '  D-Bus: host buses disabled; private MCP Secret Service broker only\n'
 printf '  MCP credentials: encrypted dedicated keyring; keyring files hidden inside jail\n'
 printf '  capabilities: all dropped; nonewprivs+seccomp: enabled\n'
 
-if [[ $(. /etc/os-release; printf '%s' "$ID") == arch ]]; then pass 'Arch Linux detected'; else fail 'Arch Linux detected'; fi
+os_id=$(. /etc/os-release; printf '%s' "$ID")
+if [[ "$os_id" == arch || "$os_id" == artix ]]; then pass 'Arch/Artix Linux detected'; else fail 'Arch/Artix Linux detected'; fi
 if ps -p 1 -o comm= 2>/dev/null | grep -qx systemd; then pass 'systemd init detected'; else fail 'systemd init detected'; fi
 if command -v firejail >/dev/null; then pass "Firejail $(firejail --version 2>&1 | sed -n '1s/.*version //p')"; else fail 'Firejail installed'; fi
 if [[ -r /etc/firejail/firejail.users ]] && grep -Fxq "$(id -un)" /etc/firejail/firejail.users; then pass 'current user explicitly permitted by Firejail'; else fail 'current user explicitly permitted by Firejail'; fi
@@ -40,6 +42,10 @@ check_exec "$HOME/.local/bin/playwright-mcp-safe"
 check_exec "$CODEX_SAFE_INNER"
 check_exec "$CODEX_SAFE_SELF_TEST_INNER"
 check_file "$CODEX_SAFE_KEYRING_LIB"
+check_file "$CODEX_SAFE_BROWSER_PROFILE_LIB"
+check_file "$CODEX_SAFE_CLIPBOARD_BRIDGE"
+check_file "$CODEX_SAFE_NESTED_WINDOW_MANAGER"
+check_exec "$CODEX_SAFE_XCLIP_BIN"
 check_exec "$HOME/.local/bin/codex-safe-migrate-mcp"
 check_file "$CODEX_SAFE_PROFILE"
 check_exec "$CODEX_ORIGINAL_BIN_LINK"
@@ -55,6 +61,18 @@ if [[ $(systemctl --user is-enabled gnome-keyring-daemon.socket 2>/dev/null || t
 if [[ -d "$CODEX_SAFE_KEYRING_STATE" && ! -L "$CODEX_SAFE_KEYRING_STATE" ]]; then pass 'private keyring state directory'; else fail 'private keyring state directory'; fi
 if [[ -f "$CODEX_SAFE_KEYRING_PASSWORD" && ! -L "$CODEX_SAFE_KEYRING_PASSWORD" && $(stat -Lc '%a' "$CODEX_SAFE_KEYRING_PASSWORD") == 600 ]]; then pass 'private keyring unlock file protected'; else fail 'private keyring unlock file protected'; fi
 if [[ -d "$CODEX_SAFE_EPHEMERAL_ROOT" && ! -L "$CODEX_SAFE_EPHEMERAL_ROOT" ]] && [[ -z $(find "$CODEX_SAFE_EPHEMERAL_ROOT" -mindepth 1 -print -quit 2>/dev/null) ]]; then pass 'host ephemeral mountpoint exists and is empty'; else fail 'host ephemeral mountpoint exists and is empty'; fi
+if [[ -d "$CODEX_SAFE_BROWSER_PROFILE_ROOT" ]]; then
+  # shellcheck source=/dev/null
+  source "$CODEX_SAFE_BROWSER_PROFILE_LIB"
+  export CODEX_SAFE_HOST_HOME=$HOME
+  if codex_safe_browser_profile_load; then
+    pass 'persistent browser profile is private and valid'
+  else
+    fail 'persistent browser profile is private and valid'
+  fi
+else
+  fail 'persistent browser profile initialized'
+fi
 if [[ -x "$SHELLCHECK_REAL" ]] && [[ $(sha256sum "$SHELLCHECK_REAL" | awk '{print $1}') == "$SHELLCHECK_SHA256" ]]; then pass 'pinned standalone ShellCheck checksum'; else fail 'pinned standalone ShellCheck checksum'; fi
 
 if [[ -x "$CLOAKBROWSER_BINARY_PATH" ]]; then

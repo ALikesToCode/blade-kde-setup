@@ -35,18 +35,22 @@ standalone clone or disposable full repository when commits are required.
 
 ## Effective boundary
 
-- Persistent writable roots: the one real launch directory only.
+- Persistent writable roots: the one real launch directory plus the fixed
+  `~/.local/state/codex-safe/cloakbrowser-profile` browser profile. The profile
+  root is mode `0700`, rejects symlink redirection, and is guarded by a
+  single-instance lock.
 - Ephemeral writable roots: the Firejail-private `/tmp`, private `/dev`, and a
   fresh tmpfs mounted over the otherwise empty host directory
-  `~/.cache/codex-safe-runtime`. Codex and browser state live on that tmpfs;
-  the real host directory remains empty.
+  `~/.cache/codex-safe-runtime`. Codex state and per-launch browser scratch data
+  live on that tmpfs; the real host directory remains empty.
 - Host `$HOME`, `/`, `/etc`, `/usr`, `/var`, `/opt`, `/srv`, `/boot`, `/mnt`,
   `/media`, and `/run/media` are read-only. Credential stores unrelated to Codex
   are blacklisted.
 - `$HOME/.codex` is readable and read-only. Config and authentication are copied
   with mode `0600` into a per-session private `CODEX_HOME`; skills, plugins,
-  packages, and vendor imports are linked read-only. Mutable session databases,
-  logs, browser state, and caches disappear on exit.
+  packages, and vendor imports are linked read-only. Mutable Codex session
+  databases, logs, and caches disappear on exit. Browser cookies and site
+  storage remain only in the fixed browser profile.
 - MCP OAuth records use a separate encrypted keyring under
   `~/.local/share/codex-safe/keyring`. A trusted broker runs outside the jail
   and exposes only a private per-session Secret Service socket. The keyring
@@ -64,15 +68,18 @@ standalone clone or disposable full repository when commits are required.
 
 ## Browser architecture
 
-Each invocation chooses an unused random loopback port and a 192-bit random
-fingerprint seed. `runtime-inner.sh` starts official `cloakserve` in the same
-jail, with a private data directory, locale `en-IN`, timezone `Asia/Kolkata`,
-and auto-update disabled. It waits at most 20 seconds, then verifies:
+Each invocation chooses an unused random loopback port. A single 192-bit
+fingerprint seed is generated when the private browser profile is initialized
+and is reused with that profile so sites do not see every restart as a new
+device. A non-blocking lock prevents two CloakBrowser processes from opening
+the profile concurrently. `runtime-inner.sh` starts official `cloakserve` in
+the same jail, with locale `en-IN`, timezone `Asia/Kolkata`, and auto-update
+disabled. It waits at most 20 seconds, then verifies:
 
 1. the listener is only `127.0.0.1`;
 2. the browser executable is the pinned, verified CloakBrowser Chromium;
 3. the generated fingerprint flag is present; and
-4. the profile is inside private runtime storage.
+4. the profile is inside its fixed private state directory.
 
 Only then is Codex started. The environment exports `CLOAK_CDP_ENDPOINT`,
 `PLAYWRIGHT_MCP_CDP_ENDPOINT`, `PLAYWRIGHT_MCP_CONFIG`,
@@ -86,17 +93,25 @@ Chromium. Screenshots, snapshots, traces, downloads, and output belong in
 `<workspace>/.playwright-cli/`.
 
 Overrides are `CODEX_SAFE_LOCALE`, `CODEX_SAFE_TIMEZONE`,
-`CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible
-Xephyr window on KDE. Xephyr starts outside the jail, while CloakBrowser inside
-the jail receives only the nested display and a one-session authority cookie;
-Chromium never receives the host display or host Xauthority. A KWin rule applies
-Extreme focus-stealing prevention and makes the Xephyr window non-focusable,
-leaving it as a visible read-only monitor for automation. Playwright input
-remains CDP-scoped, so neither browser mode controls the physical pointer or
-keyboard. Browser-side D-Bus is disabled and Chromium uses its `basic` password
-backend only in the disposable private profile, preventing KDE Wallet prompts
-without retaining browser credentials. Proxy credentials are not logged, though
-Chromium necessarily receives proxy configuration in its own process arguments.
+`CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible,
+focusable Xephyr window named `CloakBrowser Automation` on KDE. Xephyr starts
+outside the jail, while CloakBrowser inside the jail receives only the nested
+display and a one-session authority cookie; Chromium never receives the host
+display or host Xauthority. The user can type and paste into this window.
+A private window manager tiles normal Chromium windows across Xephyr and gives
+new browser windows keyboard focus.
+A small bridge mirrors text from the KDE clipboard into Xephyr, but never
+copies browser clipboard contents back to KDE. It retains clipboard text only
+in memory and never writes or logs the payload. Automated interaction remains
+Playwright/CDP-only and cannot inject host pointer or keyboard events.
+
+Browser-side D-Bus is disabled and Chromium uses its `basic` password backend
+only in the persistent private profile, preventing KDE Wallet prompts while
+allowing browser cookies and site storage to survive restarts. Treat that
+profile as sensitive local data: filesystem permissions protect it, but it is
+not a replacement for an encrypted desktop credential store. Proxy credentials
+are not logged, though Chromium necessarily receives proxy configuration in its
+own process arguments.
 
 ## Operations
 
@@ -118,3 +133,5 @@ file. Future refreshes and logins persist in the dedicated keyring.
 discover sources and URLs, but their traffic is not claimed to pass through
 CloakBrowser. CloakBrowser must not be used to bypass authentication, CAPTCHA,
 paywalls, access controls, rate limits, robots directives, or legal restrictions.
+Normal uninstall preserves browser sign-ins. The explicit `--purge` operation
+removes the fixed browser profile and its saved sessions.

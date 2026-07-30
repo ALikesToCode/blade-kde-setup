@@ -28,8 +28,11 @@ contains_mount_flag() {
 [[ -n "${CODEX_SAFE_WORKSPACE-}" && -d "$CODEX_SAFE_WORKSPACE" ]] || die "workspace is missing"
 [[ "$(realpath -e -- "$PWD")" == "$CODEX_SAFE_WORKSPACE" ]] || die "working directory changed before sandbox entry"
 [[ -r "${CODEX_SAFE_NESTED_DISPLAY_LIB-}" ]] || die "nested-display library is missing"
+[[ -r "${CODEX_SAFE_BROWSER_PROFILE_LIB-}" ]] || die "browser-profile library is missing"
 # shellcheck source=/dev/null
 source "$CODEX_SAFE_NESTED_DISPLAY_LIB"
+# shellcheck source=/dev/null
+source "$CODEX_SAFE_BROWSER_PROFILE_LIB"
 
 status_value=$(awk '$1=="NoNewPrivs:" {print $2}' /proc/self/status)
 [[ "$status_value" == 1 ]] || die "NoNewPrivs is not active"
@@ -41,6 +44,8 @@ home_options=$(top_mount_options "$HOME")
 contains_mount_flag "$home_options" ro || die "HOME is not mounted read-only"
 workspace_options=$(top_mount_options "$CODEX_SAFE_WORKSPACE")
 contains_mount_flag "$workspace_options" rw || die "workspace is not mounted read-write"
+profile_options=$(top_mount_options "$CODEX_SAFE_BROWSER_PROFILE_ROOT")
+contains_mount_flag "$profile_options" rw || die "persistent browser profile is not mounted read-write"
 tmp_type=$(findmnt --target /tmp --noheadings --output FSTYPE 2>/dev/null | tail -n 1)
 [[ "$tmp_type" == tmpfs ]] || die "/tmp is not a private tmpfs"
 ephemeral_type=$(findmnt --target "$CODEX_SAFE_EPHEMERAL_ROOT" --noheadings --output FSTYPE 2>/dev/null | tail -n 1)
@@ -57,7 +62,9 @@ fi
 
 runtime_dir=$(mktemp -d "$CODEX_SAFE_EPHEMERAL_ROOT/session.XXXXXXXX") || die "cannot create private runtime directory"
 chmod 700 "$runtime_dir"
-browser_state="$runtime_dir/browser-state"
+codex_safe_browser_profile_load || die "persistent browser profile is unavailable"
+browser_state=$CODEX_SAFE_BROWSER_STATE
+fingerprint_seed=$CODEX_SAFE_FINGERPRINT_SEED
 codex_home="$runtime_dir/codex-home"
 codex_sqlite="$runtime_dir/codex-sqlite"
 xdg_runtime="$runtime_dir/run"
@@ -66,7 +73,7 @@ xdg_config="$runtime_dir/config"
 browser_home="$runtime_dir/browser-home"
 browser_cache="$runtime_dir/browser-cache"
 browser_config="$runtime_dir/browser-config"
-mkdir -m 700 "$browser_state" "$codex_home" "$codex_sqlite" "$xdg_runtime" "$xdg_cache" "$xdg_config" "$browser_home" "$browser_cache" "$browser_config"
+mkdir -m 700 "$codex_home" "$codex_sqlite" "$xdg_runtime" "$xdg_cache" "$xdg_config" "$browser_home" "$browser_cache" "$browser_config"
 
 cloak_pid=''
 codex_pid=''
@@ -113,8 +120,6 @@ browser_sha=$(sha256sum "$cloak_binary_real" | awk '{print $1}')
 
 port=$(python -S -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
 [[ "$port" =~ ^[0-9]+$ && "$port" -ge 1024 && "$port" -le 65535 ]] || die "failed to allocate a random loopback port"
-fingerprint_seed=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
-[[ "$fingerprint_seed" =~ ^[0-9a-f]{48}$ ]] || die "failed to generate fingerprint seed"
 
 cloak_args=(
   "--port=$port"
@@ -207,8 +212,8 @@ status_timezone=$(jq -er --arg seed "$fingerprint_seed" '.processes[$seed].timez
 [[ "$status_timezone" == "$CODEX_SAFE_TIMEZONE" ]] || die "cloakserve status timezone mismatch"
 browser_exe=$(readlink -f -- "/proc/$browser_pid/exe" 2>/dev/null || true)
 [[ "$browser_exe" == "$cloak_binary_real" ]] || die "cloakserve-reported process is not the patched Chromium executable"
-browser_profile=$(realpath -e -- "$browser_state/$fingerprint_seed" 2>/dev/null) || die "private browser profile was not created"
-[[ "$browser_profile" == "$browser_state/"* ]] || die "browser profile escaped private runtime storage"
+browser_profile=$(realpath -e -- "$browser_state/$fingerprint_seed" 2>/dev/null) || die "persistent browser profile was not created"
+[[ "$browser_profile" == "$browser_state/"* ]] || die "browser profile escaped its fixed location"
 
 server_headless_flag=''
 while IFS= read -r -d '' token; do
@@ -244,7 +249,7 @@ jq -n \
   --arg output "$artifact_dir" \
   --arg locale "$CODEX_SAFE_LOCALE" \
   --arg timezone "$CODEX_SAFE_TIMEZONE" \
-  '{browser:{browserName:"chromium",isolated:true,cdpEndpoint:$endpoint,cdpTimeout:20000,contextOptions:{locale:$locale,timezoneId:$timezone,acceptDownloads:true}},outputDir:$output,saveSession:true,allowUnrestrictedFileAccess:false}' \
+  '{browser:{browserName:"chromium",isolated:false,cdpEndpoint:$endpoint,cdpTimeout:20000,contextOptions:{locale:$locale,timezoneId:$timezone,acceptDownloads:true}},outputDir:$output,saveSession:false,allowUnrestrictedFileAccess:false}' \
   >"$playwright_mcp_config"
 chmod 600 "$playwright_mcp_config"
 

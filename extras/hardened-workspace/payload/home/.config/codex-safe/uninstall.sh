@@ -63,6 +63,10 @@ created=(
   "$HOME/.config/firejail/codex-safe.profile"
   "$HOME/.config/codex-safe/config"
   "$HOME/.config/codex-safe/keyring-stack.sh"
+  "$HOME/.config/codex-safe/browser-profile.sh"
+  "$HOME/.config/codex-safe/clipboard-bridge.py"
+  "$HOME/.config/codex-safe/nested-display.sh"
+  "$HOME/.config/codex-safe/nested-window-manager.py"
   "$HOME/.config/codex-safe/runtime-inner.sh"
   "$HOME/.config/codex-safe/self-test-inner.sh"
   "$HOME/.config/codex-safe/node-playwright-preload.cjs"
@@ -75,6 +79,7 @@ created=(
   "$HOME/.config/codex-safe/uninstall.sh"
   "$HOME/.config/codex-safe/codex-original"
   "$HOME/.config/codex-safe/install-state"
+  "$HOME/.local/bin/playwright-mcp-cloak"
   "$HOME/.config/systemd/user/gnome-keyring-daemon.socket"
   "$HOME/.config/systemd/user/gnome-keyring-daemon.service"
 )
@@ -99,12 +104,19 @@ if [[ -r /etc/firejail/firejail.users ]] && grep -Fxq "$(id -un)" /etc/firejail/
 fi
 
 if (( purge == 1 )); then
-  printf '%s\n' 'WARNING: --purge removes the private MCP keyring, CloakBrowser pipx environment, verified browser cache, and dedicated Playwright npm tree.'
+  printf '%s\n' 'WARNING: --purge removes saved CloakBrowser sign-ins, the private MCP keyring, CloakBrowser pipx environment, verified browser cache, and dedicated Playwright npm tree.'
   pipx uninstall cloakbrowser 2>/dev/null || true
+  browser_profile="$HOME/.local/state/codex-safe/cloakbrowser-profile"
+  if [[ "$browser_profile" == "$HOME/.local/state/codex-safe/"* ]]; then
+    rm -rf -- "$browser_profile"
+  fi
   if [[ "$HOME/.local/share/codex-safe" == "$HOME/"* ]]; then rm -rf -- "$HOME/.local/share/codex-safe"; fi
   if [[ "$HOME/.cloakbrowser" == "$HOME/"* ]]; then rm -rf -- "$HOME/.cloakbrowser"; fi
 fi
 
+if (( purge == 0 )) && [[ -d "$HOME/.local/state/codex-safe/cloakbrowser-profile" ]]; then
+  printf 'Preserved CloakBrowser sign-ins at %s\n' "$HOME/.local/state/codex-safe/cloakbrowser-profile"
+fi
 if (( purge == 0 )) && [[ -d "$HOME/.local/share/codex-safe/keyring" ]]; then
   printf 'Preserved private MCP credentials at %s\n' "$HOME/.local/share/codex-safe/keyring"
 fi

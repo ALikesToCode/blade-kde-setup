@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Shared nested-display lifecycle for visible CloakBrowser sessions. Xephyr is
 # the only process connected to KDE; Chromium receives a separate X display and
-# authority cookie, so Playwright input cannot reach the host pointer.
+# authority cookie. A one-way text bridge copies the host clipboard into Xephyr
+# without exposing the nested clipboard back to KDE.
 
 codex_safe_nested_display_error() {
   printf 'nested-display: ERROR: %s\n' "$*" >&2
@@ -85,6 +86,40 @@ codex_safe_verify_xephyr() {
   XEPHYR_BIN=$resolved
 }
 
+codex_safe_verify_clipboard_bridge() {
+  local bridge=${CODEX_SAFE_CLIPBOARD_BRIDGE-} xclip=${CODEX_SAFE_XCLIP_BIN-}
+  local owner mode resolved
+  [[ -f "$bridge" && ! -L "$bridge" && -r "$bridge" ]] || \
+    codex_safe_nested_display_error "clipboard bridge is missing or unsafe" || return
+  owner=$(stat -Lc '%u' -- "$bridge" 2>/dev/null) || return
+  mode=$(stat -Lc '%a' -- "$bridge" 2>/dev/null) || return
+  [[ "$owner" == "$(id -u)" ]] || \
+    codex_safe_nested_display_error "clipboard bridge has the wrong owner" || return
+  (( (8#$mode & 8#022) == 0 )) || \
+    codex_safe_nested_display_error "clipboard bridge is group/world-writable" || return
+  CODEX_SAFE_CLIPBOARD_BRIDGE=$(realpath -e -- "$bridge") || return
+
+  [[ -x "$xclip" && ! -L "$xclip" ]] || \
+    codex_safe_nested_display_error "xclip is missing or unsafe" || return
+  resolved=$(realpath -e -- "$xclip") || return
+  [[ "$resolved" == /usr/bin/xclip ]] || \
+    codex_safe_nested_display_error "xclip resolved outside /usr/bin" || return
+  CODEX_SAFE_XCLIP_BIN=$resolved
+}
+
+codex_safe_verify_nested_window_manager() {
+  local manager=${CODEX_SAFE_NESTED_WINDOW_MANAGER-} owner mode
+  [[ -f "$manager" && ! -L "$manager" && -r "$manager" ]] || \
+    codex_safe_nested_display_error "nested window manager is missing or unsafe" || return
+  owner=$(stat -Lc '%u' -- "$manager" 2>/dev/null) || return
+  mode=$(stat -Lc '%a' -- "$manager" 2>/dev/null) || return
+  [[ "$owner" == "$(id -u)" ]] || \
+    codex_safe_nested_display_error "nested window manager has the wrong owner" || return
+  (( (8#$mode & 8#022) == 0 )) || \
+    codex_safe_nested_display_error "nested window manager is group/world-writable" || return
+  CODEX_SAFE_NESTED_WINDOW_MANAGER=$(realpath -e -- "$manager") || return
+}
+
 codex_safe_write_nested_authority() {
   local authority=$1 display=$2 cookie=$3
   [[ "$display" =~ ^:[0-9]+$ ]] || \
@@ -96,9 +131,62 @@ codex_safe_write_nested_authority() {
     codex_safe_nested_display_error "cannot create nested Xauthority file" || return
 }
 
+codex_safe_start_clipboard_bridge() {
+  local state_root=$1 ready_file deadline
+  codex_safe_verify_clipboard_bridge || return
+  ready_file="$state_root/clipboard-bridge.ready"
+  rm -f -- "$ready_file"
+  DBUS_SESSION_BUS_ADDRESS=disabled: \
+  DBUS_SYSTEM_BUS_ADDRESS=disabled: \
+    python -I -S "$CODEX_SAFE_CLIPBOARD_BRIDGE" \
+      --host-display "$CODEX_SAFE_HOST_DISPLAY" \
+      --host-authority "$CODEX_SAFE_HOST_XAUTHORITY" \
+      --nested-display "$CODEX_SAFE_NESTED_DISPLAY" \
+      --nested-authority "$CODEX_SAFE_NESTED_XAUTHORITY" \
+      --xclip "$CODEX_SAFE_XCLIP_BIN" \
+      --ready-file "$ready_file" >"$state_root/clipboard-bridge.log" 2>&1 &
+  CODEX_SAFE_CLIPBOARD_BRIDGE_PID=$!
+
+  deadline=$((SECONDS + 10))
+  while (( SECONDS < deadline )); do
+    kill -0 "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null || {
+      codex_safe_nested_display_error "clipboard bridge exited during startup"
+      return 1
+    }
+    [[ -f "$ready_file" ]] && return 0
+    sleep 0.1
+  done
+  codex_safe_nested_display_error "clipboard bridge startup timed out"
+}
+
+codex_safe_start_nested_window_manager() {
+  local state_root=$1 ready_file deadline
+  codex_safe_verify_nested_window_manager || return
+  ready_file="$state_root/window-manager.ready"
+  rm -f -- "$ready_file"
+  DISPLAY="$CODEX_SAFE_NESTED_DISPLAY" \
+  XAUTHORITY="$CODEX_SAFE_NESTED_XAUTHORITY" \
+  DBUS_SESSION_BUS_ADDRESS=disabled: \
+  DBUS_SYSTEM_BUS_ADDRESS=disabled: \
+    python -I -S "$CODEX_SAFE_NESTED_WINDOW_MANAGER" \
+      --ready-file "$ready_file" >"$state_root/window-manager.log" 2>&1 &
+  CODEX_SAFE_NESTED_WM_PID=$!
+
+  deadline=$((SECONDS + 10))
+  while (( SECONDS < deadline )); do
+    kill -0 "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null || {
+      codex_safe_nested_display_error "nested window manager exited during startup"
+      return 1
+    }
+    [[ -f "$ready_file" ]] && return 0
+    sleep 0.1
+  done
+  codex_safe_nested_display_error "nested window manager startup timed out"
+}
+
 codex_safe_start_nested_display() {
   local lock_root=$1 state_root=$2 display_number socket_path deadline lock_path
-  local candidate lock_owner lock_mode
+  local candidate lock_owner lock_mode display_ready=0
 
   codex_safe_verify_xephyr || return
   codex_safe_resolve_host_x11 || return
@@ -151,7 +239,7 @@ codex_safe_start_nested_display() {
       -noreset \
       -nolisten tcp \
       -name cloakbrowser-automation \
-      -title 'CloakBrowser Automation (CDP only)' \
+      -title 'CloakBrowser Automation' \
       >"$state_root/xephyr.log" 2>&1 &
   CODEX_SAFE_XEPHYR_PID=$!
 
@@ -164,14 +252,40 @@ codex_safe_start_nested_display() {
     if [[ -S "$socket_path" ]] && \
         timeout 2 env DISPLAY="$CODEX_SAFE_NESTED_DISPLAY" \
           XAUTHORITY="$CODEX_SAFE_NESTED_XAUTHORITY" xdpyinfo >/dev/null 2>&1; then
-      return 0
+      display_ready=1
+      break
     fi
     sleep 0.1
   done
-  codex_safe_nested_display_error "Xephyr startup timed out"
+  (( display_ready == 1 )) || \
+    codex_safe_nested_display_error "Xephyr startup timed out" || return
+  codex_safe_start_nested_window_manager "$state_root" || return
+  codex_safe_start_clipboard_bridge "$state_root"
 }
 
 codex_safe_stop_nested_display() {
+  if [[ -n "${CODEX_SAFE_CLIPBOARD_BRIDGE_PID-}" ]] && \
+      kill -0 "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null; then
+    kill -TERM "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null || true
+    for _ in {1..20}; do
+      kill -0 "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null || break
+      sleep 0.1
+    done
+    if kill -0 "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null; then
+      kill -KILL "$CODEX_SAFE_CLIPBOARD_BRIDGE_PID" 2>/dev/null || true
+    fi
+  fi
+  if [[ -n "${CODEX_SAFE_NESTED_WM_PID-}" ]] && \
+      kill -0 "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null; then
+    kill -TERM "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null || true
+    for _ in {1..20}; do
+      kill -0 "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null || break
+      sleep 0.1
+    done
+    if kill -0 "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null; then
+      kill -KILL "$CODEX_SAFE_NESTED_WM_PID" 2>/dev/null || true
+    fi
+  fi
   if [[ -n "${CODEX_SAFE_XEPHYR_PID-}" ]] && kill -0 "$CODEX_SAFE_XEPHYR_PID" 2>/dev/null; then
     kill -TERM "$CODEX_SAFE_XEPHYR_PID" 2>/dev/null || true
     for _ in {1..30}; do
@@ -186,6 +300,8 @@ codex_safe_stop_nested_display() {
         "$CODEX_SAFE_NESTED_DISPLAY_LOCK" == */display-*.lock ]]; then
     rmdir "$CODEX_SAFE_NESTED_DISPLAY_LOCK" 2>/dev/null || true
   fi
+  CODEX_SAFE_CLIPBOARD_BRIDGE_PID=''
+  CODEX_SAFE_NESTED_WM_PID=''
   CODEX_SAFE_XEPHYR_PID=''
   CODEX_SAFE_NESTED_DISPLAY_LOCK=''
 }

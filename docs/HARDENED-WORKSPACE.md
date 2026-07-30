@@ -7,15 +7,17 @@ fixes `stdin is not a terminal`: standard input, output, and error stay attached
 to the caller's TTY instead of being piped through another process.
 
 Only configuration, wrappers, checksums, and an idempotent installer are stored
-in this repository. Browser profiles, authentication, caches, session state,
-downloads, test repositories, and third-party binary archives are excluded.
+in this repository. The live browser profile, authentication, caches, session
+state, downloads, test repositories, and third-party binary archives are
+excluded.
 
 ## Preconditions
 
 The normal package manifest supplies Firejail, curl, jq, pipx, ripgrep, Xephyr,
-`xauth`, and the other command-line dependencies. Install `gnome-keyring` as
-the isolated MCP Secret Service broker; it does not replace KDE Wallet as the
-desktop backend.
+`xauth`, `xclip`, and the other command-line dependencies. `xclip` is used only
+for the one-way host-to-Xephyr text clipboard bridge. Install `gnome-keyring`
+as the isolated MCP Secret Service broker; it does not replace KDE Wallet as
+the desktop backend.
 The installer masks the package's user socket/service for this account and
 starts the daemon only on codex-safe's private bus.
 Before staging, the target username must be a
@@ -97,16 +99,24 @@ args = ["--browser-mode=headed"]
 
 Replace `USER` with the account name because MCP command paths must be
 absolute.
-Headed mode opens a visible `CloakBrowser Automation (CDP only)` window on KDE.
+Headed mode opens a visible, focusable `CloakBrowser Automation` window on KDE.
 Xephyr hosts that window while CloakBrowser runs on Xephyr's nested X display,
-so CDP input cannot move the host pointer or type into another application.
-The installed KWin rule makes this window non-focusable and uses Extreme
-focus-stealing prevention, so it remains a visible read-only monitor for
-automation. Both modes remove display variables from the Playwright MCP process,
-disable desktop D-Bus for the browser, and select Chromium's `basic` password
-backend inside the disposable private profile. This prevents KDE Wallet prompts
-without persisting automation credentials. Automation must use Playwright page
-tools only. Restart Codex after adding or changing either server.
+so the browser never receives the host X display. The installed KWin rule lets
+the user focus the nested window for manual login, 2FA, typing, and paste.
+A minimal window manager inside Xephyr tiles normal Chromium windows across the
+display and focuses newly mapped browser windows.
+A memory-only bridge mirrors KDE text clipboard changes into Xephyr and never
+copies the nested clipboard back to KDE. Agents still use Playwright page tools
+only and never inject host pointer or keyboard input.
+
+Both modes remove display variables from the Playwright MCP process, disable
+desktop D-Bus for the browser, and select Chromium's `basic` password backend
+inside `~/.local/state/codex-safe/cloakbrowser-profile`. This dedicated `0700`
+profile is the only persistent browser location and is protected by a
+single-instance lock. Cookies and site storage survive restarts without KDE
+Wallet access. The profile contains sensitive signed-in state and is protected
+by filesystem permissions, not a desktop credential store. Restart Codex after
+adding or changing either server.
 
 The wrapper rejects unsafe launch roots, hard links whose inode counts prove an
 external alias, missing sandbox controls, changed browser hashes, and

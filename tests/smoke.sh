@@ -11,6 +11,7 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
     "$ROOT/scripts/install-event-calendar.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
+    "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
     "$ROOT/tests/aria2-daemon.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
@@ -19,6 +20,7 @@ bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" 
     "$ROOT/tests/event-calendar.sh"
 bash -n \
     "$ROOT/extras/hardened-workspace/install.sh" \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/browser-profile.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh" \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh" \
@@ -45,6 +47,20 @@ if command -v node >/dev/null 2>&1; then
         "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/node-playwright-preload.cjs"
 fi
 python3 - "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/python/sitecustomize.py" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+compile(path.read_text(), str(path), "exec")
+PY
+python3 - "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/clipboard-bridge.py" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+compile(path.read_text(), str(path), "exec")
+PY
+python3 - "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/nested-window-manager.py" <<'PY'
 import pathlib
 import sys
 
@@ -100,13 +116,18 @@ required=(
     bin/aria2-daemon
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
+    extras/hardened-workspace/payload/home/.config/codex-safe/browser-profile.sh
+    extras/hardened-workspace/payload/home/.config/codex-safe/clipboard-bridge.py
     extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh
+    extras/hardened-workspace/payload/home/.config/codex-safe/nested-window-manager.py
     extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh
     extras/hardened-workspace/payload/home/.config/codex-safe/keyring-stack.sh
     extras/hardened-workspace/payload/home/.local/bin/codex-safe
     extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp
     extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak
     tests/browser-mode-isolation.sh
+    tests/browser-profile-persistence.sh
+    tests/clipboard-bridge.sh
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
@@ -121,6 +142,8 @@ grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
+bash "$ROOT/tests/browser-profile-persistence.sh" >/dev/null
+bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
@@ -155,11 +178,12 @@ rg -q '^### Browser mode declaration and cursor isolation$' \
 # shellcheck disable=SC2016
 grep -Fq 'Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed`' \
     "$ROOT/dotfiles/agents/AGENTS.md"
-grep -Fq 'Never take control of the host pointer or keyboard.' \
+grep -Fq 'must never read, request, type, paste, or log the user'\''s credentials.' \
     "$ROOT/dotfiles/agents/AGENTS.md"
 grep -Fq 'Headed always means visible:' "$ROOT/dotfiles/agents/AGENTS.md"
 grep -Fqx 'xorg-server-xephyr' "$ROOT/packages/pacman.txt"
 grep -Fqx 'xorg-xauth' "$ROOT/packages/pacman.txt"
+grep -Fqx 'xclip' "$ROOT/packages/pacman.txt"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
@@ -183,14 +207,15 @@ if find "$ROOT/extras/hardened-workspace" -name '.codex-safe-verification*' -pri
     exit 1
 fi
 
-if rg -n --hidden --glob '!.git/**' \
+if rg -n --hidden --glob '!.git' --glob '!.git/**' \
     '(sk-navy-[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9]{20,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)' \
     "$ROOT"; then
     printf 'Potential secret found.\n' >&2
     exit 1
 fi
 
-if rg -n --hidden --glob '!.git/**' '/home/mysterious|__HOME__.*__HOME__' "$ROOT" \
+if rg -n --hidden --glob '!.git' --glob '!.git/**' \
+    '/home/mysterious|__HOME__.*__HOME__' "$ROOT" \
     --glob '!**/tests/smoke.sh'; then
     printf 'A machine-specific home path remains in the repository.\n' >&2
     exit 1

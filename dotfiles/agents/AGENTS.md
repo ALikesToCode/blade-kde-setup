@@ -106,11 +106,13 @@ Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, 
 - Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed` in a commentary update and give the reason for that choice.
 - In ordinary Codex sessions, use `playwright_safe` for headless work and `playwright_safe_headed` for headed work. Use exactly one browser server for a task; never start both modes speculatively.
 - Default to headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed when the user asks to see the browser or visible GUI rendering is part of the requirement.
-- Headed always means visible: it opens `CloakBrowser Automation (CDP only)` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
-- The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display, and a KWin rule makes the Xephyr window non-focusable with Extreme focus-stealing prevention. Its appearance must not interrupt the user's active application.
-- CloakBrowser uses Chromium's `basic` password backend only inside its disposable `0700` profile and receives no desktop D-Bus address. Browser automation must never request access to KDE Wallet or another desktop credential store.
-- Keep all page interaction inside Playwright over CDP. Never use Computer Use, `xdotool`, `ydotool`, `wtype`, KWin scripting, desktop coordinates, OS mouse movement, or OS keyboard injection for browser work.
-- The visible automation window is intentionally read-only to host keyboard input. If a workflow requires manual login, CAPTCHA, permission prompt, or other physical desktop interaction, stop and ask the user to perform that step in their own browser. Never take control of the host pointer or keyboard.
+- Headed always means visible: it opens `CloakBrowser Automation` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
+- The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display. The dedicated KWin rule allows the user to focus it for manual typing and paste without exposing the host display to Chromium.
+- A private nested window manager tiles every normal Chromium window across the full Xephyr display and focuses newly mapped browser windows. `browser_resize` remains available for responsive page-viewport emulation, but it must not shrink or reposition the native browser window.
+- Headed mode mirrors text from the KDE clipboard into Xephyr only. Clipboard contents remain in memory, are never logged or written to disk, and are never copied from the browser back to KDE.
+- CloakBrowser uses Chromium's `basic` password backend only inside `~/.local/state/codex-safe/cloakbrowser-profile`, a dedicated `0700` persistent profile. It receives no desktop D-Bus address and must never request KDE Wallet or another desktop credential store.
+- The user may perform manual login, 2FA, CAPTCHA, permission prompts, and paste inside the visible CloakBrowser window. Agents must pause for those steps and must never read, request, type, paste, or log the user's credentials.
+- Keep automated page interaction inside Playwright over CDP. Never use Computer Use, `xdotool`, `ydotool`, `wtype`, KWin scripting, desktop coordinates, OS mouse movement, or OS keyboard injection for browser work.
 - Inside `codex-safe`, the selected mode is fixed when the session starts (`CODEX_SAFE_HEADED=true` selects headed). If the active mode does not match the declared mode, stop and request a correctly configured fresh session instead of silently changing modes.
 
 ### Playwright skill protocol
@@ -119,7 +121,7 @@ Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, 
 - In ordinary Codex, use `playwright_safe` MCP tools only. Never run `npx @playwright/cli`, install browsers, invoke the skill's CLI fallback, or silently substitute stock Chromium.
 - Start with `browser_navigate`, then capture `browser_snapshot`. Use refs only from the latest snapshot and refresh the snapshot after navigation or major DOM changes.
 - Use snapshots for semantic understanding and refs; use `browser_take_screenshot` for visual evidence. For important journeys, inspect console messages and network requests after reproduction.
-- Keep browser profiles, downloads, traces, screenshots, and other artifacts inside the active workspace or its repository-prescribed evidence directory.
+- Keep downloads, traces, screenshots, and other artifacts inside the active workspace or its repository-prescribed evidence directory. The only browser profile is the fixed private path `~/.local/state/codex-safe/cloakbrowser-profile`.
 - Use synthetic or repository-provided data. Do not bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.
 - If the MCP namespace is unavailable, run the read-only check `codex mcp get playwright_safe`, report that Codex must be restarted, and do not fall back to another browser.
 
