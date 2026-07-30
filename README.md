@@ -20,7 +20,8 @@ The setup includes:
 - Native, reliable Konsole tabs and a matching dark profile
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
 - Matching Artix Material You SDDM login screen with blue/green quick-setting icons
-- Bash, Git, Neovim, tmux, MPV, yt-dlp, aria2, Yay, and makepkg defaults
+- Bash, Git, Neovim, tmux, MPV, yt-dlp, a supervised aria2 queue, Yay, and
+  makepkg defaults
 - Global modular-development, verification, atomic-commit, identity, and
   destructive-action guardrails for assisted coding sessions
 - pnpm-first interactive Node workflow and a globally accessible Wrangler CLI
@@ -65,6 +66,10 @@ For only the unprivileged desktop and dotfiles, run:
 ./install.sh --user --apply
 ```
 
+The user install enables an aria2 service that resumes its queue after login,
+stores downloads in `~/storage/anime`, and exposes authenticated RPC on
+localhost only. Its generated token lives at `~/.config/aria2/rpc-secret`.
+
 See [Installation](docs/INSTALL.md) for every mode and safety detail, and
 [Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
 decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md), and
@@ -83,6 +88,8 @@ The request-by-request audit is in
 ~/.config/codex-safe/doctor.sh --run  # verify the optional sandbox boundary
 updateall --dry-run       # preview all detected package-manager updates
 updateall -y              # update them with one sudo authentication
+systemctl --user status aria2  # inspect the persistent download daemon
+journalctl --user -u aria2 -f  # follow aria2 daemon logs
 wrangler whoami           # verify Cloudflare CLI authentication
 npm-system --version      # bypass the interactive npm -> pnpm alias
 ./install.sh --tools      # restore pinned CLI tools and Codex skills

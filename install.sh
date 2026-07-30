@@ -287,6 +287,16 @@ begin_sudo_session() {
     SUDO_KEEPALIVE_PID=$!
 }
 
+enable_aria2_daemon() {
+    if ! command -v systemctl >/dev/null 2>&1; then
+        warn 'systemctl was not found; aria2 was configured but its user service was not enabled.'
+        return 0
+    fi
+
+    run systemctl --user daemon-reload
+    run systemctl --user enable --now aria2.service
+}
+
 install_user_files() {
     section 'Installing user configuration and desktop assets'
 
@@ -295,6 +305,10 @@ install_user_files() {
     install_file "$ROOT/dotfiles/bash/profile" "$HOME/.profile"
     install_file "$ROOT/dotfiles/bash/inputrc" "$HOME/.inputrc"
     install_template "$ROOT/dotfiles/downloads/aria2/aria2.conf" "$HOME/.aria2/aria2.conf"
+    install_template "$ROOT/dotfiles/downloads/aria2/daemon.conf" \
+        "$HOME/.config/aria2/daemon.conf"
+    install_file "$ROOT/dotfiles/systemd/user/aria2.service" \
+        "$HOME/.config/systemd/user/aria2.service"
     install_file "$ROOT/dotfiles/downloads/makepkg.conf" "$HOME/.makepkg.conf"
     install_template "$ROOT/dotfiles/media/mpv/mpv.conf" "$HOME/.config/mpv/mpv.conf"
     install_file "$ROOT/dotfiles/media/mpv/input.conf" "$HOME/.config/mpv/input.conf"
@@ -304,6 +318,7 @@ install_user_files() {
     install_template "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
+    install_file "$ROOT/bin/aria2-daemon" "$HOME/.local/bin/aria2-daemon" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
     install_zen_preferences
     install_file "$ROOT/dotfiles/apps/zed/zeditor" "$HOME/.local/bin/zeditor" 0755
@@ -409,6 +424,8 @@ PY
     else
         warn 'python3 is unavailable; leaving the existing Yay configuration untouched.'
     fi
+
+    enable_aria2_daemon
 
     if ((DRY_RUN)); then
         info "Backups would be stored below ${BACKUP_ROOT/#$HOME/~}"

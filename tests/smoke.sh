@@ -5,11 +5,13 @@ set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
+    "$ROOT/bin/aria2-daemon" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh"
-bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh"
+bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
+    "$ROOT/tests/aria2-daemon.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
     "$ROOT/tests/zen-window-controls.sh" "$ROOT/scripts/apply-desktop-clock.sh" \
@@ -85,6 +87,8 @@ required=(
     dotfiles/apps/zed/zeditor
     dotfiles/apps/zed/dev.zed.Zed.desktop
     dotfiles/agents/AGENTS.md
+    dotfiles/downloads/aria2/daemon.conf
+    dotfiles/systemd/user/aria2.service
     dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
@@ -93,6 +97,7 @@ required=(
     extras/eventcalendar/upstream.sha256
     scripts/apply-desktop-clock.sh
     scripts/install-codex-tools.sh
+    bin/aria2-daemon
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
     extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh
@@ -116,6 +121,7 @@ grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
+bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \

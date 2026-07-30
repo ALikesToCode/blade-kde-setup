@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+config_root="${XDG_CONFIG_HOME:-$HOME/.config}/aria2"
+state_root="${XDG_STATE_HOME:-$HOME/.local/state}/aria2"
+base_config="$config_root/daemon.conf"
+runtime_config="$state_root/daemon.conf"
+secret_file="$config_root/rpc-secret"
+session_file="$state_root/session"
+download_root="$HOME/storage/anime"
+aria2c_bin="${ARIA2C_BIN:-/usr/bin/aria2c}"
+temporary=
+
+cleanup() {
+    [[ -z $temporary ]] || rm -f -- "$temporary"
+}
+trap cleanup EXIT
+
+[[ -x $aria2c_bin ]] || {
+    printf 'aria2 daemon: executable not found: %s\n' "$aria2c_bin" >&2
+    exit 1
+}
+[[ -r $base_config ]] || {
+    printf 'aria2 daemon: configuration not found: %s\n' "$base_config" >&2
+    exit 1
+}
+
+umask 0077
+install -d -m 0700 -- "$config_root" "$state_root"
+mkdir -p -- "$download_root"
+touch -- "$session_file"
+chmod 0600 -- "$session_file"
+
+if [[ ! -s $secret_file ]]; then
+    temporary=$(mktemp "$config_root/rpc-secret.XXXXXX")
+    od -An -N32 -tx1 /dev/urandom | tr -d ' \n' > "$temporary"
+    printf '\n' >> "$temporary"
+    chmod 0600 -- "$temporary"
+    mv -- "$temporary" "$secret_file"
+    temporary=
+fi
+
+rpc_secret=$(<"$secret_file")
+[[ $rpc_secret =~ ^[[:xdigit:]]{64}$ ]] || {
+    printf 'aria2 daemon: %s must contain exactly 64 hexadecimal characters\n' \
+        "$secret_file" >&2
+    exit 1
+}
+chmod 0600 -- "$secret_file"
+
+temporary=$(mktemp "$state_root/daemon.conf.XXXXXX")
+{
+    printf '# Generated from %s; edit the source file instead.\n' "$base_config"
+    sed '/^[[:space:]]*rpc-secret[[:space:]]*=/d' "$base_config"
+    printf '\nrpc-secret=%s\n' "$rpc_secret"
+} > "$temporary"
+chmod 0600 -- "$temporary"
+mv -- "$temporary" "$runtime_config"
+temporary=
+trap - EXIT
+
+exec "$aria2c_bin" --conf-path="$runtime_config"
