@@ -1,23 +1,25 @@
 [Unit]
-Description=aria2 download daemon
-Documentation=https://aria2.github.io/manual/en/html/
-StartLimitIntervalSec=60
-StartLimitBurst=5
+Description=AriaNg local download manager
+Documentation=https://github.com/mayswind/AriaNg
+Wants=aria2.service
+After=aria2.service
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/aria2-daemon
+ExecStart=%h/.local/bin/ariang-server
 Restart=always
 RestartSec=5
-TimeoutStopSec=30
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
+ProtectHome=read-only
 ProtectControlGroups=true
 ProtectKernelModules=true
 ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET
 RestrictSUIDSGID=true
+LockPersonality=true
 
 [Install]
 WantedBy=default.target

@@ -13,6 +13,7 @@ DO_PACKAGES=0
 DO_SYSTEM=0
 DO_HARDENED=0
 DO_TOOLS=0
+DO_DOWNLOADS=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
 SUDO_KEEPALIVE_PID=
@@ -31,6 +32,7 @@ Modes:
   --system       Configure Pacman, Reflector, and the SDDM login theme
   --hardened     Install the optional fail-closed workspace/browser launcher
   --tools        Install pinned CLI tools and personal Codex skills
+  --downloads    Install and start the aria2 + AriaNg download manager
 
 Options:
   -n, --dry-run  Print the plan without changing anything or asking for sudo
@@ -41,6 +43,7 @@ Examples:
   ./install.sh --dry-run --all
   ./install.sh --all -y
   ./install.sh --user --apply
+  ./install.sh --downloads
 EOF
 }
 
@@ -55,6 +58,7 @@ while (($#)); do
         --system) DO_SYSTEM=1; MODE_SELECTED=1 ;;
         --hardened) DO_HARDENED=1; MODE_SELECTED=1 ;;
         --tools) DO_TOOLS=1; MODE_SELECTED=1 ;;
+        --downloads) DO_DOWNLOADS=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -289,26 +293,51 @@ begin_sudo_session() {
 
 enable_aria2_daemon() {
     if ! command -v systemctl >/dev/null 2>&1; then
-        warn 'systemctl was not found; aria2 was configured but its user service was not enabled.'
+        warn 'systemctl was not found; aria2 and AriaNg were configured but their user services were not enabled.'
         return 0
     fi
 
     run systemctl --user daemon-reload
-    run systemctl --user enable --now aria2.service
+    run systemctl --user enable --now aria2.service ariang.service
+}
+
+install_download_manager() {
+    section 'Installing aria2 and AriaNg'
+
+    install_template "$ROOT/dotfiles/downloads/aria2/aria2.conf" \
+        "$HOME/.aria2/aria2.conf"
+    install_template "$ROOT/dotfiles/downloads/aria2/daemon.conf" \
+        "$HOME/.config/aria2/daemon.conf"
+    install_file "$ROOT/dotfiles/systemd/user/aria2.service" \
+        "$HOME/.config/systemd/user/aria2.service"
+    install_file "$ROOT/dotfiles/systemd/user/ariang.service" \
+        "$HOME/.config/systemd/user/ariang.service"
+    install_file "$ROOT/bin/aria2-daemon" "$HOME/.local/bin/aria2-daemon" 0755
+    install_file "$ROOT/bin/ariang-server" "$HOME/.local/bin/ariang-server" 0755
+    install_file "$ROOT/bin/ariang" "$HOME/.local/bin/ariang" 0755
+    install_template "$ROOT/dotfiles/apps/ariang/ariang.desktop" \
+        "$HOME/.local/share/applications/ariang.desktop"
+
+    if ((DRY_RUN)); then
+        bash "$ROOT/scripts/install-ariang.sh" --dry-run
+    else
+        bash "$ROOT/scripts/install-ariang.sh"
+    fi
+
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        run update-desktop-database "$HOME/.local/share/applications"
+    fi
+    enable_aria2_daemon
 }
 
 install_user_files() {
     section 'Installing user configuration and desktop assets'
 
+    install_download_manager
     install_file "$ROOT/dotfiles/bash/bashrc" "$HOME/.bashrc"
     install_file "$ROOT/dotfiles/bash/bash_profile" "$HOME/.bash_profile"
     install_file "$ROOT/dotfiles/bash/profile" "$HOME/.profile"
     install_file "$ROOT/dotfiles/bash/inputrc" "$HOME/.inputrc"
-    install_template "$ROOT/dotfiles/downloads/aria2/aria2.conf" "$HOME/.aria2/aria2.conf"
-    install_template "$ROOT/dotfiles/downloads/aria2/daemon.conf" \
-        "$HOME/.config/aria2/daemon.conf"
-    install_file "$ROOT/dotfiles/systemd/user/aria2.service" \
-        "$HOME/.config/systemd/user/aria2.service"
     install_file "$ROOT/dotfiles/downloads/makepkg.conf" "$HOME/.makepkg.conf"
     install_template "$ROOT/dotfiles/media/mpv/mpv.conf" "$HOME/.config/mpv/mpv.conf"
     install_file "$ROOT/dotfiles/media/mpv/input.conf" "$HOME/.config/mpv/input.conf"
@@ -318,7 +347,6 @@ install_user_files() {
     install_template "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
-    install_file "$ROOT/bin/aria2-daemon" "$HOME/.local/bin/aria2-daemon" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
     install_zen_preferences
     install_file "$ROOT/dotfiles/apps/zed/zeditor" "$HOME/.local/bin/zeditor" 0755
@@ -328,7 +356,6 @@ install_user_files() {
         "$HOME/.local/share/applications/zen.desktop"
     install_template "$ROOT/dotfiles/apps/zed/dev.zed.Zed.desktop" \
         "$HOME/.local/share/applications/dev.zed.Zed.desktop"
-
     local pnpm_home="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
     if command -v pnpm >/dev/null 2>&1 || ((DRY_RUN)); then
         run env PNPM_HOME="$pnpm_home" PATH="$pnpm_home/bin:$PATH" \
@@ -424,8 +451,6 @@ PY
     else
         warn 'python3 is unavailable; leaving the existing Yay configuration untouched.'
     fi
-
-    enable_aria2_daemon
 
     if ((DRY_RUN)); then
         info "Backups would be stored below ${BACKUP_ROOT/#$HOME/~}"
@@ -565,6 +590,9 @@ if ((DO_TOOLS)); then
     fi
 fi
 ((DO_USER)) && install_user_files
+if ((DO_DOWNLOADS && !DO_USER)); then
+    install_download_manager
+fi
 ((DO_SYSTEM)) && configure_system
 
 if ((DO_HARDENED)); then

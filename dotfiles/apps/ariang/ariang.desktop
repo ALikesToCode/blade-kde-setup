@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=AriaNg
+GenericName=Download Manager
+Comment=Manage local aria2 downloads and torrents
+Exec=__HOME__/.local/bin/ariang
+TryExec=__HOME__/.local/bin/ariang
+Icon=network-server
+Terminal=false
+Categories=Network;FileTransfer;
+StartupNotify=true

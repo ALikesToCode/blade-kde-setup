@@ -31,6 +31,7 @@ a timestamped directory under:
 | `--all` | Runs packages, tools, user files, system tuning, and live KDE apply | Mixed |
 | `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
 | `--tools` | Installs pinned OpenWiki and OfficeCLI commands plus the Codex skill collection | Sudo for global npm; skills are user-local |
+| `--downloads` | Installs and starts the aria2 daemon and checksum-pinned local AriaNg UI | User |
 
 Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
 non-interactive package-manager confirmation.
@@ -67,6 +68,20 @@ installer stages the source in a temporary directory, applies the Blade
 Material overlay, backs up an older installed package, and uses
 `kpackagetool6`. Replacing the built-in Digital Clock remains a separate,
 explicit `apply-panels.sh --replace-clock --yes` action.
+
+## Download manager
+
+Run `./install.sh --downloads` to install only the download stack. The aria2
+user service starts immediately, restarts after failures, and starts again with
+the user session. Direct downloads and public torrents are saved below
+`~/storage/anime`, with queue state preserved across restarts.
+
+Authenticated aria2 JSON-RPC listens only on `127.0.0.1:14141`. AriaNg 1.3.14
+is served only on `127.0.0.1:14142` from a release archive pinned by URL and
+SHA-256 in `packages/ariang.lock`. The installer adds a versioned release
+directory and does not replace an unexpected or older release. The `ariang`
+command opens the local UI and supplies its connection settings without
+committing the generated token at `~/.config/aria2/rpc-secret`.
 
 ## Package notes
 

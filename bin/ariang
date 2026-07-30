@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+endpoint=http://127.0.0.1:14142
+systemctl --user start aria2.service ariang.service
+
+ready=0
+for _ in {1..50}; do
+    if curl --fail --silent --show-error --max-time 1 \
+        "$endpoint/healthz" >/dev/null 2>&1; then
+        ready=1
+        break
+    fi
+    sleep 0.1
+done
+((ready == 1)) || {
+    printf 'ariang: local UI did not become ready at %s\n' "$endpoint" >&2
+    exit 1
+}
+
+exec xdg-open "$endpoint/configure"

@@ -47,6 +47,9 @@ rpc_secret=$(<"$secret_file")
 [[ -d $TEST_HOME/storage/anime ]]
 grep -Fqx -- "--conf-path=$runtime_config" "$MOCK_CAPTURE"
 grep -Fqx "dir=$TEST_HOME/storage/anime" "$runtime_config"
+grep -Fqx 'rpc-listen-port=14141' "$runtime_config"
+grep -Fqx 'rpc-listen-all=false' "$runtime_config"
+grep -Fqx 'rpc-allow-origin-all=true' "$runtime_config"
 grep -Fqx "rpc-secret=$rpc_secret" "$runtime_config"
 [[ $(grep -c '^rpc-secret=' "$runtime_config") -eq 1 ]]
 
@@ -60,9 +63,9 @@ fi
 
 grep -Fqx 'ExecStart=%h/.local/bin/aria2-daemon' \
     "$ROOT/dotfiles/systemd/user/aria2.service"
-grep -Fqx 'Restart=on-failure' "$ROOT/dotfiles/systemd/user/aria2.service"
+grep -Fqx 'Restart=always' "$ROOT/dotfiles/systemd/user/aria2.service"
 grep -Fqx 'WantedBy=default.target' "$ROOT/dotfiles/systemd/user/aria2.service"
-rg -q 'systemctl --user enable --now aria2\.service' "$ROOT/install.sh"
+rg -q 'systemctl --user enable --now aria2\.service ariang\.service' "$ROOT/install.sh"
 
 if command -v aria2c >/dev/null 2>&1; then
     aria2c --conf-path="$runtime_config" --enable-rpc=false --dry-run=true \

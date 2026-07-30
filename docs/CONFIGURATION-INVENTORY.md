@@ -19,7 +19,7 @@ reviewed before it changes a system.
 | Coordinated wallpapers | Separate native 16:10 4K and 3440×1440 ultrawide login/desktop images with checksums | `--user --apply`, plus `--system` for SDDM |
 | Shell and prompt | Bash PATH/history/completion, green/blue Nerd Font prompt, pnpm-first aliases, and `vi`/`vim` to Neovim | `--user` |
 | Editor and terminal tools | Neovim, tmux, and Readline configurations | `--user` |
-| Media and downloads | MPV, yt-dlp, aria2, makepkg, Yay concurrency, and Pacman parallel downloads | `--user`, `--system` |
+| Media and downloads | MPV, yt-dlp, a persistent authenticated aria2 queue in `~/storage/anime`, checksum-pinned local AriaNg, makepkg, Yay concurrency, and Pacman parallel downloads | `--user` or `--downloads`, plus `--system` |
 | Fast mirrors | Rate-sorted India/Asia Reflector policy and enabled weekly timer | `--system` |
 | Unified updates | `updateall -y` and the full detected-manager updater, including PipeWire/JACK provider handling | `--user` |
 | Node tooling | pnpm aliases, explicit system npm escape hatches, and global Wrangler installation | `--user` |

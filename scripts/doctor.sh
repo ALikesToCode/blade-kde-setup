@@ -13,7 +13,7 @@ bad() { printf '  [!!] %s\n' "$*"; failures=$((failures + 1)); }
 
 printf 'Blade KDE doctor\n\nCommands\n'
 for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv git \
-    kpackagetool6 patch; do
+    kpackagetool6 patch aria2c curl unzip; do
     if command -v "$command" >/dev/null 2>&1; then
         ok "$command"
     else
@@ -69,6 +69,8 @@ declare -a assets=(
     "$HOME/.local/share/klassy/Artix_Dark_Rounded.klpw"
     "$HOME/.local/share/wallpapers/BladeKDE/desktop/desktop-16x10-3840x2400.png"
     "$HOME/.local/share/blade-kde/branding/launcher/a-candy-icon.png"
+    "$HOME/.local/share/ariang/releases/1.3.14/index.html"
+    "$HOME/.local/share/applications/ariang.desktop"
 )
 for asset in "${assets[@]}"; do
     if [[ -e $asset ]]; then ok "${asset/#$HOME/~}"; else warn "missing: ${asset/#$HOME/~}"; fi
@@ -93,6 +95,34 @@ if command -v systemctl >/dev/null 2>&1 && command -v pacman >/dev/null 2>&1; th
     fi
 else
     warn 'systemd/pacman session freshness check is unavailable'
+fi
+
+printf '\nDownload manager\n'
+for service in aria2.service ariang.service; do
+    if systemctl --user is-enabled "$service" >/dev/null 2>&1; then
+        ok "$service is enabled"
+    else
+        warn "$service is not enabled"
+    fi
+    if systemctl --user is-active "$service" >/dev/null 2>&1; then
+        ok "$service is active"
+    else
+        warn "$service is not active"
+    fi
+done
+rpc_secret="$HOME/.config/aria2/rpc-secret"
+if [[ -f $rpc_secret && ! -L $rpc_secret ]] \
+   && [[ $(stat -c '%a' "$rpc_secret" 2>/dev/null) == 600 ]] \
+   && grep -Eq '^[[:xdigit:]]{64}$' "$rpc_secret"; then
+    ok 'aria2 RPC secret is private and valid'
+else
+    warn 'aria2 RPC secret is missing or has unsafe contents or permissions'
+fi
+if curl --fail --silent --max-time 1 \
+    http://127.0.0.1:14142/healthz >/dev/null 2>&1; then
+    ok 'AriaNg is healthy on 127.0.0.1:14142'
+else
+    warn 'AriaNg health endpoint is unavailable on 127.0.0.1:14142'
 fi
 
 printf '\nSystem settings\n'
