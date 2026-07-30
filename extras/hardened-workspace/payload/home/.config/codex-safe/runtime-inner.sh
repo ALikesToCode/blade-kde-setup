@@ -89,16 +89,7 @@ cleanup() {
   if [[ -n "$codex_pid" ]] && kill -0 "$codex_pid" 2>/dev/null; then
     kill -TERM "$codex_pid" 2>/dev/null || true
   fi
-  if [[ -n "$cloak_pid" ]] && kill -0 "$cloak_pid" 2>/dev/null; then
-    kill -TERM -- "-$cloak_pid" 2>/dev/null || kill -TERM "$cloak_pid" 2>/dev/null || true
-    for _ in {1..30}; do
-      kill -0 "$cloak_pid" 2>/dev/null || break
-      sleep 0.1
-    done
-    if kill -0 "$cloak_pid" 2>/dev/null; then
-      kill -KILL -- "-$cloak_pid" 2>/dev/null || kill -KILL "$cloak_pid" 2>/dev/null || true
-    fi
-  fi
+  [[ -z "$cloak_pid" ]] || codex_safe_stop_cloakserve "$cloak_pid"
   if [[ "$runtime_dir" == "$CODEX_SAFE_EPHEMERAL_ROOT/session."* ]]; then
     rm -rf -- "$runtime_dir"
   fi

@@ -1,0 +1,76 @@
+--- a/bin/cloakserve
++++ b/bin/cloakserve
+@@ -386,7 +386,7 @@ class ChromePool:
+             if not await self._wait_for_cdp(port):
+                 process.kill()
+                 await asyncio.to_thread(process.wait, timeout=5)
+-                await asyncio.to_thread(self._safe_rmtree, user_data_dir)
++                # Preserve a pre-existing profile even when Chromium cannot start.
+                 raise web.HTTPBadGateway(
+                     text=json.dumps({"error": "Chrome failed to start"}),
+                     content_type="application/json",
+@@ -411,0 +412,27 @@
++    async def _request_browser_close(self, proc: ChromeProcess) -> None:
++        """Ask Chromium to commit profile state and exit through CDP."""
++        try:
++            timeout = aiohttp.ClientTimeout(total=2)
++            async with aiohttp.ClientSession(timeout=timeout) as session:
++                async with session.get(
++                    f"http://127.0.0.1:{proc.cdp_port}/json/version"
++                ) as response:
++                    response.raise_for_status()
++                    version = await response.json()
++            endpoint = version.get("webSocketDebuggerUrl")
++            if not endpoint:
++                raise RuntimeError("CDP version response lacks a browser endpoint")
++            async with websockets.connect(
++                endpoint,
++                max_size=None,
++                ping_interval=None,
++                ping_timeout=None,
++            ) as cdp_ws:
++                await cdp_ws.send(json.dumps({"id": 1, "method": "Browser.close"}))
++        except Exception as exc:
++            logger.warning(
++                "Graceful Browser.close failed for pid=%d: %s",
++                proc.process.pid,
++                exc,
++            )
++
+@@ -416,12 +443,23 @@
+         if not proc:
+             return
+         if proc.process.poll() is None:
+-            proc.process.terminate()
++            try:
++                await asyncio.wait_for(self._request_browser_close(proc), timeout=3)
++            except asyncio.TimeoutError:
++                logger.warning(
++                    "Graceful Browser.close timed out for pid=%d",
++                    proc.process.pid,
++                )
+             try:
+                 await asyncio.to_thread(proc.process.wait, timeout=5)
+             except subprocess.TimeoutExpired:
+-                proc.process.kill()
+-        await asyncio.to_thread(self._safe_rmtree, proc.user_data_dir)
++                proc.process.terminate()
++                try:
++                    await asyncio.to_thread(proc.process.wait, timeout=3)
++                except subprocess.TimeoutExpired:
++                    proc.process.kill()
++                    await asyncio.to_thread(proc.process.wait, timeout=3)
++        # User data is owned by codex-safe and persists across server sessions.
+         if self._default is proc:
+             self._default = None
+         self._locks.pop(key, None)
+@@ -801,7 +839,8 @@
+             config["idle_timeout"] = _parse_idle_timeout(arg.split("=", 1)[1])
+         elif arg == "--headless=false" or arg == "--headless=False":
+             config["headless"] = False
+-            passthrough.append(arg)
++            # Chromium enables headless mode whenever the switch is present,
++            # even when its value is "false"; keep this server-side only.
+         elif arg.startswith(consumed_prefixes):
+             pass  # Strip these silently
+         # Route through build_args() so companion flags are set correctly

@@ -164,7 +164,7 @@ install_kwin_browser_rule() {
 if [[ "$action" == stage ]]; then
   os_id=$(. /etc/os-release; printf '%s' "$ID")
   [[ "$os_id" == arch || "$os_id" == artix ]] || die "this installer supports Arch/Artix only"
-  for command_name in firejail node npm npx python pipx jq curl ss findmnt git realpath sha256sum \
+  for command_name in firejail node npm npx python pipx jq curl ss findmnt git patch realpath sha256sum \
       openssl dbus-daemon busctl secret-tool gnome-keyring-daemon systemctl Xephyr xauth xdpyinfo \
       xclip flock kreadconfig6 kwriteconfig6; do
     command -v "$command_name" >/dev/null 2>&1 || die "missing command: $command_name"
@@ -174,9 +174,45 @@ if [[ "$action" == stage ]]; then
   original_codex=$(command -v codex) || die "Codex is missing"
   original_codex=$(realpath -e -- "$original_codex") || die "cannot resolve Codex"
   [[ -x "$original_codex" && "$original_codex" != "$HOME/.local/bin/codex-safe" ]] || die "cannot preserve original Codex executable"
-  [[ -x "$HOME/.local/share/codex-safe/cloakbrowser-source-v0.4.11/bin/cloakserve" ]] || die "verified official cloakserve source is not installed"
+  cloak_source="$HOME/.local/share/codex-safe/cloakbrowser-source-v0.4.11/bin/cloakserve"
+  cloak_patch="$root/cloakserve-codex-safe.patch"
+  cloak_upgrade_patch="$root/cloakserve-graceful-close-upgrade.patch"
+  cloak_upstream_sha=a334ec5aaf2221e8a463a7c64cfa9b290e62348582da7e03e24f927b285df1fa
+  cloak_headed_only_sha=352a29e456abe1474241ad5ac35920a26079d9f90cd5e64686324009fb48c592
+  cloak_previous_patched_sha=19a78243d3f3e56a7666347e0ee052a610e7c0811b0979c816d4c4f5c210be63
+  cloak_patched_sha=14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef
+  [[ -x "$cloak_source" ]] || die "verified official cloakserve source is not installed"
+  [[ -r "$cloak_patch" ]] || die "cloakserve codex-safe patch is missing"
+  [[ -r "$cloak_upgrade_patch" ]] || die "cloakserve graceful-close upgrade patch is missing"
   [[ -x "$HOME/.cloakbrowser/chromium-146.0.7680.177.5/chrome" ]] || die "verified CloakBrowser Chromium 146.0.7680.177.5 is missing"
-  [[ $(sha256sum "$HOME/.local/share/codex-safe/cloakbrowser-source-v0.4.11/bin/cloakserve" | awk '{print $1}') == a334ec5aaf2221e8a463a7c64cfa9b290e62348582da7e03e24f927b285df1fa ]] || die "cloakserve source checksum mismatch"
+  cloak_source_sha=$(sha256sum "$cloak_source" | awk '{print $1}')
+  if [[ "$cloak_source_sha" == "$cloak_upstream_sha" || \
+        "$cloak_source_sha" == "$cloak_headed_only_sha" ]]; then
+    cloak_temp=$(mktemp "$backup_root/.cloakserve.XXXXXXXX")
+    cp -- "$cloak_source" "$cloak_temp"
+    patch --batch --forward --no-backup-if-mismatch --reject-file=/dev/null \
+      "$cloak_temp" "$cloak_patch" >/dev/null 2>&1 || true
+    [[ $(sha256sum "$cloak_temp" | awk '{print $1}') == "$cloak_patched_sha" ]] || \
+      die "patched cloakserve checksum mismatch"
+    backup_target "$cloak_source"
+    install -m 0755 "$cloak_temp" "$cloak_source"
+    rm -f -- "$cloak_temp"
+    note "installed the reviewed cloakserve persistence, graceful-close, and headed-mode patch"
+  elif [[ "$cloak_source_sha" == "$cloak_previous_patched_sha" ]]; then
+    cloak_temp=$(mktemp "$backup_root/.cloakserve.XXXXXXXX")
+    cp -- "$cloak_source" "$cloak_temp"
+    patch --batch --forward --no-backup-if-mismatch --reject-file=/dev/null \
+      "$cloak_temp" "$cloak_upgrade_patch" >/dev/null 2>&1 || \
+      die "cannot apply the cloakserve graceful-close upgrade"
+    [[ $(sha256sum "$cloak_temp" | awk '{print $1}') == "$cloak_patched_sha" ]] || \
+      die "upgraded cloakserve checksum mismatch"
+    backup_target "$cloak_source"
+    install -m 0755 "$cloak_temp" "$cloak_source"
+    rm -f -- "$cloak_temp"
+    note "upgraded cloakserve to commit browser state before shutdown"
+  elif [[ "$cloak_source_sha" != "$cloak_patched_sha" ]]; then
+    die "cloakserve source checksum mismatch"
+  fi
   [[ $(sha256sum "$HOME/.cloakbrowser/chromium-146.0.7680.177.5/chrome" | awk '{print $1}') == 715722e8605ae3ce81523c1218aba1ec89425786ab33ceaf99f8a6cb5e70e6e8 ]] || die "CloakBrowser binary checksum mismatch"
   [[ -x "$HOME/.local/share/codex-safe/playwright-cli/node_modules/.bin/playwright-cli" ]] || die "official Playwright CLI is missing"
   [[ -x "$HOME/.local/share/codex-safe/playwright-cli/node_modules/.bin/playwright-mcp" ]] || die "official Playwright MCP is missing"

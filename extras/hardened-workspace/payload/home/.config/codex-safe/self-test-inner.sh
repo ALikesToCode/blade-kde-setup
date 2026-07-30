@@ -195,7 +195,7 @@ check_browser() {
 }
 
 check_browser_persistence_write() {
-  local marker=${CODEX_SAFE_PERSISTENCE_MARKER-} expires output
+  local marker=${CODEX_SAFE_PERSISTENCE_MARKER-} output profile_argument
   [[ "$marker" =~ ^[A-Za-z0-9_-]{16,80}$ ]] || {
     fail 'synthetic persistence marker is valid'
     return
@@ -205,21 +205,40 @@ check_browser_persistence_write() {
     return
   }
   pass 'open persistence test origin'
-  playwright-cli cookie-delete codex_safe_persistence_probe >/dev/null 2>&1 || true
-  expires=$(( $(date +%s) + 3600 ))
-  if playwright-cli cookie-set \
-      codex_safe_persistence_probe "$marker" \
-      --domain=example.com --path=/ --expires="$expires" \
-      --secure --sameSite=Lax >/dev/null 2>&1; then
-    pass 'write synthetic persistent cookie'
+  profile_argument="--data-dir=$CODEX_SAFE_BROWSER_STATE"
+  if tr '\0' '\n' <"/proc/$CODEX_SAFE_CLOAKSERVE_PID/cmdline" | \
+      grep -Fxq -- "$profile_argument"; then
+    pass 'persistence test uses the fixed browser profile'
   else
-    fail 'write synthetic persistent cookie'
+    output=$(tr '\0' '\n' <"/proc/$CODEX_SAFE_CLOAKSERVE_PID/cmdline" | \
+      grep -E '^--data-dir=' || true)
+    printf 'INFO cloakserve profile argument: expected=%s actual=%s\n' \
+      "$profile_argument" "$output"
+    fail 'persistence test uses the fixed browser profile'
+  fi
+  output=$(playwright-cli run-code \
+    'async (page) => { const cdp = await page.context().browser().newBrowserCDPSession(); return await cdp.send("Target.getBrowserContexts"); }' \
+    2>/dev/null || true)
+  if grep -Fq '"browserContextIds":[]' <<<"$output"; then
+    pass 'persistence test uses Chromium default context'
+  else
+    printf 'INFO browser context inspection: %s\n' "$output"
+    fail 'persistence test uses Chromium default context'
+  fi
+  playwright-cli cookie-delete codex_safe_persistence_probe >/dev/null 2>&1 || true
+  output=$(playwright-cli eval \
+    "() => { document.cookie = 'codex_safe_persistence_probe=$marker; Max-Age=3600; Path=/; Secure; SameSite=Lax'; return document.cookie; }" \
+    2>/dev/null || true)
+  if grep -Fq -- "$marker" <<<"$output"; then
+    pass 'write synthetic persistent page cookie'
+  else
+    fail 'write synthetic persistent page cookie'
   fi
   output=$(playwright-cli cookie-get codex_safe_persistence_probe 2>/dev/null || true)
   if grep -Fq -- "$marker" <<<"$output"; then
-    pass 'read synthetic cookie before restart'
+    pass 'read synthetic page cookie before restart'
   else
-    fail 'read synthetic cookie before restart'
+    fail 'read synthetic page cookie before restart'
   fi
   if playwright-cli close >/dev/null 2>&1; then pass 'close persistence writer'; else fail 'close persistence writer'; fi
 }

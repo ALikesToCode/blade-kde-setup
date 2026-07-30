@@ -6,6 +6,34 @@ codex_safe_browser_profile_error() {
   return 1
 }
 
+codex_safe_stop_cloakserve() {
+  local pid=$1
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+
+  # Signal only cloakserve first. Its aiohttp shutdown hook asks Chromium to
+  # close through CDP and waits so the profile can flush cookies and storage.
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for _ in {1..100}; do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+  fi
+
+  # A stuck server or orphaned browser must not escape the owning launcher.
+  if kill -0 -- "-$pid" 2>/dev/null; then
+    kill -TERM -- "-$pid" 2>/dev/null || true
+    for _ in {1..30}; do
+      kill -0 -- "-$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+  fi
+  if kill -0 -- "-$pid" 2>/dev/null; then
+    kill -KILL -- "-$pid" 2>/dev/null || true
+  fi
+  wait "$pid" 2>/dev/null || true
+}
+
 codex_safe_browser_profile_check_dir() {
   local path=$1 label=$2 owner mode
   [[ -d "$path" && ! -L "$path" ]] || \

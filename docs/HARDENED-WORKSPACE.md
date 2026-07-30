@@ -28,6 +28,11 @@ The following externally obtained, verified assets must already exist:
 
 - CloakBrowser source tag `v0.4.11` at
   `~/.local/share/codex-safe/cloakbrowser-source-v0.4.11/`;
+- the reviewed `cloakserve-codex-safe.patch` and bounded prior-installation
+  upgrade patch, applied only after a known source hash matches, so Chromium
+  commits the private browser profile through CDP before shutdown and headed
+  mode does not forward Chromium's presence-sensitive `--headless=false`
+  switch;
 - patched Chromium `146.0.7680.177.5` at
   `~/.cloakbrowser/chromium-146.0.7680.177.5/`;
 - `@playwright/cli` `0.1.17` and `@playwright/mcp` `0.0.78` below
