@@ -51,7 +51,7 @@ assert spec.loader is not None
 spec.loader.exec_module(module)
 target = module.configuration_target("0" * 64)
 assert target.startswith(
-    "/#!/settings/rpc/set?protocol=http&host=127.0.0.1"
+    "/?aria2=local#!/settings/rpc/set?protocol=http&host=127.0.0.1"
 )
 assert "&port=14141&interface=jsonrpc&secret=" in target
 assert not target.endswith("0" * 64)
@@ -71,6 +71,21 @@ if os.environ.get("ARIANG_TEST_NETWORK") == "1":
         response = connection.getresponse()
         assert response.status == 200
         assert response.read() == b"AriaNg 1.3.14\n"
+        connection.request("GET", "/")
+        response = connection.getresponse()
+        assert response.status == 302
+        assert response.getheader("Location") == target
+        assert response.getheader("Cache-Control") == "no-store"
+        response.read()
+        connection.request("GET", "/index.html")
+        response = connection.getresponse()
+        assert response.status == 302
+        assert response.getheader("Location") == target
+        response.read()
+        connection.request("GET", "/?aria2=local")
+        response = connection.getresponse()
+        assert response.status == 200
+        assert response.read() == b"<!doctype html><title>AriaNg</title>\n"
         connection.request("GET", "/configure")
         response = connection.getresponse()
         assert response.status == 302

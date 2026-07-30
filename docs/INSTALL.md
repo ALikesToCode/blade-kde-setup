@@ -79,9 +79,10 @@ the user session. Direct downloads and public torrents are saved below
 Authenticated aria2 JSON-RPC listens only on `127.0.0.1:14141`. AriaNg 1.3.14
 is served only on `127.0.0.1:14142` from a release archive pinned by URL and
 SHA-256 in `packages/ariang.lock`. The installer adds a versioned release
-directory and does not replace an unexpected or older release. The `ariang`
-command opens the local UI and supplies its connection settings without
-committing the generated token at `~/.config/aria2/rpc-secret`.
+directory and does not replace an unexpected or older release. Opening the
+local UI root or running `ariang` supplies its connection settings
+automatically, without committing the generated token at
+`~/.config/aria2/rpc-secret`.
 
 ## Package notes
 

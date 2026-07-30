@@ -16,6 +16,7 @@ VERSION = "1.3.14"
 RPC_PORT = 14141
 UI_PORT = 14142
 UI_HOST = "127.0.0.1"
+BOOTSTRAP_QUERY = "aria2=local"
 SECRET_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
@@ -64,7 +65,7 @@ def configuration_target(secret: str) -> str:
             "secret": encoded_secret.rstrip("="),
         }
     )
-    return f"/#!/settings/rpc/set?{query}"
+    return f"/?{BOOTSTRAP_QUERY}#!/settings/rpc/set?{query}"
 
 
 class AriaNgRequestHandler(SimpleHTTPRequestHandler):
@@ -78,7 +79,8 @@ class AriaNgRequestHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self) -> None:
-        path = urlsplit(self.path).path
+        request = urlsplit(self.path)
+        path = request.path
         if path == "/healthz":
             body = f"AriaNg {VERSION}\n".encode("ascii")
             self.send_response(200)
@@ -88,7 +90,10 @@ class AriaNgRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path == "/configure":
+        needs_bootstrap = (
+            path in ("/", "/index.html") and request.query != BOOTSTRAP_QUERY
+        )
+        if path == "/configure" or needs_bootstrap:
             secret = load_secret(self.secret_file)
             self.send_response(302)
             self.send_header("Location", configuration_target(secret))
