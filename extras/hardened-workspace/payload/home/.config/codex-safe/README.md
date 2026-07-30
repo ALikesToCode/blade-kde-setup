@@ -90,7 +90,10 @@ variables are also injected into Codex-spawned commands and the Playwright MCP
 server, so delegated agents use the same browser session. Stock browser paths and
 Playwright browser caches are hidden; failure never falls back to stock
 Chromium. Screenshots, snapshots, traces, downloads, and output belong in
-`<workspace>/.playwright-cli/`.
+`<workspace>/.playwright-cli/`. An ordinary MCP session started directly in
+`$HOME` is moved into the private
+`~/.local/state/codex-safe/playwright-mcp-workspace/` fallback so Playwright MCP
+never receives the entire home tree as its working directory.
 
 Overrides are `CODEX_SAFE_LOCALE`, `CODEX_SAFE_TIMEZONE`,
 `CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible,

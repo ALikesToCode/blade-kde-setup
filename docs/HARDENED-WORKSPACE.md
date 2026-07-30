@@ -123,6 +123,12 @@ Wallet access. The profile contains sensitive signed-in state and is protected
 by filesystem permissions, not a desktop credential store. Restart Codex after
 adding or changing either server.
 
+Project sessions keep Playwright artifacts in `<workspace>/.playwright-cli/`.
+When ordinary Codex starts directly in the home directory, the wrapper moves
+the MCP process into the private
+`~/.local/state/codex-safe/playwright-mcp-workspace/` fallback instead of
+granting Playwright MCP access to the entire home tree.
+
 The wrapper rejects unsafe launch roots, hard links whose inode counts prove an
 external alias, missing sandbox controls, changed browser hashes, and
 unavailable local CDP endpoints. Internal-only hard links are accepted. Run the

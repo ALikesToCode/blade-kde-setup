@@ -3,6 +3,9 @@
 set -Eeuo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+TEST_ROOT=$(mktemp -d)
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
 launcher="$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak"
 runtime="$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 nested="$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/nested-display.sh"
@@ -16,6 +19,37 @@ headless=$(bash "$launcher" --browser-mode=headless --describe-browser-mode)
 
 headed=$(bash "$launcher" --browser-mode=headed --describe-browser-mode)
 [[ "$headed" == 'browser-mode=headed display=visible-nested-kde profile=persistent input=host-and-cdp' ]]
+
+TEST_HOME="$TEST_ROOT/home"
+install -d -m 700 "$TEST_HOME"
+home_artifact_root=$(
+    cd "$TEST_HOME"
+    HOME="$TEST_HOME" bash "$launcher" \
+        --browser-mode=headless --describe-artifact-root
+)
+[[ "$home_artifact_root" == \
+    "$TEST_HOME/.local/state/codex-safe/playwright-mcp-workspace/.playwright-cli" ]]
+[[ $(stat -Lc '%a' "$TEST_HOME/.local/state/codex-safe") == 700 ]]
+[[ $(stat -Lc '%a' \
+    "$TEST_HOME/.local/state/codex-safe/playwright-mcp-workspace") == 700 ]]
+
+project_workspace="$TEST_HOME/project"
+install -d -m 700 "$project_workspace"
+project_artifact_root=$(
+    cd "$project_workspace"
+    HOME="$TEST_HOME" bash "$launcher" \
+        --browser-mode=headless --describe-artifact-root
+)
+[[ "$project_artifact_root" == "$project_workspace/.playwright-cli" ]]
+
+if (
+    cd /
+    HOME="$TEST_HOME" bash "$launcher" \
+        --browser-mode=headless --describe-artifact-root
+) >/dev/null 2>&1; then
+    printf 'Launcher accepted the filesystem root as an artifact workspace\n' >&2
+    exit 1
+fi
 
 if bash "$launcher" --describe-browser-mode >/dev/null 2>&1; then
     printf 'Launcher accepted an implicit browser mode\n' >&2

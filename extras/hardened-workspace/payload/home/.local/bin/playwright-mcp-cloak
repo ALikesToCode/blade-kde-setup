@@ -18,8 +18,59 @@ set_browser_mode() {
   esac
 }
 
+check_private_directory() {
+  local path=$1 label=$2 owner mode
+  [[ -d "$path" && ! -L "$path" ]] || die "$label is missing or is a symlink"
+  owner=$(stat -Lc '%u' -- "$path" 2>/dev/null) || die "cannot inspect $label owner"
+  mode=$(stat -Lc '%a' -- "$path" 2>/dev/null) || die "cannot inspect $label mode"
+  [[ "$owner" == "$(id -u)" ]] || die "$label has the wrong owner"
+  (( (8#$mode & 8#077) == 0 )) || die "$label is accessible by group or world"
+}
+
+prepare_artifact_directory() {
+  local current state_root fallback real_state
+  current=$(realpath -e -- /proc/self/cwd 2>/dev/null) || \
+    die "cannot resolve Codex working directory"
+  [[ -d "$current" && "$current" == /* ]] || die "Codex working directory is invalid"
+  case "$current" in
+    /)
+      die "refusing an unsafe artifact root: $current"
+      ;;
+    "$host_home")
+      state_root="$host_home/.local/state/codex-safe"
+      fallback="$state_root/playwright-mcp-workspace"
+      [[ ! -L "$host_home/.local" && ! -L "$host_home/.local/state" ]] || \
+        die "browser artifact parent contains a symlink"
+      if [[ ! -e "$state_root" && ! -L "$state_root" ]]; then
+        install -d -m 700 "$state_root"
+      fi
+      check_private_directory "$state_root" "browser state root"
+      real_state=$(realpath -e -- "$state_root" 2>/dev/null) || \
+        die "cannot resolve browser state root"
+      [[ "$real_state" == "$state_root" ]] || \
+        die "browser state root resolves outside its fixed location"
+      if [[ ! -e "$fallback" && ! -L "$fallback" ]]; then
+        install -d -m 700 "$fallback"
+      fi
+      check_private_directory "$fallback" "browser artifact workspace"
+      workspace=$(realpath -e -- "$fallback" 2>/dev/null) || \
+        die "cannot resolve browser artifact workspace"
+      [[ "$workspace" == "$real_state/"* ]] || \
+        die "browser artifact workspace escaped its state root"
+      cd -- "$workspace"
+      ;;
+    *)
+      workspace=$current
+      ;;
+  esac
+
+  artifact_dir="$workspace/.playwright-cli"
+  install -d -m 700 "$artifact_dir"
+}
+
 browser_mode=''
 describe_mode=0
+describe_artifact_root=0
 end_options=0
 mcp_args=()
 args=("$@")
@@ -40,6 +91,7 @@ for ((i=0; i<${#args[@]}; i++)); do
       ;;
     --browser-mode=*) set_browser_mode "${arg#*=}" ;;
     --describe-browser-mode) describe_mode=1 ;;
+    --describe-artifact-root) describe_artifact_root=1 ;;
     *) mcp_args+=("$arg") ;;
   esac
 done
@@ -54,6 +106,12 @@ if (( describe_mode )); then
 fi
 
 host_home=$(realpath -e -- "$HOME" 2>/dev/null) || die "cannot resolve HOME"
+if (( describe_artifact_root )); then
+  prepare_artifact_directory
+  printf '%s\n' "$artifact_dir"
+  exit 0
+fi
+
 config_file="$host_home/.config/codex-safe/config"
 [[ -r "$config_file" ]] || die "verified CloakBrowser configuration is missing"
 # shellcheck source=/dev/null
@@ -86,14 +144,7 @@ cloak_binary_real=$(realpath -e -- "$CLOAKBROWSER_BINARY_PATH") || die "cannot r
 browser_sha=$(sha256sum "$cloak_binary_real" | awk '{print $1}')
 [[ "$browser_sha" == "$CLOAKBROWSER_BINARY_SHA256" ]] || die "patched Chromium checksum mismatch"
 
-workspace=$(realpath -e -- /proc/self/cwd 2>/dev/null) || die "cannot resolve Codex working directory"
-[[ -d "$workspace" && "$workspace" == /* ]] || die "Codex working directory is invalid"
-case "$workspace" in
-  /|"$host_home") die "refusing an unsafe artifact root: $workspace" ;;
-esac
-
-artifact_dir="$workspace/.playwright-cli"
-install -d -m 700 "$artifact_dir"
+prepare_artifact_directory
 export CODEX_SAFE_HOST_HOME=$host_home
 codex_safe_browser_profile_acquire || die "cannot acquire the persistent browser profile"
 browser_state=$CODEX_SAFE_BROWSER_STATE
