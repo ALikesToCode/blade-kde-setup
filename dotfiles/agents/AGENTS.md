@@ -105,6 +105,7 @@ Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, 
 
 - Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed` in a commentary update and give the reason for that choice.
 - In ordinary Codex sessions, use `playwright_safe` for headless work and `playwright_safe_headed` for headed work. Use exactly one browser server for a task; never start both modes speculatively.
+- The persistent profile is single-instance. Run `playwright-mcp-mode headless` or `playwright-mcp-mode headed`, then restart Codex before switching modes; never enable both registrations together.
 - Default to headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed when the user asks to see the browser or visible GUI rendering is part of the requirement.
 - Headed always means visible: it opens `CloakBrowser Automation` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
 - The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display. The dedicated KWin rule allows the user to focus it for manual typing and paste without exposing the host display to Chromium.

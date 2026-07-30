@@ -107,5 +107,7 @@ grep -Fq 'unset DISPLAY WAYLAND_DISPLAY XAUTHORITY' "$safe_cli"
 grep -Fq -- '--key acceptfocus --type bool true' "$installer"
 grep -Fq -- '--key acceptfocusrule 2' "$installer"
 grep -Fq -- '--key fsplevel 0' "$installer"
+# shellcheck disable=SC2016
+grep -Fq '"$HOME/.local/bin/playwright-mcp-mode" ensure' "$installer"
 
 printf 'Browser mode isolation tests passed.\n'

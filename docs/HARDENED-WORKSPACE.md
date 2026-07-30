@@ -94,16 +94,27 @@ Ordinary sessions expose separate, explicit browser servers. Use
 
 ```toml
 [mcp_servers.playwright_safe]
+enabled = true
 command = "/home/USER/.local/bin/playwright-mcp-cloak"
 args = ["--browser-mode=headless"]
 
 [mcp_servers.playwright_safe_headed]
+enabled = false
 command = "/home/USER/.local/bin/playwright-mcp-cloak"
 args = ["--browser-mode=headed"]
 ```
 
 Replace `USER` with the account name because MCP command paths must be
 absolute.
+The persistent profile is single-instance, so exactly one server must be
+enabled. Select a mode before starting a fresh Codex session:
+
+```bash
+playwright-mcp-mode status
+playwright-mcp-mode headless
+playwright-mcp-mode headed
+```
+
 Headed mode opens a visible, focusable `CloakBrowser Automation` window on KDE.
 Xephyr hosts that window while CloakBrowser runs on Xephyr's nested X display,
 so the browser never receives the host X display. The installed KWin rule lets

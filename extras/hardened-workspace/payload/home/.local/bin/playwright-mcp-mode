@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Select exactly one CloakBrowser-backed Playwright MCP server."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import stat
+import tempfile
+import tomllib
+from datetime import UTC, datetime
+from pathlib import Path
+
+SERVER_MODES = {
+    "playwright_safe": "headless",
+    "playwright_safe_headed": "headed",
+}
+
+
+def fail(message: str) -> SystemExit:
+    return SystemExit(f"playwright-mcp-mode: ERROR: {message}")
+
+
+def check_private_directory(path: Path, label: str) -> None:
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise fail(f"cannot inspect {label}: {error}") from error
+    if not stat.S_ISDIR(metadata.st_mode) or path.is_symlink():
+        raise fail(f"{label} is missing or is a symlink")
+    if metadata.st_uid != os.getuid():
+        raise fail(f"{label} has the wrong owner")
+    if stat.S_IMODE(metadata.st_mode) & 0o077:
+        raise fail(f"{label} is accessible by group or world")
+
+
+def check_private_config(path: Path) -> os.stat_result:
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise fail(f"cannot inspect Codex config: {error}") from error
+    if not stat.S_ISREG(metadata.st_mode) or path.is_symlink():
+        raise fail("Codex config is missing or is a symlink")
+    if metadata.st_uid != os.getuid():
+        raise fail("Codex config has the wrong owner")
+    if stat.S_IMODE(metadata.st_mode) & 0o077:
+        raise fail("Codex config is accessible by group or world")
+    return metadata
+
+
+def load_modes(config_path: Path, home: Path) -> tuple[str, dict[str, bool]]:
+    check_private_config(config_path)
+    try:
+        text = config_path.read_text(encoding="utf-8")
+        parsed = tomllib.loads(text)
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise fail(f"cannot read Codex config: {error}") from error
+
+    servers = parsed.get("mcp_servers")
+    if not isinstance(servers, dict):
+        raise fail("Codex config has no MCP server table")
+
+    enabled: dict[str, bool] = {}
+    expected_command = str(home / ".local/bin/playwright-mcp-cloak")
+    for server_name, browser_mode in SERVER_MODES.items():
+        server = servers.get(server_name)
+        if not isinstance(server, dict):
+            raise fail(f"{server_name} is not configured")
+        if server.get("command") != expected_command:
+            raise fail(f"{server_name} uses an unexpected command")
+        if server.get("args") != [f"--browser-mode={browser_mode}"]:
+            raise fail(f"{server_name} uses unexpected arguments")
+        value = server.get("enabled", True)
+        if not isinstance(value, bool):
+            raise fail(f"{server_name}.enabled is not a boolean")
+        enabled[server_name] = value
+    return text, enabled
+
+
+def set_enabled(text: str, server_name: str, enabled: bool) -> str:
+    header_pattern = re.compile(
+        rf"(?m)^\[mcp_servers\.{re.escape(server_name)}\][ \t]*$"
+    )
+    headers = list(header_pattern.finditer(text))
+    if len(headers) != 1:
+        raise fail(f"expected one {server_name} config section")
+
+    header = headers[0]
+    following_header = re.search(r"(?m)^[ \t]*\[", text[header.end() :])
+    section_end = (
+        header.end() + following_header.start()
+        if following_header is not None
+        else len(text)
+    )
+    section = text[header.end() : section_end]
+    enabled_pattern = re.compile(r"(?m)^(?P<indent>[ \t]*)enabled[ \t]*=.*$")
+    values = list(enabled_pattern.finditer(section))
+    rendered = "true" if enabled else "false"
+    if len(values) > 1:
+        raise fail(f"{server_name} has duplicate enabled settings")
+    if not values:
+        return text[: header.end()] + f"\nenabled = {rendered}" + text[header.end() :]
+
+    value = values[0]
+    start = header.end() + value.start()
+    end = header.end() + value.end()
+    indent = value.group("indent")
+    return text[:start] + f"{indent}enabled = {rendered}" + text[end:]
+
+
+def ensure_backup_root(home: Path) -> Path:
+    state_root = home / ".local/state/codex-safe"
+    for parent in (home / ".local", home / ".local/state"):
+        if parent.is_symlink():
+            raise fail("browser state parent contains a symlink")
+    if not state_root.exists():
+        state_root.mkdir(parents=True, mode=0o700)
+    check_private_directory(state_root, "browser state root")
+
+    backup_root = state_root / "config-backups"
+    if not backup_root.exists():
+        backup_root.mkdir(mode=0o700)
+    check_private_directory(backup_root, "Codex config backup directory")
+    return backup_root
+
+
+def write_config(config_path: Path, home: Path, text: str) -> Path:
+    metadata = check_private_config(config_path)
+    backup_root = ensure_backup_root(home)
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+    backup_path = backup_root / f"config.toml.{timestamp}"
+    try:
+        backup_fd = os.open(backup_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(backup_fd, "wb") as backup:
+            backup.write(config_path.read_bytes())
+            backup.flush()
+            os.fsync(backup.fileno())
+    except OSError as error:
+        raise fail(f"cannot back up Codex config: {error}") from error
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=config_path.parent,
+            prefix=".config.toml.",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            os.fchmod(temporary.fileno(), stat.S_IMODE(metadata.st_mode))
+            temporary.write(text)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, config_path)
+        directory_fd = os.open(config_path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except OSError as error:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise fail(f"cannot update Codex config: {error}") from error
+    return backup_path
+
+
+def render_status(enabled: dict[str, bool]) -> str:
+    headless = "enabled" if enabled["playwright_safe"] else "disabled"
+    headed = "enabled" if enabled["playwright_safe_headed"] else "disabled"
+    return f"headless={headless} headed={headed}"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", choices=("status", "ensure", "headless", "headed"))
+    arguments = parser.parse_args()
+
+    home = Path.home().resolve(strict=True)
+    config_home = Path(os.environ.get("CODEX_HOME", home / ".codex"))
+    if not config_home.is_absolute():
+        raise fail("CODEX_HOME must be absolute")
+    config_path = config_home / "config.toml"
+    text, enabled = load_modes(config_path, home)
+
+    if arguments.mode == "status":
+        print(render_status(enabled))
+        return 0
+
+    selected = arguments.mode
+    if selected == "ensure" and enabled["playwright_safe"] != enabled["playwright_safe_headed"]:
+        print(f"{render_status(enabled)} restart-codex=no")
+        return 0
+    if selected == "ensure":
+        selected = "headless"
+
+    desired = {
+        "playwright_safe": selected == "headless",
+        "playwright_safe_headed": selected == "headed",
+    }
+    if enabled == desired:
+        print(f"{render_status(enabled)} restart-codex=no")
+        return 0
+
+    updated = text
+    for server_name, value in desired.items():
+        updated = set_enabled(updated, server_name, value)
+    _, verified = load_modes_from_text(updated, home)
+    if verified != desired:
+        raise fail("updated Codex config did not select exactly one browser mode")
+    backup_path = write_config(config_path, home, updated)
+    print(
+        f"{render_status(desired)} restart-codex=yes "
+        f"backup={backup_path}"
+    )
+    return 0
+
+
+def load_modes_from_text(text: str, home: Path) -> tuple[dict[str, object], dict[str, bool]]:
+    try:
+        parsed = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as error:
+        raise fail(f"updated Codex config is invalid: {error}") from error
+    servers = parsed.get("mcp_servers")
+    if not isinstance(servers, dict):
+        raise fail("updated Codex config has no MCP server table")
+    enabled: dict[str, bool] = {}
+    expected_command = str(home / ".local/bin/playwright-mcp-cloak")
+    for server_name, browser_mode in SERVER_MODES.items():
+        server = servers.get(server_name)
+        if not isinstance(server, dict):
+            raise fail(f"updated config lost {server_name}")
+        if server.get("command") != expected_command:
+            raise fail(f"updated config changed {server_name} command")
+        if server.get("args") != [f"--browser-mode={browser_mode}"]:
+            raise fail(f"updated config changed {server_name} arguments")
+        value = server.get("enabled", True)
+        if not isinstance(value, bool):
+            raise fail(f"updated {server_name}.enabled is not a boolean")
+        enabled[server_name] = value
+    return parsed, enabled
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

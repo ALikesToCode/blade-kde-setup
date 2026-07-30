@@ -11,6 +11,7 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
     "$ROOT/scripts/install-event-calendar.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
+    "$ROOT/tests/browser-mode-selection.sh" \
     "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
     "$ROOT/tests/aria2-daemon.sh" "$ROOT/tests/ariang.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
@@ -35,6 +36,9 @@ bash -n \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-safe"
 
+python3 -c \
+    'import pathlib, sys; path = pathlib.Path(sys.argv[1]); compile(path.read_text(), str(path), "exec")' \
+    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-mode"
 python3 -m json.tool "$ROOT/dotfiles/yay/config.json" >/dev/null
 python3 -m json.tool \
     "$ROOT/kde/look-and-feel/org.mysterious.artixdarkrounded.desktop/metadata.json" >/dev/null
@@ -140,7 +144,9 @@ required=(
     extras/hardened-workspace/payload/home/.local/bin/codex-safe
     extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp
     extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak
+    extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-mode
     tests/browser-mode-isolation.sh
+    tests/browser-mode-selection.sh
     tests/browser-profile-persistence.sh
     tests/clipboard-bridge.sh
     tests/ariang.sh
@@ -158,6 +164,7 @@ grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
+bash "$ROOT/tests/browser-mode-selection.sh" >/dev/null
 bash "$ROOT/tests/browser-profile-persistence.sh" >/dev/null
 bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null

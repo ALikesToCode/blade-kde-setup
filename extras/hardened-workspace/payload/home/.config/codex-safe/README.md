@@ -95,6 +95,11 @@ Chromium. Screenshots, snapshots, traces, downloads, and output belong in
 `~/.local/state/codex-safe/playwright-mcp-workspace/` fallback so Playwright MCP
 never receives the entire home tree as its working directory.
 
+The browser profile has a single-instance lock, so headless and headed MCP
+servers cannot run together. `playwright-mcp-mode status|headless|headed`
+selects exactly one registration and makes a private backup of Codex
+configuration before a change. Restart Codex after switching.
+
 Overrides are `CODEX_SAFE_LOCALE`, `CODEX_SAFE_TIMEZONE`,
 `CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible,
 focusable Xephyr window named `CloakBrowser Automation` on KDE. Xephyr starts
