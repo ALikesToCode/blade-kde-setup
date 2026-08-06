@@ -58,6 +58,8 @@ grep -Fqx 'rpc-allow-origin-all=true' "$runtime_config"
 grep -Fqx "rpc-secret=$rpc_secret" "$runtime_config"
 grep -Fqx 'bt-tracker=udp://93.158.213.92:6969/announce,https://tracker.example/announce' \
     "$runtime_config"
+grep -Fqx 'seed-time=0' "$runtime_config"
+grep -Fqx 'bt-hash-check-seed=false' "$runtime_config"
 [[ $(grep -c '^rpc-secret=' "$runtime_config") -eq 1 ]]
 [[ $(grep -c '^bt-tracker=' "$runtime_config") -eq 1 ]]
 
