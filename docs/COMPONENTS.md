@@ -23,7 +23,7 @@
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |
 | Editors/tools | `dotfiles/nvim/`, `dotfiles/tmux/` | `~/.config/nvim/init.lua`, `~/.tmux.conf` |
 | Development policy | `dotfiles/agents/AGENTS.md` | Global engineering, verification, Git, and safety instructions |
-| Download manager | `dotfiles/downloads/aria2/`, `dotfiles/systemd/user/{aria2,ariang}.service`, `bin/{aria2-daemon,ariang,ariang-server}`, `packages/ariang.lock` | Persistent aria2 queue in `~/storage/anime`, authenticated RPC on `127.0.0.1:14141`, and local AriaNg on `127.0.0.1:14142` |
+| Download manager | `dotfiles/downloads/aria2/`, `dotfiles/systemd/user/aria2-*`, `dotfiles/systemd/user/ariang.service`, `bin/aria2-*`, `bin/ariang*`, `packages/ariang.lock` | Persistent aria2 queue in `~/storage/anime`, daily validated public trackers, authenticated RPC on `127.0.0.1:14141`, and local AriaNg on `127.0.0.1:14142` |
 | Build download tuning | `dotfiles/downloads/makepkg.conf` | `~/.makepkg.conf` |
 | Safe Git defaults | `dotfiles/git/` | Included from the user’s existing global Git config |
 | Package updater | `bin/` | `~/.local/bin/updateall` and `update-all-packages` |

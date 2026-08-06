@@ -13,7 +13,8 @@ if command -v node >/dev/null 2>&1; then
 fi
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
-    "$ROOT/bin/aria2-daemon" "$ROOT/bin/ariang" \
+    "$ROOT/bin/aria2-daemon" "$ROOT/bin/aria2-update-trackers" \
+    "$ROOT/bin/ariang" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
@@ -22,7 +23,8 @@ bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
     "$ROOT/tests/browser-mode-selection.sh" \
     "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
-    "$ROOT/tests/aria2-daemon.sh" "$ROOT/tests/ariang.sh"
+    "$ROOT/tests/aria2-daemon.sh" "$ROOT/tests/aria2-trackers.sh" \
+    "$ROOT/tests/ariang.sh"
 bash -n "$ROOT/dotfiles/apps/zen/zen-browser" "$ROOT/dotfiles/apps/zed/zeditor" \
     "$ROOT/scripts/verify-app-launchers.sh" "$ROOT/tests/sddm-theme.sh" \
     "$ROOT/tests/zen-window-controls.sh" "$ROOT/scripts/apply-desktop-clock.sh" \
@@ -126,6 +128,8 @@ required=(
     dotfiles/agents/AGENTS.md
     dotfiles/downloads/aria2/daemon.conf
     dotfiles/systemd/user/aria2.service
+    dotfiles/systemd/user/aria2-trackers.service
+    dotfiles/systemd/user/aria2-trackers.timer
     dotfiles/systemd/user/ariang.service
     dotfiles/apps/ariang/ariang.desktop
     dotfiles/nvim/init.lua
@@ -139,6 +143,7 @@ required=(
     scripts/install-codex-tools.sh
     scripts/install-ariang.sh
     bin/aria2-daemon
+    bin/aria2-update-trackers
     bin/ariang
     bin/ariang-server
     extras/hardened-workspace/install.sh
@@ -180,6 +185,7 @@ bash "$ROOT/tests/codex-desktop.sh" >/dev/null
 bash "$ROOT/tests/browser-profile-persistence.sh" >/dev/null
 bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
+bash "$ROOT/tests/aria2-trackers.sh" >/dev/null
 bash "$ROOT/tests/ariang.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"

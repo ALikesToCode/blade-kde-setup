@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh aria2 public trackers daily
+
+[Timer]
+OnActiveSec=2min
+OnCalendar=daily
+RandomizedDelaySec=30min
+Persistent=true
+AccuracySec=5min
+Unit=aria2-trackers.service
+
+[Install]
+WantedBy=timers.target

@@ -302,6 +302,7 @@ enable_aria2_daemon() {
 
     run systemctl --user daemon-reload
     run systemctl --user enable --now aria2.service ariang.service
+    run systemctl --user enable --now aria2-trackers.timer
 }
 
 install_download_manager() {
@@ -315,7 +316,13 @@ install_download_manager() {
         "$HOME/.config/systemd/user/aria2.service"
     install_file "$ROOT/dotfiles/systemd/user/ariang.service" \
         "$HOME/.config/systemd/user/ariang.service"
+    install_file "$ROOT/dotfiles/systemd/user/aria2-trackers.service" \
+        "$HOME/.config/systemd/user/aria2-trackers.service"
+    install_file "$ROOT/dotfiles/systemd/user/aria2-trackers.timer" \
+        "$HOME/.config/systemd/user/aria2-trackers.timer"
     install_file "$ROOT/bin/aria2-daemon" "$HOME/.local/bin/aria2-daemon" 0755
+    install_file "$ROOT/bin/aria2-update-trackers" \
+        "$HOME/.local/bin/aria2-update-trackers" 0755
     install_file "$ROOT/bin/ariang-server" "$HOME/.local/bin/ariang-server" 0755
     install_file "$ROOT/bin/ariang" "$HOME/.local/bin/ariang" 0755
     install_template "$ROOT/dotfiles/apps/ariang/ariang.desktop" \

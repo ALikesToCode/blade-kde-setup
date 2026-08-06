@@ -6,6 +6,7 @@ config_root="${XDG_CONFIG_HOME:-$HOME/.config}/aria2"
 state_root="${XDG_STATE_HOME:-$HOME/.local/state}/aria2"
 base_config="$config_root/daemon.conf"
 runtime_config="$state_root/daemon.conf"
+tracker_config="$state_root/trackers.conf"
 secret_file="$config_root/rpc-secret"
 session_file="$state_root/session"
 download_root="$HOME/storage/anime"
@@ -49,10 +50,28 @@ rpc_secret=$(<"$secret_file")
 }
 chmod 0600 -- "$secret_file"
 
+tracker_value=
+if [[ -s $tracker_config ]]; then
+    tracker_lines=$(grep -c '^bt-tracker=' "$tracker_config" || true)
+    tracker_value=$(sed -n 's/^bt-tracker=//p' "$tracker_config")
+    tracker_pattern='^(udp|https?)://[^[:space:],]+(,(udp|https?)://[^[:space:],]+)*$'
+    if [[ $tracker_lines -ne 1 || ! $tracker_value =~ $tracker_pattern ]]; then
+        printf 'aria2 daemon: ignoring invalid tracker cache: %s\n' \
+            "$tracker_config" >&2
+        tracker_value=
+    fi
+fi
+
 temporary=$(mktemp "$state_root/daemon.conf.XXXXXX")
 {
     printf '# Generated from %s; edit the source file instead.\n' "$base_config"
-    sed '/^[[:space:]]*rpc-secret[[:space:]]*=/d' "$base_config"
+    if [[ -n $tracker_value ]]; then
+        sed -E '/^[[:space:]]*(rpc-secret|bt-tracker)[[:space:]]*=/d' \
+            "$base_config"
+        printf '\nbt-tracker=%s\n' "$tracker_value"
+    else
+        sed '/^[[:space:]]*rpc-secret[[:space:]]*=/d' "$base_config"
+    fi
     printf '\nrpc-secret=%s\n' "$rpc_secret"
 } > "$temporary"
 chmod 0600 -- "$temporary"

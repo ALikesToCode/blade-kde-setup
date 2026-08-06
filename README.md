@@ -73,7 +73,9 @@ The user install enables an aria2 service that resumes its queue after login,
 stores downloads in `~/storage/anime`, and exposes authenticated RPC at
 `127.0.0.1:14141`. The checksum-pinned AriaNg UI runs at
 `http://127.0.0.1:14142`; launch it with `ariang`. The generated RPC token lives
-at `~/.config/aria2/rpc-secret` and is never committed.
+at `~/.config/aria2/rpc-secret` and is never committed. A user timer refreshes
+a validated, deduplicated public tracker list daily and applies it through the
+authenticated loopback RPC endpoint without restarting the daemon.
 
 See [Installation](docs/INSTALL.md) for every mode and safety detail, and
 [Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
