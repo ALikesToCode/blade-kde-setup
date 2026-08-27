@@ -31,8 +31,8 @@ for command in yay klassy-settings reflector node pnpm wrangler openwiki officec
 done
 
 printf '\nCodex skills\n'
-for skill in officecli caveman cavecrew ask-matt tdd hallmark ecc-guide \
-    karpathy-guidelines emil-design-eng; do
+for skill in officecli caveman cavecrew ask-matt tdd wizard poteto-mode \
+    make-bot-ui hallmark ecc-guide karpathy-guidelines emil-design-eng; do
     if [[ -f $HOME/.agents/skills/$skill/SKILL.md ]]; then
         ok "$skill"
     else

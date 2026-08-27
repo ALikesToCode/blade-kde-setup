@@ -211,9 +211,27 @@ grep -Fqx 'xclip' "$ROOT/packages/pacman.txt"
 grep -Fq '14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/config"
 
-[[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 46 ]]
+[[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 92 ]]
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
 grep -Fqx 'code-review-graph==2.3.7' "$ROOT/packages/python-tools.lock"
+rg -q '^mattpocock/skills\|[0-9a-f]{40}\|skills/engineering/wizard\|wizard$' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^mattpocock/skills\|[0-9a-f]{40}\|skills/productivity/writing-for-agents\|writing-for-agents$' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^cursor/plugins\|[0-9a-f]{40}\|pstack/skills/poteto-mode\|poteto-mode$' \
+    "$ROOT/packages/codex-skills.lock"
+rg -q '^cursor/plugins\|[0-9a-f]{40}\|pstack/skills/grokbot/make-bot-ui\|make-bot-ui$' \
+    "$ROOT/packages/codex-skills.lock"
+if rg -q '^cursor/plugins\|[0-9a-f]{40}\|pstack/skills/(tdd|teach)\|' \
+    "$ROOT/packages/codex-skills.lock"; then
+    printf 'pstack must not replace the established tdd or teach skills.\n' >&2
+    exit 1
+fi
+if awk -F'|' '$1 !~ /^#/ && $4 != "*" {print $4}' \
+    "$ROOT/packages/codex-skills.lock" | sort | uniq -d | grep -q .; then
+    printf 'The Codex skill lock contains duplicate installed names.\n' >&2
+    exit 1
+fi
 rg -q '^Nutlope/hallmark\|[0-9a-f]{40}\|skills/hallmark\|hallmark$' \
     "$ROOT/packages/codex-skills.lock"
 rg -q '^affaan-m/ECC\|[0-9a-f]{40}\|skills\|\*$' \

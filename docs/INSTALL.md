@@ -103,13 +103,15 @@ specifically requires the Arch npm executable.
 The `--tools` mode installs `openwiki@0.2.0` with npm, a checksum-verified
 OfficeCLI v1.0.138 binary, and pinned personal Codex skills under
 `~/.agents/skills/`. The collection includes OfficeCLI, all seven Caveman
-skills, Matt Pocock's 22 maintained engineering/productivity skills, Hallmark's
-complete design reference library, all canonical ECC skills, Karpathy's coding
-guidelines, all six Emil Kowalski design-engineering skills, seven Code Review
-Graph workflows, and all 263 Agency Agents as native Codex custom agents. The
-Code Review Graph CLI is installed through uv, registered as a global Codex MCP
-server without a fixed project working directory, and wired into additive
-global Codex lifecycle hooks. Exact
+skills, Matt Pocock's 25 maintained engineering/productivity skills, 43
+non-conflicting pstack skills, Hallmark's complete design reference library, all
+canonical ECC skills, Karpathy's coding guidelines, all six Emil Kowalski
+design-engineering skills, seven Code Review Graph workflows, and all 263
+Agency Agents as native Codex custom agents. Matt's established `tdd` and
+`teach` skills retain those two global names instead of being silently replaced
+by pstack's variants. The Code Review Graph CLI is installed through uv,
+registered as a global Codex MCP server without a fixed project working
+directory, and wired into additive global Codex lifecycle hooks. Exact
 repository commits live in `packages/codex-skills.lock`; deprecated,
 in-progress, and author-personal Matt directories are deliberately excluded.
 ECC's Claude hooks, translated duplicates, MCP mutations, and experimental
