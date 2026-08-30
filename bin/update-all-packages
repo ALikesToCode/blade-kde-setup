@@ -264,7 +264,16 @@ if have npm && have node; then
         # distribution-owned packages whose workspace manifests may use
         # protocols npm cannot resolve. Explicit install targets stay scoped to
         # the non-distribution packages selected above.
-        npm_command=(npm install --global --no-fund --no-audit "${npm_targets[@]}")
+        npm_command=(npm install --global --no-fund --no-audit)
+        npm_install_help=$(npm install --help 2>/dev/null || true)
+        if [[ $npm_install_help == *'--allow-scripts'* ]]; then
+            npm_allow_scripts=$(IFS=,; printf '%s' "${npm_packages[*]}")
+            npm_command+=("--allow-scripts=$npm_allow_scripts")
+            if [[ $npm_install_help == *'--strict-allow-scripts'* ]]; then
+                npm_command+=(--strict-allow-scripts)
+            fi
+        fi
+        npm_command+=("${npm_targets[@]}")
         if [[ ! -w $npm_prefix ]]; then
             npm_command=(sudo "${npm_command[@]}")
         fi
