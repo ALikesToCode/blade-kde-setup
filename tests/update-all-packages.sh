@@ -32,22 +32,40 @@ EOF
 
 cat > "$MOCK_BIN/pnpm" <<'EOF'
 #!/usr/bin/bash
-exit 99
+case "$*" in
+    'help update')
+        if [[ ${MOCK_PNPM_SUPPORTS_YES:-0} == 1 ]]; then
+            printf '%s\n' '  -y, --yes  Automatically answer yes to prompts'
+        fi
+        ;;
+    *) exit 99 ;;
+esac
 EOF
 
 chmod 0755 "$MOCK_BIN/npm" "$MOCK_BIN/node" "$MOCK_BIN/pnpm"
 
-output=$(
+run_dry_run() {
     PATH="$MOCK_BIN" \
         HOME="$TEMP_ROOT/home" \
         MOCK_GLOBAL_ROOT="$GLOBAL_ROOT" \
         MOCK_NPM_PREFIX="$NPM_PREFIX" \
+        MOCK_PNPM_SUPPORTS_YES="$1" \
         /usr/bin/bash "$ROOT/bin/update-all-packages" --yes --dry-run
-)
+}
 
-grep -Fq '$ npm install --global --no-fund --no-audit openwiki@latest' <<<"$output"
-grep -Fq '$ pnpm update --global --latest --yes' <<<"$output"
-if grep -Fq -- '--no-confirm' <<<"$output"; then
+output_with_pnpm_yes=$(run_dry_run 1)
+grep -Fq '$ npm install --global --no-fund --no-audit openwiki@latest' \
+    <<<"$output_with_pnpm_yes"
+grep -Fq '$ pnpm update --global --latest --yes' <<<"$output_with_pnpm_yes"
+
+output_without_pnpm_yes=$(run_dry_run 0)
+grep -Fq '$ pnpm update --global --latest' <<<"$output_without_pnpm_yes"
+if grep -Fq '$ pnpm update --global --latest --yes' <<<"$output_without_pnpm_yes"; then
+    printf 'pnpm dry-run used --yes although the installed pnpm does not support it.\n' >&2
+    exit 1
+fi
+
+if grep -Fq -- '--no-confirm' <<<"$output_with_pnpm_yes$output_without_pnpm_yes"; then
     printf 'pnpm dry-run output still contains unsupported --no-confirm.\n' >&2
     exit 1
 fi

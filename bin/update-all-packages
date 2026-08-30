@@ -279,7 +279,10 @@ fi
 # pnpm, Yarn and Bun use user-owned global stores.
 if have pnpm; then
     pnpm_command=(pnpm update --global --latest)
-    ((YES)) && pnpm_command+=(--yes)
+    if ((YES)); then
+        pnpm_update_help=$(pnpm help update 2>/dev/null || true)
+        [[ $pnpm_update_help == *'--yes'* ]] && pnpm_command+=(--yes)
+    fi
     run_step 'pnpm global tools' "${pnpm_command[@]}"
 else
     skip_step 'pnpm' 'not installed'
