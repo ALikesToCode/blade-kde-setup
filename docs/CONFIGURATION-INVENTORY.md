@@ -25,6 +25,7 @@ reviewed before it changes a system.
 | Node tooling | pnpm aliases, explicit system npm escape hatches, and global Wrangler installation | `--user` |
 | Application launch tuning | Native Wayland Zen/Antigravity launchers, corrected integrated Candy controls for borderless Zen, and deterministic Vulkan Zed selection | `--user` |
 | Safe publication workflow | Global modularity, verification, independent-commit, existing-identity, and destructive-action rules | `--user` |
+| Codex Desktop reasoning | Preserved user configuration plus the full `low` through `ultra` picker sequence, including distinct `max` and `ultra` choices | `--user` |
 | Hardened interactive launcher | Firejail/Landlock policy, terminal-preserving runtime, browser wrappers, checksums, doctor, self-test, and reversible manifest installer | `--hardened` |
 
 ## Dynamic values

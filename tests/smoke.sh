@@ -9,7 +9,8 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
-bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh"
+bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh" \
+    "$ROOT/scripts/configure-codex-desktop.sh" "$ROOT/tests/codex-desktop.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
     "$ROOT/tests/browser-mode-selection.sh" \
     "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
@@ -126,6 +127,7 @@ required=(
     extras/eventcalendar/blade-material.patch
     extras/eventcalendar/upstream.sha256
     scripts/apply-desktop-clock.sh
+    scripts/configure-codex-desktop.sh
     scripts/install-codex-tools.sh
     scripts/install-ariang.sh
     bin/aria2-daemon
@@ -147,6 +149,7 @@ required=(
     extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-mode
     tests/browser-mode-isolation.sh
     tests/browser-mode-selection.sh
+    tests/codex-desktop.sh
     tests/browser-profile-persistence.sh
     tests/clipboard-bridge.sh
     tests/ariang.sh
@@ -165,6 +168,7 @@ bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-selection.sh" >/dev/null
+bash "$ROOT/tests/codex-desktop.sh" >/dev/null
 bash "$ROOT/tests/browser-profile-persistence.sh" >/dev/null
 bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null

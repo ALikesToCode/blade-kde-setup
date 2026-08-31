@@ -24,7 +24,7 @@ a timestamped directory under:
 
 | Mode | Effect | Privilege |
 |---|---|---|
-| `--user` | Dotfiles, commands, launcher artwork, icons, wallpapers, Konsole, Klassy preset, Event Calendar, and local theme assets | User |
+| `--user` | Dotfiles, Codex Desktop preferences, commands, launcher artwork, icons, wallpapers, Konsole, Klassy preset, Event Calendar, and local theme assets | User |
 | `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
@@ -127,6 +127,12 @@ existing version. It requires modular changes, focused verification, independent
 commits, preservation of the configured Git/GitHub identity, and explicit
 approval before destructive work. The Bash profile maps both `vi` and `vim` to
 the included Neovim configuration when `nvim` is available.
+
+User setup also merges the complete Codex Desktop reasoning-effort sequence into
+`~/.codex/config.toml`, including separate `max` and `ultra` choices. The merge
+preserves every unrelated Codex setting and comment, retains the existing file
+mode, and backs up an existing config before changing it. Restart Codex Desktop
+if its open model picker has cached the previous list.
 
 The hardened mode is deliberately excluded from `--all`. It fails closed when
 its pinned browser, source launcher, Playwright tools, ShellCheck binary, or

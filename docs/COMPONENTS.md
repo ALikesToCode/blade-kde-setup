@@ -18,6 +18,7 @@
 | Shell | `dotfiles/bash/` | `~/.bashrc`, `~/.bash_profile`, `~/.profile`, `~/.inputrc` |
 | Node/Cloudflare CLI | `dotfiles/bash/`, `packages/pacman.txt` | pnpm-first aliases and `~/.local/share/pnpm/bin/wrangler` |
 | Codex tools/skills | `packages/codex-skills.lock`, `packages/codex-agents.lock`, `packages/npm-global.txt`, `packages/python-tools.lock`, `scripts/install-codex-tools.sh` | OpenWiki, OfficeCLI, Caveman, Matt Pocock, pstack, Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph |
+| Codex Desktop preferences | `scripts/configure-codex-desktop.sh` | Additive `~/.codex/config.toml` merge exposing distinct Max and Ultra reasoning choices |
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |
 | Editors/tools | `dotfiles/nvim/`, `dotfiles/tmux/` | `~/.config/nvim/init.lua`, `~/.tmux.conf` |
 | Development policy | `dotfiles/agents/AGENTS.md` | Global engineering, verification, Git, and safety instructions |

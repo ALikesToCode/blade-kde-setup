@@ -27,6 +27,7 @@ The setup includes:
 - pnpm-first interactive Node workflow and a globally accessible Wrangler CLI
 - Pinned OpenWiki and OfficeCLI commands plus Codex-only Caveman, Matt Pocock,
   Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph
+- Codex Desktop model controls with distinct Max and Ultra reasoning choices
 - Pacman parallel downloads and a weekly rate-tested Asian Reflector mirror list
 - `updateall -y` for the package managers detected on the machine
 - Native Wayland launch profiles and corrected integrated Candy window controls

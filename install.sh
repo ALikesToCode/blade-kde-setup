@@ -345,6 +345,13 @@ install_user_files() {
     install_file "$ROOT/dotfiles/nvim/init.lua" "$HOME/.config/nvim/init.lua"
     install_file "$ROOT/dotfiles/tmux/tmux.conf" "$HOME/.tmux.conf"
     install_template "$ROOT/dotfiles/agents/AGENTS.md" "$HOME/.codex/AGENTS.md"
+    if ((DRY_RUN)); then
+        BLADE_BACKUP_ROOT="$BACKUP_ROOT" \
+            "$ROOT/scripts/configure-codex-desktop.sh" --dry-run
+    else
+        BLADE_BACKUP_ROOT="$BACKUP_ROOT" \
+            "$ROOT/scripts/configure-codex-desktop.sh"
+    fi
     install_file "$ROOT/bin/update-all-packages" "$HOME/.local/bin/update-all-packages" 0755
     install_file "$ROOT/bin/updateall" "$HOME/.local/bin/updateall" 0755
     install_file "$ROOT/dotfiles/apps/zen/zen-browser" "$HOME/.local/bin/zen-browser" 0755
