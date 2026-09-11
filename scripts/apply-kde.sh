@@ -39,6 +39,8 @@ fi
 run kwriteconfig6 --file kdeglobals --group General --key ColorScheme ArtixDarkRounded
 run kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons
 run kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
+# The brightness widget switches global themes, not just application colors.
+run kwriteconfig6 --file kdeglobals --group KDE --key DefaultDarkLookAndFeel --notify org.mysterious.artixdarkrounded.desktop
 run kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
 # Use Plasma's complete, version-matched surface assets. The Artix color scheme
 # still provides the blue/green application accents.

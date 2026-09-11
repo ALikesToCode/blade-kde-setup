@@ -12,6 +12,11 @@ to each existing application panel. It preserves other widgets, backs up the
 panel configuration, and starts `blade-power.service` as the current user.
 No sudo is required when the prerequisites are already installed.
 
+The native Brightness widget's Dark Mode switch changes the global theme,
+including icons and window decorations. When Artix Dark Rounded is active,
+setup makes it the dark-mode target instead of Breeze Dark. Switching to light
+mode still uses KDE's configured light theme.
+
 The package manifest includes Python, Qt's `qdbus6`, PowerDevil,
 plasma5support, and power-profiles-daemon. On an existing Arch installation
 missing those packages, run:

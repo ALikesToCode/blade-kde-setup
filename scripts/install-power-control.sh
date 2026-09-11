@@ -55,6 +55,15 @@ copy_file "$ROOT/kde/plasma/plasmoids/$plasmoid/contents/ui/main.qml" "$DATA_ROO
 copy_file "$ROOT/kde/plasma/power-controls.js" "$DATA_ROOT/blade-kde/power-controls.js"
 
 if ((ACTIVATE)); then
+    # Preserve the active Artix theme when the native brightness widget enters dark mode.
+    if command -v kreadconfig6 >/dev/null && \
+        [[ $(kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage) == org.mysterious.artixdarkrounded.desktop ]]; then
+        if ((DRY_RUN)); then
+            printf 'Would set the Dark Mode target to Artix Dark Rounded.\n'
+        else
+            kwriteconfig6 --file kdeglobals --group KDE --key DefaultDarkLookAndFeel --notify org.mysterious.artixdarkrounded.desktop
+        fi
+    fi
     if ((DRY_RUN)); then
         printf 'Would start blade-power.service and add Brightness and Blade Power to existing application panels.\n'
         exit 0
