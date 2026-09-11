@@ -4,6 +4,13 @@ set -Eeuo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
+bash -n "$ROOT/scripts/install-power-control.sh"
+python3 -B "$ROOT/tests/power-control.py"
+python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.bladepower/metadata.json" >/dev/null
+if command -v node >/dev/null 2>&1; then
+    node "$ROOT/tests/power-panel.cjs"
+fi
+
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
     "$ROOT/bin/aria2-daemon" "$ROOT/bin/ariang" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \

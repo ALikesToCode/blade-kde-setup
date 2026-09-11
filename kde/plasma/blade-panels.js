@@ -39,6 +39,8 @@ var bladePrimaryOrder = [
     "org.kde.plasma.pager",
     "org.kde.plasma.marginsseparator",
     "org.kde.plasma.systemtray",
+    "org.kde.plasma.brightness",
+    "org.mysterious.bladepower",
     bladeEventCalendar,
     "org.kde.plasma.showdesktop"
 ];
@@ -54,6 +56,8 @@ var bladeSecondaryOrder = [
     "org.kde.plasma.systemmonitor",
     bladeNetworkMonitor,
     "org.kde.plasma.systemtray",
+    "org.kde.plasma.brightness",
+    "org.mysterious.bladepower",
     bladeEventCalendar,
     "org.kde.plasma.showdesktop"
 ];

@@ -14,6 +14,7 @@ DO_SYSTEM=0
 DO_HARDENED=0
 DO_TOOLS=0
 DO_DOWNLOADS=0
+DO_POWER=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
 SUDO_KEEPALIVE_PID=
@@ -33,6 +34,7 @@ Modes:
   --hardened     Install the optional fail-closed workspace/browser launcher
   --tools        Install pinned CLI tools and personal Codex skills
   --downloads    Install and start the aria2 + AriaNg download manager
+  --power        Install and activate charger-aware brightness and panel controls
 
 Options:
   -n, --dry-run  Print the plan without changing anything or asking for sudo
@@ -50,7 +52,7 @@ EOF
 while (($#)); do
     case $1 in
         --all)
-            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; DO_TOOLS=1; MODE_SELECTED=1
+            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; DO_TOOLS=1; DO_POWER=1; MODE_SELECTED=1
             ;;
         --user) DO_USER=1; MODE_SELECTED=1 ;;
         --apply) DO_APPLY=1; MODE_SELECTED=1 ;;
@@ -59,6 +61,7 @@ while (($#)); do
         --hardened) DO_HARDENED=1; MODE_SELECTED=1 ;;
         --tools) DO_TOOLS=1; MODE_SELECTED=1 ;;
         --downloads) DO_DOWNLOADS=1; MODE_SELECTED=1 ;;
+        --power) DO_POWER=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -331,6 +334,11 @@ install_download_manager() {
 }
 
 install_user_files() {
+    if ((DRY_RUN)); then
+        bash "$ROOT/scripts/install-power-control.sh" --dry-run
+    else
+        bash "$ROOT/scripts/install-power-control.sh"
+    fi
     section 'Installing user configuration and desktop assets'
 
     install_download_manager
@@ -597,6 +605,14 @@ if ((DO_TOOLS)); then
     fi
 fi
 ((DO_USER)) && install_user_files
+if ((DO_POWER)); then
+    section 'Activating charger-aware brightness and panel controls'
+    if ((DRY_RUN)); then
+        bash "$ROOT/scripts/install-power-control.sh" --dry-run --activate
+    else
+        bash "$ROOT/scripts/install-power-control.sh" --activate
+    fi
+fi
 if ((DO_DOWNLOADS && !DO_USER)); then
     install_download_manager
 fi

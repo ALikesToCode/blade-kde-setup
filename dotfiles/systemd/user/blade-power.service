@@ -1,0 +1,14 @@
+[Unit]
+Description=Blade KDE charger-aware brightness and power profiles
+After=plasma-powerdevil.service
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/blade-power watch
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=graphical-session.target

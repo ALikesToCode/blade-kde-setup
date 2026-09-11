@@ -13,6 +13,7 @@ reviewed before it changes a system.
 | Rounded window controls | Klassy preset, right-side compact controls, and pastel yellow/green/coral hover states | `--user --apply` |
 | Solid Konsole chrome | Matching profile and colors, native clickable tabs, hidden normal close glyphs, and disabled process-wide stylesheet | `--user --apply` |
 | Dark multi-monitor panels | One application panel per display, primary visible and additional panels auto-hidden | `--apply` |
+| Charger-aware brightness | Internal-screen brightness, power-saving USB/battery profiles, explicit charger selection when firmware reports only generic AC, and net battery-flow status | `--power` |
 | Desktop widgets | SDDM-inspired desktop clock plus native media, Wi-Fi, Bluetooth, audio, battery, notifications, workspaces, live download/upload speed, and CPU/RAM/GPU donuts | `--user --apply` |
 | Event Calendar | Pinned Plasma 6 calendar/agenda source, reviewed checksums, dark Material card overlay, blue/green panel clock, event badges, optional weather/Google sync, and recurring iCalendar dependencies | `--user --apply` |
 | Login and lock flow | Qylock-compatible Artix Material You files, blue/green power/session/reboot/sleep icons, runtime QML regression test, and SDDM selection | `--user`, then `--system` |

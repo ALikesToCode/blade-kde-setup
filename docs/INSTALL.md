@@ -28,13 +28,20 @@ a timestamped directory under:
 | `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
-| `--all` | Runs packages, tools, user files, system tuning, and live KDE apply | Mixed |
+| `--all` | Runs packages, tools, user files, charger-aware power controls, system tuning, and live KDE apply | Mixed |
 | `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
 | `--tools` | Installs pinned OpenWiki and OfficeCLI commands plus the Codex skill collection | Sudo for global npm; skills are user-local |
 | `--downloads` | Installs and starts the aria2 daemon and checksum-pinned local AriaNg UI | User |
+| `--power` | Installs and activates the brightness and charger-status widgets and user power-policy service | User |
 
 Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
 non-interactive package-manager confirmation.
+
+For charger-aware brightness alone, use `./install.sh --power`. This backs up
+the existing panel configuration and adds only Brightness and Blade Power to
+application panels. `--user` installs these assets without starting the service;
+`--power` and `--all` activate it. Read [Power controls](POWER-CONTROL.md) for the
+400 W/USB-C selector, hardware-detection limits, and adjustable brightness levels.
 
 ## System changes
 

@@ -13,6 +13,8 @@ The setup includes:
 - Dual-display native Plasma panels with media, calendar, Wi-Fi, Bluetooth,
   audio, battery, notifications, live download/upload speed, and CPU/RAM/GPU
   donut widgets
+- Native brightness control and [Blade Power](docs/POWER-CONTROL.md) for charger
+  selection, battery charging flow, and automatic brightness on source changes
 - Plasma 6 Event Calendar with a dark Material card layout, agenda, event
   badges, optional weather/Google sync, and a blue/green two-line panel clock
 - SDDM-inspired blue/green desktop clock on every display

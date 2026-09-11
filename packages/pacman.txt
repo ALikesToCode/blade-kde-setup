@@ -26,12 +26,16 @@ pipewire-alsa
 pipewire-jack
 pipewire-pulse
 plasma-meta
+plasma5support
 pnpm
+power-profiles-daemon
+powerdevil
 python
 python-pipx
 qt6-5compat
 qt6-declarative
 qt6-svg
+qt6-tools
 reflector
 ripgrep
 sddm
