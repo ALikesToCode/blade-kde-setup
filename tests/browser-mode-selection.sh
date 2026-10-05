@@ -60,7 +60,7 @@ result=$(HOME="$TEST_HOME" python3 "$selector" ensure)
     'headless=enabled headed=disabled' ]]
 grep -Fqx 'sentinel = "preserve-me"' "$config_file"
 [[ $(grep -Fxc 'url = "http://localhost:49631/mcp"' "$config_file") -eq 2 ]]
-! grep -Fq 'playwright-mcp-cloak' "$config_file"
+if grep -Fq 'playwright-mcp-cloak' "$config_file"; then exit 1; fi
 [[ $(<"$mode_file") == headless && $(stat -Lc '%a' "$mode_file") == 600 ]]
 grep -Fqx enabled "$service_state"
 grep -Fqx active "$service_state"
