@@ -30,7 +30,7 @@ a timestamped directory under:
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
 | `--all` | Runs packages, tools, user files, charger-aware power controls, system tuning, and live KDE apply | Mixed |
 | `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
-| `--tools` | Installs pinned OpenWiki and OfficeCLI commands plus the Codex skill collection | Sudo for global npm; skills are user-local |
+| `--tools` | Installs pinned OpenWiki, npm-check-updates, and OfficeCLI commands plus the Codex skill collection | User |
 | `--downloads` | Installs and starts the aria2 daemon and checksum-pinned local AriaNg UI | User |
 | `--power` | Installs and activates the brightness and charger-status widgets and user power-policy service | User |
 
@@ -105,10 +105,12 @@ Decorations** and load `Artix Dark Rounded` after reviewing it.
 The package manifest installs Node.js, npm, and pnpm. User setup then installs
 the current Wrangler v4 CLI into `PNPM_HOME`. Interactive Bash maps `npm` to
 `pnpm` and `npx` to `pnpm dlx`; use `npm-system` or `npx-system` whenever a tool
-specifically requires the Arch npm executable.
+specifically requires the Arch npm executable. npm globals use the writable
+`~/.local` prefix from `~/.npmrc`, whose `bin` directory is already on `PATH`;
+global npm installs therefore do not require `sudo`.
 
-The `--tools` mode installs `openwiki@0.2.0` with npm, a checksum-verified
-OfficeCLI v1.0.138 binary, and pinned personal Codex skills under
+The `--tools` mode installs `openwiki@0.2.0` and `npm-check-updates@23.1.0`
+with npm, a checksum-verified OfficeCLI v1.0.138 binary, and pinned personal Codex skills under
 `~/.agents/skills/`. The collection includes OfficeCLI, all seven Caveman
 skills, Matt Pocock's 25 maintained engineering/productivity skills, 43
 non-conflicting pstack skills, Hallmark's complete design reference library, all

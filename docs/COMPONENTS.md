@@ -17,7 +17,7 @@
 | SDDM artwork | `assets/wallpapers/login/` | `/usr/share/sddm/themes/artix-material-you/` |
 | SDDM interface | `kde/sddm/artix-material-you/` | Local Qylock assets, quick-setting icons, and system SDDM theme |
 | Shell | `dotfiles/bash/` | `~/.bashrc`, `~/.bash_profile`, `~/.profile`, `~/.inputrc` |
-| Node/Cloudflare CLI | `dotfiles/bash/`, `packages/pacman.txt` | pnpm-first aliases and `~/.local/share/pnpm/bin/wrangler` |
+| Node/Cloudflare CLI | `dotfiles/bash/`, `dotfiles/npm/`, `packages/pacman.txt` | User-writable npm globals, pnpm-first aliases, and `~/.local/share/pnpm/bin/wrangler` |
 | Codex tools/skills | `packages/codex-skills.lock`, `packages/codex-agents.lock`, `packages/npm-global.txt`, `packages/python-tools.lock`, `scripts/install-codex-tools.sh` | OpenWiki, OfficeCLI, Caveman, Matt Pocock, pstack, Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph |
 | Codex Desktop preferences | `scripts/configure-codex-desktop.sh` | Additive `~/.codex/config.toml` merge exposing distinct Max and Ultra reasoning choices |
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |

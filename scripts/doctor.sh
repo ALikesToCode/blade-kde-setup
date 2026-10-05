@@ -21,8 +21,8 @@ for command in pacman kwriteconfig6 plasma-apply-lookandfeel qdbus6 konsole mpv 
     fi
 done
 
-for command in yay klassy-settings reflector node pnpm wrangler openwiki officecli uv \
-    code-review-graph; do
+for command in yay klassy-settings reflector node pnpm wrangler openwiki \
+    npm-check-updates officecli uv code-review-graph; do
     if command -v "$command" >/dev/null 2>&1; then
         ok "$command"
     else

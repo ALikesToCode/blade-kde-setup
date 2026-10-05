@@ -353,6 +353,7 @@ install_user_files() {
     install_file "$ROOT/dotfiles/bash/bash_profile" "$HOME/.bash_profile"
     install_file "$ROOT/dotfiles/bash/profile" "$HOME/.profile"
     install_file "$ROOT/dotfiles/bash/inputrc" "$HOME/.inputrc"
+    install_template "$ROOT/dotfiles/npm/npmrc" "$HOME/.npmrc"
     install_file "$ROOT/dotfiles/downloads/makepkg.conf" "$HOME/.makepkg.conf"
     install_template "$ROOT/dotfiles/media/mpv/mpv.conf" "$HOME/.config/mpv/mpv.conf"
     install_file "$ROOT/dotfiles/media/mpv/input.conf" "$HOME/.config/mpv/input.conf"

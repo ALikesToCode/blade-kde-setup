@@ -50,32 +50,48 @@ for command in git curl sha256sum node npm; do
     command -v "$command" >/dev/null 2>&1 || die "$command is required"
 done
 
-install_openwiki() {
-    local npm_bin package package_name expected_version package_root package_json installed_version
+openwiki_is_healthy() {
+    local package_root=$1
+    OPENWIKI_PACKAGE_ROOT="$package_root" node -e '
+        const Database = require(process.env.OPENWIKI_PACKAGE_ROOT +
+            "/node_modules/better-sqlite3");
+        const database = new Database(":memory:");
+        database.prepare("select 1").get();
+        database.close();
+    ' >/dev/null 2>&1
+}
+
+npm_tool_is_current() {
+    local package_name=$1 expected_version=$2 package_root=$3
+    local package_json="$package_root/package.json" installed_version=
+    if [[ -r $package_json ]]; then
+        installed_version=$(sed -nE 's/^[[:space:]]*"version":[[:space:]]*"([^"]+)".*/\1/p' \
+            "$package_json" | head -n 1)
+    fi
+    [[ $installed_version == "$expected_version" ]] || return 1
+    [[ $package_name != openwiki ]] || openwiki_is_healthy "$package_root"
+}
+
+install_npm_tools() {
+    local npm_bin package package_name expected_version package_root
+    local npm_prefix="$HOME/.local"
+    local -a npm_args
     npm_bin=$(command -v npm)
+    run mkdir -p -- "$npm_prefix/bin" "$npm_prefix/lib/node_modules"
     while IFS= read -r package; do
         [[ -n $package && $package != \#* ]] || continue
         package_name=${package%@*}
         expected_version=${package##*@}
-        package_root="$($npm_bin root --global)/$package_name"
-        package_json="$package_root/package.json"
-        installed_version=
-        if [[ -r $package_json ]]; then
-            installed_version=$(sed -nE 's/^[[:space:]]*"version":[[:space:]]*"([^"]+)".*/\1/p' \
-                "$package_json" | head -n 1)
-        fi
-        if [[ $installed_version == "$expected_version" ]] \
-            && OPENWIKI_PACKAGE_ROOT="$package_root" node -e '
-                const Database = require(process.env.OPENWIKI_PACKAGE_ROOT +
-                    "/node_modules/better-sqlite3");
-                const database = new Database(":memory:");
-                database.prepare("select 1").get();
-                database.close();
-            ' >/dev/null 2>&1; then
+        package_root="$npm_prefix/lib/node_modules/$package_name"
+        if npm_tool_is_current "$package_name" "$expected_version" "$package_root"; then
             info "Unchanged: $package"
         else
-            run sudo "$npm_bin" install --global --no-audit --no-fund \
-                --allow-scripts=better-sqlite3 "$package"
+            npm_args=(install --global --prefix "$npm_prefix" --no-audit --no-fund)
+            if [[ $package_name == openwiki ]]; then
+                npm_args+=(--allow-scripts=better-sqlite3)
+            fi
+            npm_args+=("$package")
+            run "$npm_bin" "${npm_args[@]}"
         fi
     done < "$ROOT/packages/npm-global.txt"
 }
@@ -298,7 +314,7 @@ else
     TEMP_ROOT=$(mktemp -d /tmp/blade-codex-tools.XXXXXX)
 fi
 
-install_openwiki
+install_npm_tools
 install_officecli
 install_skills
 install_python_tools

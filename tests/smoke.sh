@@ -132,6 +132,7 @@ required=(
     dotfiles/systemd/user/aria2-trackers.timer
     dotfiles/systemd/user/ariang.service
     dotfiles/apps/ariang/ariang.desktop
+    dotfiles/npm/npmrc
     dotfiles/nvim/init.lua
     kde/plasma/blade-panels.js
     scripts/apply-panels.sh
