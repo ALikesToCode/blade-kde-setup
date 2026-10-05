@@ -105,8 +105,9 @@ mkdir -p -- "$OUT/packages" "$OUT/units"
 sorted() { LC_ALL=C sort -u; }
 
 # Packages: explicit installs from the sync repositories and from the AUR.
-pacman -Qqen | sorted >"$OUT/packages/pacman.txt"
-pacman -Qqem | sorted >"$OUT/packages/aur.txt"
+# -Qqe exits 1 when nothing matches, as on a machine without AUR packages.
+{ pacman -Qqen || true; } | sorted >"$OUT/packages/pacman.txt"
+{ pacman -Qqem || true; } | sorted >"$OUT/packages/aur.txt"
 
 pnpm_root="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm/global"
 : >"$OUT/packages/pnpm-global.txt"
@@ -137,31 +138,31 @@ PY
 
 : >"$OUT/packages/uv-tools.txt"
 if command -v uv >/dev/null 2>&1; then
-    uv tool list 2>/dev/null | awk '/^[^- ]/ {sub(/^v/, "", $2); print $1 "==" $2}' \
+    { uv tool list 2>/dev/null || true; } | awk '/^[^- ]/ {sub(/^v/, "", $2); print $1 "==" $2}' \
         | sorted >"$OUT/packages/uv-tools.txt"
 fi
 : >"$OUT/packages/pipx.txt"
 if command -v pipx >/dev/null 2>&1; then
-    pipx list --short 2>/dev/null | awk '{print $1 "==" $2}' | sorted >"$OUT/packages/pipx.txt"
+    { pipx list --short 2>/dev/null || true; } | awk '{print $1 "==" $2}' | sorted >"$OUT/packages/pipx.txt"
 fi
 : >"$OUT/packages/flatpak.txt"
 if command -v flatpak >/dev/null 2>&1; then
-    flatpak list --app --columns=application 2>/dev/null | sorted >"$OUT/packages/flatpak.txt"
+    { flatpak list --app --columns=application 2>/dev/null || true; } | sorted >"$OUT/packages/flatpak.txt"
 fi
 
 # Services: system units enabled beyond the vendor preset, masked units, and
 # every enabled user unit.
-systemctl list-unit-files --state=enabled --no-legend --no-pager \
+{ systemctl list-unit-files --state=enabled --no-legend --no-pager || true; } \
     | awk '$3 != "enabled" {print $1}' | sorted >"$OUT/units/system-enabled.txt"
-systemctl list-unit-files --state=masked --no-legend --no-pager \
+{ systemctl list-unit-files --state=masked --no-legend --no-pager || true; } \
     | awk '{print $1}' | sorted >"$OUT/units/system-masked.txt"
-systemctl --user list-unit-files --state=enabled --no-legend --no-pager \
+{ systemctl --user list-unit-files --state=enabled --no-legend --no-pager || true; } \
     | awk '{print $1}' | sorted >"$OUT/units/user-enabled.txt"
-systemctl --user list-unit-files --state=masked --no-legend --no-pager \
+{ systemctl --user list-unit-files --state=masked --no-legend --no-pager || true; } \
     | awk '{print $1}' | sorted >"$OUT/units/user-masked.txt"
 
 # Supplementary groups that grant device or service access.
-id -nG | tr ' ' '\n' | grep -vxF -e "$HOST_USER" | sorted >"$OUT/units/groups.txt"
+{ id -nG | tr ' ' '\n' | grep -vxF -e "$HOST_USER" || true; } | sorted >"$OUT/units/groups.txt"
 
 copy_tree() {
     local destination=$1 path

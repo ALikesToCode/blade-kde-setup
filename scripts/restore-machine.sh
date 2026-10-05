@@ -153,27 +153,28 @@ restore_user_tools() {
     if command -v pnpm >/dev/null 2>&1; then
         while IFS= read -r package; do
             [[ $package == pnpm@* ]] && continue
-            run pnpm add --global "$package"
+            run pnpm add --global "$package" || warn "Not installed: $package"
         done < <(grep -v '^$' "$MACHINE/packages/pnpm-global.txt")
     fi
     if command -v npm >/dev/null 2>&1; then
         while IFS= read -r package; do
-            run npm install --global --prefix "$HOME/.local" --no-audit --no-fund "$package"
+            run npm install --global --prefix "$HOME/.local" --no-audit --no-fund "$package" ||
+                warn "Not installed: $package"
         done < <(grep -v '^$' "$MACHINE/packages/npm-global.txt")
     fi
     if command -v uv >/dev/null 2>&1; then
         while IFS= read -r package; do
-            run uv tool install "$package"
+            run uv tool install "$package" || warn "Not installed: $package"
         done < <(grep -v '^$' "$MACHINE/packages/uv-tools.txt")
     fi
     if command -v pipx >/dev/null 2>&1; then
         while IFS= read -r package; do
-            run pipx install "$package"
+            run pipx install "$package" || warn "Not installed: $package"
         done < <(grep -v '^$' "$MACHINE/packages/pipx.txt")
     fi
     if [[ -s $MACHINE/packages/flatpak.txt ]] && command -v flatpak >/dev/null 2>&1; then
         while IFS= read -r package; do
-            run flatpak install --user -y flathub "$package"
+            run flatpak install --user -y flathub "$package" || warn "Not installed: $package"
         done < <(grep -v '^$' "$MACHINE/packages/flatpak.txt")
     fi
 }
@@ -210,7 +211,7 @@ restore_services() {
     while IFS= read -r unit; do
         systemctl is-enabled --quiet "$unit" 2>/dev/null && continue
         if systemctl list-unit-files --no-legend "$unit" 2>/dev/null | grep -q .; then
-            run sudo systemctl enable "$unit"
+            run sudo systemctl enable "$unit" || warn "Not enabled: $unit"
         else
             warn "System unit not installed: $unit"
         fi
@@ -218,25 +219,25 @@ restore_services() {
     report_skipped "$MACHINE/units/system-enabled.txt"
     while IFS= read -r unit; do
         [[ $(systemctl is-enabled "$unit" 2>/dev/null) == masked ]] && continue
-        run sudo systemctl mask "$unit"
+        run sudo systemctl mask "$unit" || warn "Not masked: $unit"
     done < <(entries "$MACHINE/units/system-masked.txt")
     while IFS= read -r unit; do
         systemctl --user is-enabled --quiet "$unit" 2>/dev/null && continue
         if systemctl --user list-unit-files --no-legend "$unit" 2>/dev/null | grep -q .; then
-            run systemctl --user enable "$unit"
+            run systemctl --user enable "$unit" || warn "Not enabled: $unit"
         else
             warn "User unit not installed: $unit"
         fi
     done < <(entries "$MACHINE/units/user-enabled.txt")
     while IFS= read -r unit; do
         [[ $(systemctl --user is-enabled "$unit" 2>/dev/null) == masked ]] && continue
-        run systemctl --user mask "$unit"
+        run systemctl --user mask "$unit" || warn "Not masked: $unit"
     done < <(entries "$MACHINE/units/user-masked.txt")
 
     while IFS= read -r group; do
         id -nG | tr ' ' '\n' | grep -qx "$group" && continue
         if getent group "$group" >/dev/null; then
-            run sudo usermod -aG "$group" "$(id -un)"
+            run sudo usermod -aG "$group" "$(id -un)" || warn "Not added to group: $group"
         else
             warn "Group does not exist yet: $group"
         fi
