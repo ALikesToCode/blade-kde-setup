@@ -7,6 +7,7 @@ import argparse
 import os
 import re
 import stat
+import subprocess
 import tempfile
 import tomllib
 from datetime import UTC, datetime
@@ -16,6 +17,8 @@ SERVER_MODES = {
     "playwright_safe": "headless",
     "playwright_safe_headed": "headed",
 }
+SHARED_MCP_URL = "http://localhost:49631/mcp"
+SHARED_SERVICE = "playwright-safe-mcp.service"
 
 
 def fail(message: str) -> SystemExit:
@@ -49,7 +52,26 @@ def check_private_config(path: Path) -> os.stat_result:
     return metadata
 
 
-def load_modes(config_path: Path, home: Path) -> tuple[str, dict[str, bool]]:
+def server_transport(
+    server: dict[str, object], server_name: str, browser_mode: str, home: Path
+) -> str:
+    expected_command = str(home / ".local/bin/playwright-mcp-cloak")
+    if server.get("url") == SHARED_MCP_URL:
+        if "command" in server or "args" in server:
+            raise fail(f"{server_name} mixes HTTP and stdio transports")
+        return "shared"
+    if (
+        server.get("command") == expected_command
+        and server.get("args") == [f"--browser-mode={browser_mode}"]
+        and "url" not in server
+    ):
+        return "legacy-stdio"
+    raise fail(f"{server_name} uses an unexpected transport")
+
+
+def load_modes(
+    config_path: Path, home: Path
+) -> tuple[str, dict[str, bool], dict[str, str]]:
     check_private_config(config_path)
     try:
         text = config_path.read_text(encoding="utf-8")
@@ -62,23 +84,24 @@ def load_modes(config_path: Path, home: Path) -> tuple[str, dict[str, bool]]:
         raise fail("Codex config has no MCP server table")
 
     enabled: dict[str, bool] = {}
-    expected_command = str(home / ".local/bin/playwright-mcp-cloak")
+    transports: dict[str, str] = {}
     for server_name, browser_mode in SERVER_MODES.items():
         server = servers.get(server_name)
         if not isinstance(server, dict):
             raise fail(f"{server_name} is not configured")
-        if server.get("command") != expected_command:
-            raise fail(f"{server_name} uses an unexpected command")
-        if server.get("args") != [f"--browser-mode={browser_mode}"]:
-            raise fail(f"{server_name} uses unexpected arguments")
+        transports[server_name] = server_transport(
+            server, server_name, browser_mode, home
+        )
         value = server.get("enabled", True)
         if not isinstance(value, bool):
             raise fail(f"{server_name}.enabled is not a boolean")
         enabled[server_name] = value
-    return text, enabled
+    if len(set(transports.values())) != 1:
+        raise fail("Playwright MCP registrations use mixed transports")
+    return text, enabled, transports
 
 
-def set_enabled(text: str, server_name: str, enabled: bool) -> str:
+def section_bounds(text: str, server_name: str) -> tuple[int, int]:
     header_pattern = re.compile(
         rf"(?m)^\[mcp_servers\.{re.escape(server_name)}\][ \t]*$"
     )
@@ -93,20 +116,55 @@ def set_enabled(text: str, server_name: str, enabled: bool) -> str:
         if following_header is not None
         else len(text)
     )
-    section = text[header.end() : section_end]
+    return header.end(), section_end
+
+
+def set_enabled(text: str, server_name: str, enabled: bool) -> str:
+    section_start, section_end = section_bounds(text, server_name)
+    section = text[section_start:section_end]
     enabled_pattern = re.compile(r"(?m)^(?P<indent>[ \t]*)enabled[ \t]*=.*$")
     values = list(enabled_pattern.finditer(section))
     rendered = "true" if enabled else "false"
     if len(values) > 1:
         raise fail(f"{server_name} has duplicate enabled settings")
     if not values:
-        return text[: header.end()] + f"\nenabled = {rendered}" + text[header.end() :]
+        return text[:section_start] + f"\nenabled = {rendered}" + text[section_start:]
 
     value = values[0]
-    start = header.end() + value.start()
-    end = header.end() + value.end()
+    start = section_start + value.start()
+    end = section_start + value.end()
     indent = value.group("indent")
     return text[:start] + f"{indent}enabled = {rendered}" + text[end:]
+
+
+def set_shared_transport(text: str, server_name: str) -> str:
+    section_start, section_end = section_bounds(text, server_name)
+    section = text[section_start:section_end]
+    lines = section.splitlines(keepends=True)
+
+    def key_indexes(key: str) -> list[int]:
+        pattern = re.compile(rf"^[ \t]*{re.escape(key)}[ \t]*=")
+        return [index for index, line in enumerate(lines) if pattern.match(line)]
+
+    url_indexes = key_indexes("url")
+    if url_indexes:
+        if len(url_indexes) != 1:
+            raise fail(f"{server_name} has duplicate url settings")
+        return text
+
+    command_indexes = key_indexes("command")
+    argument_indexes = key_indexes("args")
+    if len(command_indexes) != 1 or len(argument_indexes) != 1:
+        raise fail(f"{server_name} legacy transport is not line-addressable")
+
+    command_index = command_indexes[0]
+    command_line = lines[command_index]
+    indentation = command_line[: len(command_line) - len(command_line.lstrip())]
+    newline = "\n" if command_line.endswith("\n") else ""
+    lines[command_index] = f'{indentation}url = "{SHARED_MCP_URL}"{newline}'
+    lines[argument_indexes[0]] = ""
+    updated_section = "".join(lines)
+    return text[:section_start] + updated_section + text[section_end:]
 
 
 def ensure_backup_root(home: Path) -> Path:
@@ -172,6 +230,109 @@ def render_status(enabled: dict[str, bool]) -> str:
     return f"headless={headless} headed={headed}"
 
 
+def check_systemctl() -> Path:
+    configured = os.environ.get("PLAYWRIGHT_MCP_SYSTEMCTL", "/usr/bin/systemctl")
+    path = Path(configured)
+    if not path.is_absolute():
+        raise fail("PLAYWRIGHT_MCP_SYSTEMCTL must be absolute")
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise fail(f"cannot inspect systemctl: {error}") from error
+    if not stat.S_ISREG(metadata.st_mode) or path.is_symlink():
+        raise fail("systemctl is missing or is a symlink")
+    if metadata.st_uid not in (0, os.getuid()):
+        raise fail("systemctl has an unexpected owner")
+    if stat.S_IMODE(metadata.st_mode) & 0o022:
+        raise fail("systemctl is writable by group or world")
+    if not os.access(path, os.X_OK):
+        raise fail("systemctl is not executable")
+    return path
+
+
+def run_systemctl(systemctl: Path, *arguments: str, check: bool = True) -> int:
+    result = subprocess.run(
+        [str(systemctl), "--user", *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if check and result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        suffix = f": {detail}" if detail else ""
+        raise fail(f"systemctl {' '.join(arguments)} failed{suffix}")
+    return result.returncode
+
+
+def read_service_mode(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        metadata = path.lstat()
+        value = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise fail(f"cannot read shared browser mode: {error}") from error
+    if not stat.S_ISREG(metadata.st_mode) or path.is_symlink():
+        raise fail("shared browser mode file is not a regular file")
+    if metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) & 0o077:
+        raise fail("shared browser mode file is not private")
+    if value not in ("headless\n", "headed\n"):
+        raise fail("shared browser mode file is invalid")
+    return value.rstrip("\n")
+
+
+def write_service_mode(path: Path, mode: str) -> None:
+    temporary_path: Path | None = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        check_private_directory(path.parent, "codex-safe configuration directory")
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=".playwright-mcp-service-mode.",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            os.fchmod(temporary.fileno(), 0o600)
+            temporary.write(f"{mode}\n")
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+    except OSError as error:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise fail(f"cannot update shared browser mode: {error}") from error
+
+
+def ensure_shared_service(home: Path, mode: str) -> bool:
+    unit = home / ".config/systemd/user" / SHARED_SERVICE
+    if not unit.is_file() or unit.is_symlink():
+        raise fail(f"shared MCP service unit is missing: {unit}")
+    mode_path = home / ".config/codex-safe/playwright-mcp-service-mode"
+    previous_mode = read_service_mode(mode_path)
+    systemctl = check_systemctl()
+    active = run_systemctl(systemctl, "is-active", "--quiet", SHARED_SERVICE, check=False) == 0
+    enabled = run_systemctl(systemctl, "is-enabled", "--quiet", SHARED_SERVICE, check=False) == 0
+    if previous_mode == mode and active and enabled:
+        return False
+
+    write_service_mode(mode_path, mode)
+    try:
+        run_systemctl(systemctl, "daemon-reload")
+        run_systemctl(systemctl, "enable", SHARED_SERVICE)
+        run_systemctl(systemctl, "restart", SHARED_SERVICE)
+        if run_systemctl(systemctl, "is-active", "--quiet", SHARED_SERVICE, check=False) != 0:
+            raise fail("shared MCP service did not become active")
+    except BaseException:
+        if previous_mode is not None:
+            write_service_mode(mode_path, previous_mode)
+            if active:
+                run_systemctl(systemctl, "restart", SHARED_SERVICE, check=False)
+        raise
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("status", "ensure", "headless", "headed"))
@@ -182,42 +343,51 @@ def main() -> int:
     if not config_home.is_absolute():
         raise fail("CODEX_HOME must be absolute")
     config_path = config_home / "config.toml"
-    text, enabled = load_modes(config_path, home)
+    text, enabled, transports = load_modes(config_path, home)
 
     if arguments.mode == "status":
         print(render_status(enabled))
         return 0
 
     selected = arguments.mode
-    if selected == "ensure" and enabled["playwright_safe"] != enabled["playwright_safe_headed"]:
-        print(f"{render_status(enabled)} restart-codex=no")
-        return 0
     if selected == "ensure":
-        selected = "headless"
+        selected = (
+            "headless"
+            if enabled["playwright_safe"] == enabled["playwright_safe_headed"]
+            else next(
+                browser_mode
+                for server_name, browser_mode in SERVER_MODES.items()
+                if enabled[server_name]
+            )
+        )
 
     desired = {
         "playwright_safe": selected == "headless",
         "playwright_safe_headed": selected == "headed",
     }
-    if enabled == desired:
-        print(f"{render_status(enabled)} restart-codex=no")
-        return 0
-
     updated = text
+    if next(iter(transports.values())) == "legacy-stdio":
+        for server_name in SERVER_MODES:
+            updated = set_shared_transport(updated, server_name)
     for server_name, value in desired.items():
         updated = set_enabled(updated, server_name, value)
-    _, verified = load_modes_from_text(updated, home)
-    if verified != desired:
+    _, verified, verified_transports = load_modes_from_text(updated, home)
+    if verified != desired or set(verified_transports.values()) != {"shared"}:
         raise fail("updated Codex config did not select exactly one browser mode")
-    backup_path = write_config(config_path, home, updated)
-    print(
-        f"{render_status(desired)} restart-codex=yes "
-        f"backup={backup_path}"
-    )
+    backup_path = write_config(config_path, home, updated) if updated != text else None
+    service_changed = ensure_shared_service(home, selected)
+    restart_required = backup_path is not None or service_changed
+    if not restart_required:
+        print(f"{render_status(desired)} restart-codex=no")
+        return 0
+    suffix = f" backup={backup_path}" if backup_path is not None else ""
+    print(f"{render_status(desired)} restart-codex=yes{suffix}")
     return 0
 
 
-def load_modes_from_text(text: str, home: Path) -> tuple[dict[str, object], dict[str, bool]]:
+def load_modes_from_text(
+    text: str, home: Path
+) -> tuple[dict[str, object], dict[str, bool], dict[str, str]]:
     try:
         parsed = tomllib.loads(text)
     except tomllib.TOMLDecodeError as error:
@@ -226,20 +396,19 @@ def load_modes_from_text(text: str, home: Path) -> tuple[dict[str, object], dict
     if not isinstance(servers, dict):
         raise fail("updated Codex config has no MCP server table")
     enabled: dict[str, bool] = {}
-    expected_command = str(home / ".local/bin/playwright-mcp-cloak")
+    transports: dict[str, str] = {}
     for server_name, browser_mode in SERVER_MODES.items():
         server = servers.get(server_name)
         if not isinstance(server, dict):
             raise fail(f"updated config lost {server_name}")
-        if server.get("command") != expected_command:
-            raise fail(f"updated config changed {server_name} command")
-        if server.get("args") != [f"--browser-mode={browser_mode}"]:
-            raise fail(f"updated config changed {server_name} arguments")
+        transports[server_name] = server_transport(
+            server, server_name, browser_mode, home
+        )
         value = server.get("enabled", True)
         if not isinstance(value, bool):
             raise fail(f"updated {server_name}.enabled is not a boolean")
         enabled[server_name] = value
-    return parsed, enabled
+    return parsed, enabled, transports
 
 
 if __name__ == "__main__":

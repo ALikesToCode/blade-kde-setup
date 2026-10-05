@@ -25,7 +25,7 @@ printf '  read-only host roots: /, /home, /root, /etc, /usr, /var, /opt, /srv, /
 printf '  Codex sandbox: workspace-write; approval: on-request; network: enabled; extra writable_roots: []\n'
 printf '  Codex compatibility: features.use_legacy_landlock=true in temporary runtime overrides only\n'
 printf '  browser: CloakBrowser %s -> loopback CDP -> Playwright CLI/MCP/scripts\n' "$CLOAKBROWSER_VERSION"
-printf '  browser state: fixed private profile; artifacts: <workspace>/.playwright-cli\n'
+printf '  browser state: fixed private profile root; concurrent slots: %s; artifacts: <workspace>/.playwright-cli\n' "$CODEX_SAFE_BROWSER_PROFILE_SLOTS"
 printf '  headed paste: one-way host-to-Xephyr text bridge; no clipboard payload logging\n'
 printf '  D-Bus: host buses disabled; private MCP Secret Service broker only\n'
 printf '  MCP credentials: encrypted dedicated keyring; keyring files hidden inside jail\n'
@@ -39,6 +39,7 @@ if [[ -r /etc/firejail/firejail.users ]] && grep -Fxq "$(id -un)" /etc/firejail/
 check_exec "$HOME/.local/bin/codex-safe"
 check_exec "$HOME/.local/bin/playwright-cli"
 check_exec "$HOME/.local/bin/playwright-mcp-safe"
+check_exec "$HOME/.local/bin/playwright-mcp-shared"
 check_exec "$CODEX_SAFE_INNER"
 check_exec "$CODEX_SAFE_SELF_TEST_INNER"
 check_file "$CODEX_SAFE_KEYRING_LIB"
@@ -55,6 +56,19 @@ check_exec "$PLAYWRIGHT_CLI_REAL"
 check_exec "$PLAYWRIGHT_MCP_REAL"
 check_exec "$SHELLCHECK_REAL"
 check_file "$HOME/.config/codex-safe/PROVENANCE.md"
+check_file "$HOME/.config/codex-safe/playwright-mcp-service-mode"
+check_file "$HOME/.config/systemd/user/playwright-safe-mcp.service"
+if [[ $(systemctl --user is-enabled playwright-safe-mcp.service 2>/dev/null || true) == enabled ]]; then pass 'shared Playwright MCP service enabled'; else fail 'shared Playwright MCP service enabled'; fi
+if [[ $(systemctl --user is-active playwright-safe-mcp.service 2>/dev/null || true) == active ]]; then pass 'shared Playwright MCP service active'; else fail 'shared Playwright MCP service active'; fi
+if python3 -c '
+import pathlib, sys, tomllib
+config = tomllib.loads(pathlib.Path(sys.argv[1]).read_text())
+servers = config["mcp_servers"]
+names = ("playwright_safe", "playwright_safe_headed")
+assert all(servers[name].get("url") == "http://localhost:49631/mcp" for name in names)
+assert all("command" not in servers[name] and "args" not in servers[name] for name in names)
+assert sum(bool(servers[name].get("enabled", True)) for name in names) == 1
+' "$HOME/.codex/config.toml" 2>/dev/null; then pass 'shared Playwright MCP registrations valid'; else fail 'shared Playwright MCP registrations valid'; fi
 if command -v gnome-keyring-daemon >/dev/null; then pass 'private keyring daemon installed'; else fail 'private keyring daemon installed'; fi
 if [[ $(systemctl --user is-enabled gnome-keyring-daemon.socket 2>/dev/null || true) == masked && \
       $(systemctl --user is-enabled gnome-keyring-daemon.service 2>/dev/null || true) == masked ]]; then pass 'desktop gnome-keyring units masked'; else fail 'desktop gnome-keyring units masked'; fi

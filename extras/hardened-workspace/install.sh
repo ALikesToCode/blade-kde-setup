@@ -98,6 +98,8 @@ append_block() {
   printf '%s\n%s\n%s\n' "$begin" "$content" "$end" >>"$target"
 }
 
+shared_mcp_url=http://localhost:49631/mcp
+
 configure_playwright_server() {
   local server_name=$1 browser_mode=$2 expected current
   expected="$HOME/.local/bin/playwright-mcp-cloak"
@@ -110,6 +112,12 @@ configure_playwright_server() {
       and ((.transport.env_vars // []) | length == 0)
     ' <<<"$current" >/dev/null; then
       note "$server_name already uses explicit cursor-safe $browser_mode mode"
+      return
+    fi
+    if jq -e --arg url "$shared_mcp_url" '
+      .transport.type == "streamable_http" and .transport.url == $url
+    ' <<<"$current" >/dev/null; then
+      note "$server_name already uses the shared cursor-safe MCP service"
       return
     fi
     die "existing $server_name configuration is preserved; set its command to $expected with --browser-mode=$browser_mode and remove host display passthrough"
@@ -178,43 +186,53 @@ if [[ "$action" == stage ]]; then
   cloak_source="$HOME/.local/share/codex-safe/cloakbrowser-source-v0.4.11/bin/cloakserve"
   cloak_patch="$root/cloakserve-codex-safe.patch"
   cloak_upgrade_patch="$root/cloakserve-graceful-close-upgrade.patch"
+  cloak_extension_patch="$root/cloakserve-userscript-extension.patch"
   cloak_upstream_sha=a334ec5aaf2221e8a463a7c64cfa9b290e62348582da7e03e24f927b285df1fa
   cloak_headed_only_sha=352a29e456abe1474241ad5ac35920a26079d9f90cd5e64686324009fb48c592
   cloak_previous_patched_sha=19a78243d3f3e56a7666347e0ee052a610e7c0811b0979c816d4c4f5c210be63
-  cloak_patched_sha=14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef
+  cloak_graceful_sha=14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef
+  cloak_patched_sha=074718fb987fa2fc0f483570a611efb3028a9a2179c140068393bf12b64a032f
   [[ -x "$cloak_source" ]] || die "verified official cloakserve source is not installed"
   [[ -r "$cloak_patch" ]] || die "cloakserve codex-safe patch is missing"
   [[ -r "$cloak_upgrade_patch" ]] || die "cloakserve graceful-close upgrade patch is missing"
+  [[ -r "$cloak_extension_patch" ]] || die "cloakserve userscript-extension patch is missing"
   [[ -x "$HOME/.cloakbrowser/chromium-146.0.7680.177.5/chrome" ]] || die "verified CloakBrowser Chromium 146.0.7680.177.5 is missing"
   cloak_source_sha=$(sha256sum "$cloak_source" | awk '{print $1}')
-  if [[ "$cloak_source_sha" == "$cloak_upstream_sha" || \
-        "$cloak_source_sha" == "$cloak_headed_only_sha" ]]; then
-    cloak_temp=$(mktemp "$backup_root/.cloakserve.XXXXXXXX")
-    cp -- "$cloak_source" "$cloak_temp"
+  cloak_temp=$(mktemp "$backup_root/.cloakserve.XXXXXXXX")
+  cp -- "$cloak_source" "$cloak_temp"
+  cloak_temp_sha=$cloak_source_sha
+  if [[ "$cloak_temp_sha" == "$cloak_upstream_sha" || \
+        "$cloak_temp_sha" == "$cloak_headed_only_sha" ]]; then
     patch --batch --forward --no-backup-if-mismatch --reject-file=/dev/null \
       "$cloak_temp" "$cloak_patch" >/dev/null 2>&1 || true
-    [[ $(sha256sum "$cloak_temp" | awk '{print $1}') == "$cloak_patched_sha" ]] || \
+    cloak_temp_sha=$(sha256sum "$cloak_temp" | awk '{print $1}')
+    [[ "$cloak_temp_sha" == "$cloak_graceful_sha" ]] || \
       die "patched cloakserve checksum mismatch"
-    backup_target "$cloak_source"
-    install -m 0755 "$cloak_temp" "$cloak_source"
-    rm -f -- "$cloak_temp"
-    note "installed the reviewed cloakserve persistence, graceful-close, and headed-mode patch"
-  elif [[ "$cloak_source_sha" == "$cloak_previous_patched_sha" ]]; then
-    cloak_temp=$(mktemp "$backup_root/.cloakserve.XXXXXXXX")
-    cp -- "$cloak_source" "$cloak_temp"
+  elif [[ "$cloak_temp_sha" == "$cloak_previous_patched_sha" ]]; then
     patch --batch --forward --no-backup-if-mismatch --reject-file=/dev/null \
       "$cloak_temp" "$cloak_upgrade_patch" >/dev/null 2>&1 || \
       die "cannot apply the cloakserve graceful-close upgrade"
-    [[ $(sha256sum "$cloak_temp" | awk '{print $1}') == "$cloak_patched_sha" ]] || \
+    cloak_temp_sha=$(sha256sum "$cloak_temp" | awk '{print $1}')
+    [[ "$cloak_temp_sha" == "$cloak_graceful_sha" ]] || \
       die "upgraded cloakserve checksum mismatch"
+  fi
+  if [[ "$cloak_temp_sha" == "$cloak_graceful_sha" ]]; then
+    patch --batch --forward --no-backup-if-mismatch --reject-file=/dev/null \
+      "$cloak_temp" "$cloak_extension_patch" >/dev/null 2>&1 || \
+      die "cannot apply the cloakserve userscript-extension patch"
+    cloak_temp_sha=$(sha256sum "$cloak_temp" | awk '{print $1}')
+  fi
+  [[ "$cloak_temp_sha" == "$cloak_patched_sha" ]] || die "cloakserve source checksum mismatch"
+  if [[ "$cloak_source_sha" != "$cloak_patched_sha" ]]; then
     backup_target "$cloak_source"
     install -m 0755 "$cloak_temp" "$cloak_source"
-    rm -f -- "$cloak_temp"
-    note "upgraded cloakserve to commit browser state before shutdown"
-  elif [[ "$cloak_source_sha" != "$cloak_patched_sha" ]]; then
-    die "cloakserve source checksum mismatch"
+    note "installed the reviewed cloakserve persistence, graceful-close, headed-mode, and userscript-extension patches"
   fi
+  rm -f -- "$cloak_temp"
   [[ $(sha256sum "$HOME/.cloakbrowser/chromium-146.0.7680.177.5/chrome" | awk '{print $1}') == 715722e8605ae3ce81523c1218aba1ec89425786ab33ceaf99f8a6cb5e70e6e8 ]] || die "CloakBrowser binary checksum mismatch"
+  userscript_extension="$HOME/.local/share/codex-safe/extensions/violentmonkey-mv3-v2.46.0"
+  [[ -f "$userscript_extension/manifest.json" ]] || die "verified Violentmonkey 2.46.0 MV3 extension is missing"
+  [[ $(cd -- "$userscript_extension" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d ' ' -f 1) == 718c4643df530364d2ea1538f455d50983e4e9961715556ea2149b64cfd6bc2f ]] || die "Violentmonkey extension checksum mismatch"
   [[ -x "$HOME/.local/share/codex-safe/playwright-cli/node_modules/.bin/playwright-cli" ]] || die "official Playwright CLI is missing"
   [[ -x "$HOME/.local/share/codex-safe/playwright-cli/node_modules/.bin/playwright-mcp" ]] || die "official Playwright MCP is missing"
   [[ -x "$HOME/.local/share/codex-safe/tools/shellcheck" ]] || die "verified standalone ShellCheck is missing"
@@ -295,6 +313,8 @@ if [[ "$action" == stage ]]; then
   install_payload_file .local/bin/playwright-mcp-cloak 755
   install_payload_file .local/bin/playwright-mcp-mode 755
   install_payload_file .local/bin/playwright-mcp-safe 755
+  install_payload_file .local/bin/playwright-mcp-shared 755
+  install_payload_file .config/systemd/user/playwright-safe-mcp.service 644
 
   if [[ ! -e "$HOME/.local/state/codex-safe/cloakbrowser-profile" && \
         ! -L "$HOME/.local/state/codex-safe/cloakbrowser-profile" ]]; then
@@ -326,14 +346,17 @@ agents_end='<!-- codex-safe browser policy: end -->'
 # shellcheck disable=SC2016
 agents_content='## Hardened browser policy
 
-Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, interacting with, screenshotting, extracting from, scraping, dynamically inspecting, or visually validating a webpage. In ordinary Codex sessions, use the `playwright_safe` MCP server; it starts a verified, loopback-only CloakBrowser for the MCP session. Inside `codex-safe`, use either the `playwright-cli` wrapper or `playwright_safe`; both attach to that hardened session'\''s `CLOAK_CDP_ENDPOINT`.
+Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, interacting with, screenshotting, extracting from, scraping, dynamically inspecting, or visually validating a webpage. In ordinary Codex sessions, concurrent Codex clients connect to one verified, loopback-only shared CloakBrowser service so they retain the same profile history and signed-in state. Inside `codex-safe`, use either the `playwright-cli` wrapper or `playwright_safe`; both attach to that hardened session'\''s `CLOAK_CDP_ENDPOINT`.
 
 ### Browser mode declaration and cursor isolation
 
 - Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed` in a commentary update and give the reason for that choice.
 - In ordinary Codex sessions, use `playwright_safe` for headless work and `playwright_safe_headed` for headed work. Use exactly one browser server for a task; never start both modes speculatively.
-- The persistent profile is single-instance. Run `playwright-mcp-mode headless` or `playwright-mcp-mode headed`, then restart Codex before switching modes; never enable both registrations together.
-- Default to headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed when the user asks to see the browser or visible GUI rendering is part of the requirement.
+- Chromium profile directories are single-instance. Ordinary Codex clients share one browser process and browser context through `playwright-safe-mcp.service`; separately sandboxed `codex-safe` processes use independently locked slots. Never enable both registrations together. Ordinary Codex startup must default to `playwright_safe` in headless mode. Restore that default with `playwright-mcp-mode headless`, then fully quit and restart Codex.
+- With multiple ordinary Codex clients, create and use a dedicated tab for each task. Do not close or repurpose tabs created by another client.
+- To make the browser headed, run `playwright-mcp-mode headed`, fully quit Codex, restart it, and use only `playwright_safe_headed` in the fresh session. Existing sessions cannot hot-load the newly selected namespace.
+- After headed work is complete, run `playwright-mcp-mode headless` and fully restart Codex again so the next startup returns to the headless default.
+- Use headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed only when the user asks to see the browser or visible GUI rendering is part of the requirement.
 - Headed always means visible: it opens `CloakBrowser Automation` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
 - The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display. The dedicated KWin rule allows the user to focus it for manual typing and paste without exposing the host display to Chromium.
 - A private nested window manager tiles every normal Chromium window across the full Xephyr display and focuses newly mapped browser windows. `browser_resize` remains available for responsive page-viewport emulation, but it must not shrink or reposition the native browser window.

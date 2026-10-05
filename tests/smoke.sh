@@ -45,7 +45,8 @@ bash -n \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-cli" \
     "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak" \
-    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-safe"
+    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-safe" \
+    "$ROOT/extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-shared"
 
 python3 -c \
     'import pathlib, sys; path = pathlib.Path(sys.argv[1]); compile(path.read_text(), str(path), "exec")' \
@@ -150,6 +151,7 @@ required=(
     extras/hardened-workspace/install.sh
     extras/hardened-workspace/cloakserve-codex-safe.patch
     extras/hardened-workspace/cloakserve-graceful-close-upgrade.patch
+    extras/hardened-workspace/cloakserve-userscript-extension.patch
     extras/hardened-workspace/payload/home/.config/firejail/codex-safe.profile
     extras/hardened-workspace/payload/home/.config/codex-safe/browser-profile.sh
     extras/hardened-workspace/payload/home/.config/codex-safe/clipboard-bridge.py
@@ -161,6 +163,8 @@ required=(
     extras/hardened-workspace/payload/home/.local/bin/codex-safe-migrate-mcp
     extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-cloak
     extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-mode
+    extras/hardened-workspace/payload/home/.local/bin/playwright-mcp-shared
+    extras/hardened-workspace/payload/home/.config/systemd/user/playwright-safe-mcp.service
     tests/browser-mode-isolation.sh
     tests/browser-mode-selection.sh
     tests/codex-desktop.sh
@@ -205,6 +209,10 @@ rg -q 'configure_playwright_server playwright_safe headless' \
     "$ROOT/extras/hardened-workspace/install.sh"
 rg -q 'configure_playwright_server playwright_safe_headed headed' \
     "$ROOT/extras/hardened-workspace/install.sh"
+rg -q 'install_payload_file \.config/systemd/user/playwright-safe-mcp\.service 644' \
+    "$ROOT/extras/hardened-workspace/install.sh"
+grep -Fq 'ExecStart=%h/.local/bin/playwright-mcp-shared' \
+    "$ROOT/extras/hardened-workspace/payload/home/.config/systemd/user/playwright-safe-mcp.service"
 rg -q '^### Mandatory atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
@@ -227,7 +235,7 @@ grep -Fq 'Headed always means visible:' "$ROOT/dotfiles/agents/AGENTS.md"
 grep -Fqx 'xorg-server-xephyr' "$ROOT/packages/pacman.txt"
 grep -Fqx 'xorg-xauth' "$ROOT/packages/pacman.txt"
 grep -Fqx 'xclip' "$ROOT/packages/pacman.txt"
-grep -Fq '14e10cb340a0a8e37b60f90742fe01f021035e77c8eb43b9ca98c228a3b455ef' \
+grep -Fq '074718fb987fa2fc0f483570a611efb3028a9a2179c140068393bf12b64a032f' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/config"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 92 ]]

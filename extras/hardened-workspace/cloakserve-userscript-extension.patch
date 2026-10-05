@@ -1,0 +1,19 @@
+--- a/bin/cloakserve
++++ b/bin/cloakserve
+@@ -364,9 +364,15 @@
+             user_data_dir = os.path.join(self._data_dir, seed_key)
+             os.makedirs(user_data_dir, exist_ok=True)
+ 
++            base_chrome_args = BASE_CHROME_ARGS
++            if any(arg.startswith("--load-extension=") for arg in self._global_args):
++                base_chrome_args = [
++                    arg for arg in BASE_CHROME_ARGS if arg != "--disable-extensions"
++                ]
++
+             full_args = (
+                 [self._binary]
+-                + BASE_CHROME_ARGS
++                + base_chrome_args
+                 + chrome_args
+                 + self._global_args
+                 + [

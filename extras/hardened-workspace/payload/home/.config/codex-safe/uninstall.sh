@@ -30,6 +30,7 @@ remove_marked_block() {
 }
 
 printf '%s\n' 'codex-safe uninstall: removing only marked integration and recorded payload files.'
+systemctl --user disable --now playwright-safe-mcp.service >/dev/null 2>&1 || true
 remove_marked_block "$HOME/.codex/AGENTS.md" '<!-- codex-safe browser policy: begin -->' '<!-- codex-safe browser policy: end -->'
 remove_marked_block "$HOME/.zshrc" '# >>> codex-safe alias >>>' '# <<< codex-safe alias <<<'
 
@@ -60,10 +61,12 @@ created=(
   "$HOME/.local/bin/cloakserve"
   "$HOME/.local/bin/playwright-cli"
   "$HOME/.local/bin/playwright-mcp-safe"
+  "$HOME/.local/bin/playwright-mcp-shared"
   "$HOME/.config/firejail/codex-safe.profile"
   "$HOME/.config/codex-safe/config"
   "$HOME/.config/codex-safe/keyring-stack.sh"
   "$HOME/.config/codex-safe/browser-profile.sh"
+  "$HOME/.config/codex-safe/playwright-mcp-service-mode"
   "$HOME/.config/codex-safe/clipboard-bridge.py"
   "$HOME/.config/codex-safe/nested-display.sh"
   "$HOME/.config/codex-safe/nested-window-manager.py"
@@ -80,6 +83,7 @@ created=(
   "$HOME/.config/codex-safe/codex-original"
   "$HOME/.config/codex-safe/install-state"
   "$HOME/.local/bin/playwright-mcp-cloak"
+  "$HOME/.config/systemd/user/playwright-safe-mcp.service"
   "$HOME/.config/systemd/user/gnome-keyring-daemon.socket"
   "$HOME/.config/systemd/user/gnome-keyring-daemon.service"
 )

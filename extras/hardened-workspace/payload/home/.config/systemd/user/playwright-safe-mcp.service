@@ -1,0 +1,17 @@
+[Unit]
+Description=Shared CloakBrowser Playwright MCP
+Documentation=https://github.com/microsoft/playwright-mcp
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+ExecStart=%h/.local/bin/playwright-mcp-shared
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=30
+KillMode=control-group
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

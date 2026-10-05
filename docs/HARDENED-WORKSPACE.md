@@ -32,7 +32,13 @@ The following externally obtained, verified assets must already exist:
   upgrade patch, applied only after a known source hash matches, so Chromium
   commits the private browser profile through CDP before shutdown and headed
   mode does not forward Chromium's presence-sensitive `--headless=false`
-  switch;
+  switch, followed by `cloakserve-userscript-extension.patch`, which keeps
+  extensions enabled only when an explicit `--load-extension` is passed;
+- the official Violentmonkey `2.46.0` Manifest V3 release
+  (`Violentmonkey-mv3-v2.46.0.zip`, SHA-256
+  `555277f9896e64343f6a2ee3e6878787b781cd984cd4a7ffa46722203d384624`)
+  unpacked into the private
+  `~/.local/share/codex-safe/extensions/violentmonkey-mv3-v2.46.0/`;
 - patched Chromium `146.0.7680.177.5` at
   `~/.cloakbrowser/chromium-146.0.7680.177.5/`;
 - `@playwright/cli` `0.1.17` and `@playwright/mcp` `0.0.78` below
@@ -105,7 +111,12 @@ args = ["--browser-mode=headed"]
 ```
 
 Replace `USER` with the account name because MCP command paths must be
-absolute.
+absolute. The first `playwright-mcp-mode` run migrates both entries to the
+shared `http://localhost:49631/mcp` endpoint served by the
+`playwright-safe-mcp.service` user unit, so concurrent ordinary Codex clients
+share one browser process and context. Its private
+`~/.config/codex-safe/playwright-mcp-service-mode` file selects headless or
+headed.
 The persistent profile is single-instance, so exactly one server must be
 enabled. Select a mode before starting a fresh Codex session:
 

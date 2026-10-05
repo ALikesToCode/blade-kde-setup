@@ -37,8 +37,9 @@ standalone clone or disposable full repository when commits are required.
 
 - Persistent writable roots: the one real launch directory plus the fixed
   `~/.local/state/codex-safe/cloakbrowser-profile` browser profile. The profile
-  root is mode `0700`, rejects symlink redirection, and is guarded by a
-  single-instance lock.
+  root is mode `0700`, rejects symlink redirection, and contains independently
+  locked persistent slots for the shared ordinary-Codex browser and separately
+  sandboxed `codex-safe` processes.
 - Ephemeral writable roots: the Firejail-private `/tmp`, private `/dev`, and a
   fresh tmpfs mounted over the otherwise empty host directory
   `~/.cache/codex-safe-runtime`. Codex state and per-launch browser scratch data
@@ -68,12 +69,24 @@ standalone clone or disposable full repository when commits are required.
 
 ## Browser architecture
 
-Each invocation chooses an unused random loopback port. A single 192-bit
-fingerprint seed is generated when the private browser profile is initialized
-and is reused with that profile so sites do not see every restart as a new
-device. A non-blocking lock prevents two CloakBrowser processes from opening
-the profile concurrently. `runtime-inner.sh` starts official `cloakserve` in
-the same jail, with locale `en-IN`, timezone `Asia/Kolkata`, and auto-update
+Ordinary Codex clients connect to the user-level
+`playwright-safe-mcp.service` at `http://localhost:49631/mcp`. That service owns
+one CloakBrowser process and runs Playwright MCP with a shared browser context,
+so concurrent clients see the same profile, history, cookies, storage, and
+tabs. Chromium does not support multiple browser processes opening one user
+data directory; attaching multiple MCP clients to one browser is the safe
+shared-history design. Agents should use their own tabs and leave unknown tabs
+untouched.
+
+Explicit `codex-safe` invocations retain a stronger per-jail boundary and do
+not attach to the host browser service. Each invocation chooses an unused
+random loopback port and acquires the first free persistent profile slot. Slot
+1 preserves the original profile and is normally held by the shared service;
+the remaining configured slots are created lazily under `slots/slot-N`. Every
+slot has its own 192-bit fingerprint seed and non-blocking lock, so sandboxed
+processes use distinct Chromium data directories while each slot remains
+stable across reuse. `runtime-inner.sh` starts official `cloakserve` in the
+same jail, with locale `en-IN`, timezone `Asia/Kolkata`, and auto-update
 disabled. It waits at most 20 seconds, then verifies:
 
 1. the listener is only `127.0.0.1`;
@@ -95,10 +108,11 @@ Chromium. Screenshots, snapshots, traces, downloads, and output belong in
 `~/.local/state/codex-safe/playwright-mcp-workspace/` fallback so Playwright MCP
 never receives the entire home tree as its working directory.
 
-The browser profile has a single-instance lock, so headless and headed MCP
-servers cannot run together. `playwright-mcp-mode status|headless|headed`
-selects exactly one registration and makes a private backup of Codex
-configuration before a change. Restart Codex after switching.
+The shared profile is single-instance, so headless and headed services cannot
+run together. `playwright-mcp-mode status|headless|headed` updates the service
+mode, restarts the one shared service, selects exactly one Codex registration,
+and makes a private backup of Codex configuration before a change. Restart
+Codex after switching.
 
 Overrides are `CODEX_SAFE_LOCALE`, `CODEX_SAFE_TIMEZONE`,
 `CODEX_SAFE_HEADED=true`, and `CODEX_SAFE_PROXY`. Headed mode opens a visible,

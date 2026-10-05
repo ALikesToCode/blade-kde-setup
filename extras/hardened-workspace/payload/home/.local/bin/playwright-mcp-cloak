@@ -123,6 +123,40 @@ source "$CODEX_SAFE_NESTED_DISPLAY_LIB"
 # shellcheck source=/dev/null
 source "$CODEX_SAFE_BROWSER_PROFILE_LIB"
 
+userscript_extension=${CODEX_SAFE_USERSCRIPT_EXTENSION_DIR-}
+if [[ -n "$userscript_extension" ]]; then
+  [[ -n "${CODEX_SAFE_USERSCRIPT_EXTENSION_VERSION-}" ]] ||
+    die "userscript extension version is missing"
+  [[ -n "${CODEX_SAFE_USERSCRIPT_EXTENSION_TREE_SHA256-}" ]] ||
+    die "userscript extension checksum is missing"
+  extension_root="$host_home/.local/share/codex-safe/extensions"
+  [[ -d "$extension_root" && ! -L "$extension_root" ]] ||
+    die "userscript extension root is missing or is a symlink"
+  check_private_directory "$extension_root" "userscript extension root"
+  extension_root=$(realpath -e -- "$extension_root") ||
+    die "cannot resolve userscript extension root"
+  userscript_extension=$(realpath -e -- "$userscript_extension") ||
+    die "cannot resolve userscript extension"
+  [[ "$userscript_extension" == "$extension_root/"* ]] ||
+    die "userscript extension escaped its fixed root"
+  check_private_directory "$userscript_extension" "userscript extension"
+  [[ -f "$userscript_extension/manifest.json" && ! -L "$userscript_extension/manifest.json" ]] ||
+    die "userscript extension manifest is missing or is a symlink"
+  manifest_version=$(jq -er ".manifest_version" "$userscript_extension/manifest.json") ||
+    die "cannot read userscript extension manifest version"
+  extension_version=$(jq -er ".version" "$userscript_extension/manifest.json") ||
+    die "cannot read userscript extension version"
+  [[ "$manifest_version" == 3 ]] || die "userscript extension is not Manifest V3"
+  [[ "$extension_version" == "$CODEX_SAFE_USERSCRIPT_EXTENSION_VERSION" ]] ||
+    die "userscript extension version mismatch"
+  extension_tree_sha=$(
+    cd -- "$userscript_extension"
+    find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d " " -f 1
+  )
+  [[ "$extension_tree_sha" == "$CODEX_SAFE_USERSCRIPT_EXTENSION_TREE_SHA256" ]] ||
+    die "userscript extension checksum mismatch"
+fi
+
 # codex-safe supplies a stricter, in-jail browser path of its own.
 if [[ "${CODEX_SAFE_ACTIVE-}" == 1 ]]; then
   safe_mode=headless
@@ -207,6 +241,12 @@ cloak_args=(
   "--fingerprint-timezone=$timezone_value"
   "--password-store=basic"
 )
+if [[ -n "$userscript_extension" ]]; then
+  cloak_args+=(
+    "--disable-extensions-except=$userscript_extension"
+    "--load-extension=$userscript_extension"
+  )
+fi
 case "$browser_mode" in
   headless)
     cloak_args+=("--headless=new")
@@ -291,9 +331,26 @@ while IFS= read -r -d '' entry; do
   case "$entry" in DISPLAY=*) server_display=${entry#DISPLAY=} ;; esac
 done <"/proc/$browser_parent_pid/environ"
 headless_flag=''
-while IFS= read -r -d '' token; do
-  case "$token" in --headless|--headless=*) headless_flag=$token ;; esac
-done <"/proc/$browser_pid/cmdline"
+extensions_disabled=0
+loaded_extension=''
+browser_cmdline=$(tr '\0' ' ' <"/proc/$browser_pid/cmdline")
+browser_cmdline=" $browser_cmdline "
+case "$browser_cmdline" in
+  *" --headless=new "*) headless_flag='--headless=new' ;;
+  *" --headless "*) headless_flag='--headless' ;;
+esac
+case "$browser_cmdline" in
+  *" --disable-extensions "*) extensions_disabled=1 ;;
+esac
+case "$browser_cmdline" in
+  *" --load-extension=$userscript_extension "*) loaded_extension=$userscript_extension ;;
+esac
+if [[ -n "$userscript_extension" ]]; then
+  (( extensions_disabled == 0 )) ||
+    die "Chromium unexpectedly disabled the configured userscript extension"
+  [[ "$loaded_extension" == "$userscript_extension" ]] ||
+    die "Chromium did not load the verified userscript extension"
+fi
 if [[ "$browser_mode" == headless ]]; then
   [[ "$server_headless_flag" == "--headless=new" ]] || die "cloakserve did not receive explicit headless mode"
   [[ -z "$server_display" ]] || die "headless cloakserve unexpectedly has a desktop display"
