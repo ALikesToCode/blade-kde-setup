@@ -15,6 +15,7 @@ DO_HARDENED=0
 DO_TOOLS=0
 DO_DOWNLOADS=0
 DO_POWER=0
+DO_MACHINE=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
 SUDO_KEEPALIVE_PID=
@@ -35,6 +36,7 @@ Modes:
   --tools        Install pinned CLI tools and personal Codex skills
   --downloads    Install and start the aria2 + AriaNg download manager
   --power        Install and activate charger-aware brightness and panel controls
+  --machine      Restore the recorded packages, services, tuning, and KDE settings
 
 Options:
   -n, --dry-run  Print the plan without changing anything or asking for sudo
@@ -46,6 +48,7 @@ Examples:
   ./install.sh --all -y
   ./install.sh --user --apply
   ./install.sh --downloads
+  ./install.sh --machine -y
 EOF
 }
 
@@ -62,6 +65,7 @@ while (($#)); do
         --tools) DO_TOOLS=1; MODE_SELECTED=1 ;;
         --downloads) DO_DOWNLOADS=1; MODE_SELECTED=1 ;;
         --power) DO_POWER=1; MODE_SELECTED=1 ;;
+        --machine) DO_MACHINE=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -625,6 +629,13 @@ if ((DO_DOWNLOADS && !DO_USER)); then
     install_download_manager
 fi
 ((DO_SYSTEM)) && configure_system
+if ((DO_MACHINE)); then
+    section 'Restoring the recorded machine snapshot'
+    machine_args=()
+    ((DRY_RUN)) && machine_args+=(--dry-run)
+    ((ASSUME_YES)) && machine_args+=(--yes)
+    BLADE_BACKUP_ROOT="$BACKUP_ROOT/machine" "$ROOT/scripts/restore-machine.sh" "${machine_args[@]}"
+fi
 
 if ((DO_HARDENED)); then
     section 'Installing the optional hardened workspace launcher'

@@ -1,0 +1,20 @@
+# Entries restored only when the target machine has the matching hardware.
+# Columns: extended regular expression (whole entry), gate. The same rules
+# apply to package names, unit names, and restored file paths.
+# Gates: nvidia, intel-gpu, amd-gpu, intel-cpu, amd-cpu, laptop, msi, manual.
+# "manual" entries are never installed automatically.
+nvidia[-_].*|nvidia	nvidia
+lib32-nvidia-utils|lib32-opencl-nvidia|libva-nvidia-driver	nvidia
+cuda|nsight-compute|nsight-systems|ollama-cuda|python-cupy|.*-cuda	nvidia
+nvidia-powerd\.service|/etc/docker/daemon\.json	nvidia
+intel-media-driver|intel-compute-runtime|intel-gpu-tools|vpl-gpu-rt|libvpl-tools	intel-gpu
+vulkan-intel|lib32-vulkan-intel|gst-plugin-qsv|level-zero-loader	intel-gpu
+intel-ucode|thermald|thermald\.service|x86_energy_perf_policy	intel-cpu
+openvino-intel-npu-plugin	intel-cpu
+amd-ucode	amd-cpu
+vulkan-radeon|lib32-vulkan-radeon|xf86-video-amdgpu	amd-gpu
+auto-cpufreq|laptop-auto-battery-life\.service	laptop
+/etc/laptop-battery-life\.conf|/etc/udev/rules\.d/85-laptop-auto-battery-life\.rules	laptop
+/etc/systemd/system/laptop-auto-battery-life\.service|/usr/local/sbin/laptop-auto-battery-life	laptop
+mcontrolcenter-bin|msi-perkeyrgb|nbfc-linux|nbfc-qt	msi
+evdi-dkms	manual

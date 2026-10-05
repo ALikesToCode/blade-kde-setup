@@ -33,6 +33,10 @@ a timestamped directory under:
 | `--tools` | Installs pinned OpenWiki, npm-check-updates, and OfficeCLI commands plus the Codex skill collection | User |
 | `--downloads` | Installs and starts the aria2 daemon and checksum-pinned local AriaNg UI | User |
 | `--power` | Installs and activates the brightness and charger-status widgets and user power-policy service | User |
+| `--machine` | Restores the recorded packages, user tools, system tuning, services, groups, and KDE settings from `machine/`; not part of `--all` | Sudo |
+
+See [Machine snapshot](MACHINE-SNAPSHOT.md) for recording and restoring the
+workstation beyond the Blade desktop.
 
 Add `--dry-run` to any combination for a no-change preview. Add `-y` to use
 non-interactive package-manager confirmation.

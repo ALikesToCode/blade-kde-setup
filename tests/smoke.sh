@@ -18,6 +18,7 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
+bash -n "$ROOT/scripts/capture-machine.sh" "$ROOT/scripts/restore-machine.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh" \
     "$ROOT/scripts/configure-codex-desktop.sh" "$ROOT/tests/codex-desktop.sh"
 bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
@@ -171,6 +172,13 @@ required=(
     tests/browser-profile-persistence.sh
     tests/clipboard-bridge.sh
     tests/ariang.sh
+    tests/machine-snapshot.sh
+    scripts/capture-machine.sh
+    scripts/restore-machine.sh
+    scripts/machine-filter.py
+    scripts/merge-kde-config.py
+    machine/hardware-rules.tsv
+    docs/MACHINE-SNAPSHOT.md
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }
@@ -192,6 +200,7 @@ bash "$ROOT/tests/clipboard-bridge.sh" >/dev/null
 bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
 bash "$ROOT/tests/aria2-trackers.sh" >/dev/null
 bash "$ROOT/tests/ariang.sh" >/dev/null
+bash "$ROOT/tests/machine-snapshot.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \

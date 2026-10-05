@@ -77,6 +77,11 @@ at `~/.config/aria2/rpc-secret` and is never committed. A user timer refreshes
 a validated, deduplicated public tracker list daily and applies it through the
 authenticated loopback RPC endpoint without restarting the daemon.
 
+To carry this workstation's packages, services, system tuning, and KDE
+settings to another machine, run `./install.sh --machine -y` after `--all`.
+Record new changes with `make capture`; see
+[Machine snapshot](docs/MACHINE-SNAPSHOT.md).
+
 See [Installation](docs/INSTALL.md) for every mode and safety detail, and
 [Components](docs/COMPONENTS.md) for the complete file map. The hybrid-GPU
 decisions are documented in [Application launchers](docs/APP-LAUNCHERS.md), and

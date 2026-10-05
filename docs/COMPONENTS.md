@@ -8,6 +8,7 @@
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
 | Launcher artwork | `assets/branding/launcher/` | Blade branding data and freedesktop hicolor icon sizes |
 | Plasma panels/widgets | `kde/plasma/`, `scripts/apply-panels.sh` | One native application/status panel per display |
+| Machine snapshot | `machine/`, `scripts/capture-machine.sh`, `scripts/restore-machine.sh` | Recorded packages, user tools, `/etc` tuning, services, groups, and merged KDE settings |
 | Charger and brightness controls | `bin/blade-power`, `lib/blade_power/`, `scripts/install-power-control.sh` | Native screen-brightness control, Blade Power widget, and a user service; [power policy](POWER-CONTROL.md) |
 | Material Event Calendar | `extras/eventcalendar/`, `scripts/install-event-calendar.sh` | Pinned Plasma 6 Event Calendar with Blade theme overlay and recurring iCalendar support |
 | Blade desktop clock | `kde/plasma/plasmoids/org.mysterious.bladeclock/`, `scripts/apply-desktop-clock.sh` | SDDM-inspired live clock on every desktop containment |
