@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply laptop battery-life power policy
+Documentation=man:powerprofilesctl(1)
+After=power-profiles-daemon.service NetworkManager.service
+Wants=power-profiles-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/laptop-auto-battery-life
+
+[Install]
+WantedBy=graphical.target

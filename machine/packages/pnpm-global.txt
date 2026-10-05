@@ -1,0 +1,5 @@
+fast-cli@5.2.0
+openwiki@0.7.0
+pnpm@11.25.0
+vercel@62.2.0
+wrangler@4.147.0

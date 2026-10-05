@@ -1,0 +1,8 @@
+[General]
+LastUsedVersion=210800
+SideBarPage=operations
+
+[SideBar]
+InformationSplitterSizes=220,255
+IsVisible ViewMode=true
+SideBarSplitterSizes=210,985

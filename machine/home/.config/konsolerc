@@ -1,0 +1,17 @@
+[Desktop]
+DefaultProfile=Entry
+
+[Desktop Entry]
+DefaultProfile=Artix Dark Rounded.profile
+
+[General]
+ConfigVersion=1
+
+[TabBar]
+CloseTabButton=0
+ExpandTabWidth=false
+TabBarUseUserStyleSheet=false
+TabBarUserStyleSheetFile=__HOME__/.local/share/konsole/ArtixDarkRoundedTabs.qss
+
+[UiSettings]
+ColorScheme=

@@ -1,0 +1,10 @@
+aria2-trackers.timer
+aria2.service
+ariang.service
+blade-power.service
+p11-kit-server.socket
+pipewire-pulse.socket
+pipewire.socket
+playwright-safe-mcp.service
+wireplumber.service
+xdg-user-dirs.service

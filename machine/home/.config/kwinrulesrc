@@ -1,0 +1,16 @@
+[General]
+count=1
+rules=cloakbrowser-automation
+
+[cloakbrowser-automation]
+Description=Allow manual input in CloakBrowser automation
+acceptfocus=true
+acceptfocusrule=2
+fsplevel=0
+fsplevelrule=2
+title=CloakBrowser Automation
+titlematch=1
+types=1
+wmclass=cloakbrowser-automation xephyr
+wmclasscomplete=true
+wmclassmatch=1

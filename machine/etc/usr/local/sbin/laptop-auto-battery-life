@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG=/etc/laptop-battery-life.conf
+STATE_DIR=/run/laptop-auto-battery-life
+
+BATTERY_PROFILE=power-saver
+AC_PROFILE=performance
+BATTERY_DISABLE_TURBO=1
+BATTERY_EPP=power
+AC_EPP=performance
+BATTERY_CPU_GOVERNOR=powersave
+AC_CPU_GOVERNOR=performance
+BATTERY_BRIGHTNESS_PERCENT=40
+ENABLE_WIFI_POWERSAVE=1
+ENABLE_USB_AUTOSUSPEND_ON_BATTERY=1
+BATTERY_STOP_PLASMA_KSYSTEMSTATS=1
+ENABLE_INTERNAL_DISPLAY_REFRESH_SWITCH=1
+INTERNAL_DISPLAY_OUTPUT=eDP-1
+BATTERY_INTERNAL_DISPLAY_MODE=3840x2400@60
+AC_INTERNAL_DISPLAY_MODE=3840x2400@120
+
+if [[ -r "$CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG"
+fi
+
+is_on_ac() {
+  local supply type online
+  for supply in /sys/class/power_supply/*; do
+    [[ -r "$supply/type" && -r "$supply/online" ]] || continue
+    type="$(<"$supply/type")"
+    online="$(<"$supply/online")"
+    if [[ "$type" == "Mains" && "$online" == "1" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+write_if_present() {
+  local path="$1"
+  local value="$2"
+  [[ -w "$path" ]] || return 0
+  printf '%s\n' "$value" > "$path" || true
+}
+
+set_all_epp() {
+  local value="$1"
+  local pref
+  for pref in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+    [[ -w "$pref" ]] || continue
+    { printf '%s\n' "$value" > "$pref"; } 2>/dev/null || true
+  done
+}
+
+set_all_scaling_governors() {
+  local value="$1"
+  local governor
+  [[ -n "$value" ]] || return 0
+  for governor in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    [[ -w "$governor" ]] || continue
+    printf '%s\n' "$value" > "$governor" || true
+  done
+}
+
+set_wifi_powersave() {
+  [[ "$ENABLE_WIFI_POWERSAVE" == "1" ]] || return 0
+  local dev
+  for dev in /sys/class/net/*; do
+    [[ -d "$dev/wireless" ]] || continue
+    iw dev "${dev##*/}" set power_save on >/dev/null 2>&1 || true
+  done
+}
+
+set_usb_autosuspend() {
+  [[ "$ENABLE_USB_AUTOSUSPEND_ON_BATTERY" == "1" ]] || return 0
+  local control
+  for control in /sys/bus/usb/devices/*/power/control; do
+    [[ -w "$control" ]] || continue
+    printf 'auto\n' > "$control" || true
+  done
+}
+
+control_user_service_for_sessions() {
+  local action="$1"
+  local service="$2"
+  local runtime uid user
+
+  for runtime in /run/user/[0-9]*; do
+    [[ -d "$runtime" && -S "$runtime/bus" ]] || continue
+    uid="${runtime##*/}"
+    user="$(getent passwd "$uid" | cut -d: -f1)"
+    [[ -n "$user" ]] || continue
+
+    XDG_RUNTIME_DIR="$runtime" \
+      DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" \
+      runuser -u "$user" -- systemctl --user "$action" "$service" >/dev/null 2>&1 || true
+  done
+}
+
+env_value_from_systemd_environment() {
+  local key="$1"
+  local env_output="$2"
+
+  awk -F= -v key="$key" '$1 == key {
+    print substr($0, index($0, "=") + 1)
+    exit
+  }' <<<"$env_output"
+}
+
+run_user_command_for_sessions() {
+  local runtime uid user env_output wayland_display display xauthority xdg_current_desktop xdg_session_type socket
+  local -a env_args
+  (($# > 0)) || return 0
+
+  for runtime in /run/user/[0-9]*; do
+    [[ -d "$runtime" && -S "$runtime/bus" ]] || continue
+    uid="${runtime##*/}"
+    user="$(getent passwd "$uid" | cut -d: -f1)"
+    [[ -n "$user" ]] || continue
+
+    env_output="$(
+      XDG_RUNTIME_DIR="$runtime" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" \
+        runuser -u "$user" -- systemctl --user show-environment 2>/dev/null || true
+    )"
+
+    wayland_display="$(env_value_from_systemd_environment WAYLAND_DISPLAY "$env_output")"
+    display="$(env_value_from_systemd_environment DISPLAY "$env_output")"
+    xauthority="$(env_value_from_systemd_environment XAUTHORITY "$env_output")"
+    xdg_current_desktop="$(env_value_from_systemd_environment XDG_CURRENT_DESKTOP "$env_output")"
+    xdg_session_type="$(env_value_from_systemd_environment XDG_SESSION_TYPE "$env_output")"
+
+    if [[ -z "$wayland_display" ]]; then
+      for socket in "$runtime"/wayland-*; do
+        [[ -S "$socket" && "${socket##*/}" != *.lock ]] || continue
+        wayland_display="${socket##*/}"
+        break
+      done
+    fi
+
+    env_args=(
+      "XDG_RUNTIME_DIR=$runtime"
+      "DBUS_SESSION_BUS_ADDRESS=unix:path=$runtime/bus"
+    )
+    [[ -n "$wayland_display" ]] && env_args+=("WAYLAND_DISPLAY=$wayland_display")
+    [[ -n "$display" ]] && env_args+=("DISPLAY=$display")
+    [[ -n "$xauthority" ]] && env_args+=("XAUTHORITY=$xauthority")
+    [[ -n "$xdg_current_desktop" ]] && env_args+=("XDG_CURRENT_DESKTOP=$xdg_current_desktop")
+    [[ -n "$xdg_session_type" ]] && env_args+=("XDG_SESSION_TYPE=$xdg_session_type")
+
+    runuser -u "$user" -- env "${env_args[@]}" "$@" >/dev/null 2>&1 || true
+  done
+}
+
+adjust_plasma_gpu_monitoring_for_power() {
+  [[ "$BATTERY_STOP_PLASMA_KSYSTEMSTATS" == "1" ]] || return 0
+  local action="$1"
+  control_user_service_for_sessions "$action" plasma-ksystemstats.service
+}
+
+set_internal_display_mode() {
+  [[ "$ENABLE_INTERNAL_DISPLAY_REFRESH_SWITCH" == "1" ]] || return 0
+  local mode="$1"
+  [[ -n "$INTERNAL_DISPLAY_OUTPUT" && -n "$mode" ]] || return 0
+  command -v kscreen-doctor >/dev/null 2>&1 || return 0
+
+  run_user_command_for_sessions \
+    kscreen-doctor "output.${INTERNAL_DISPLAY_OUTPUT}.mode.${mode}"
+}
+
+lower_brightness_for_battery() {
+  local backlight current max target state_file name
+  mkdir -p "$STATE_DIR"
+
+  for backlight in /sys/class/backlight/*; do
+    [[ -r "$backlight/brightness" && -r "$backlight/max_brightness" && -w "$backlight/brightness" ]] || continue
+    name="${backlight##*/}"
+    state_file="$STATE_DIR/${name}.brightness"
+    current="$(<"$backlight/brightness")"
+    max="$(<"$backlight/max_brightness")"
+    [[ "$max" =~ ^[0-9]+$ && "$max" -gt 0 ]] || continue
+    target=$(( max * BATTERY_BRIGHTNESS_PERCENT / 100 ))
+    (( target < 1 )) && target=1
+
+    if [[ ! -e "$state_file" ]]; then
+      printf '%s\n' "$current" > "$state_file"
+    fi
+    if [[ "$current" =~ ^[0-9]+$ && "$current" -gt "$target" ]]; then
+      printf '%s\n' "$target" > "$backlight/brightness" || true
+    fi
+  done
+}
+
+restore_brightness_on_ac() {
+  local backlight state_file saved name
+  for backlight in /sys/class/backlight/*; do
+    [[ -w "$backlight/brightness" ]] || continue
+    name="${backlight##*/}"
+    state_file="$STATE_DIR/${name}.brightness"
+    [[ -r "$state_file" ]] || continue
+    saved="$(<"$state_file")"
+    [[ "$saved" =~ ^[0-9]+$ ]] || continue
+    printf '%s\n' "$saved" > "$backlight/brightness" || true
+    rm -f "$state_file"
+  done
+}
+
+if is_on_ac; then
+  powerprofilesctl set "$AC_PROFILE" || true
+  write_if_present /sys/devices/system/cpu/intel_pstate/no_turbo 0
+  set_all_scaling_governors "$AC_CPU_GOVERNOR"
+  set_all_epp "$AC_EPP"
+  restore_brightness_on_ac
+  set_wifi_powersave
+  adjust_plasma_gpu_monitoring_for_power start
+  set_internal_display_mode "$AC_INTERNAL_DISPLAY_MODE"
+  logger -t laptop-auto-battery-life "AC online: profile=$AC_PROFILE turbo=enabled epp=$AC_EPP"
+else
+  powerprofilesctl set "$BATTERY_PROFILE" || true
+  if [[ "$BATTERY_DISABLE_TURBO" == "1" ]]; then
+    write_if_present /sys/devices/system/cpu/intel_pstate/no_turbo 1
+  fi
+  set_all_scaling_governors "$BATTERY_CPU_GOVERNOR"
+  set_all_epp "$BATTERY_EPP"
+  set_wifi_powersave
+  set_usb_autosuspend
+  adjust_plasma_gpu_monitoring_for_power stop
+  set_internal_display_mode "$BATTERY_INTERNAL_DISPLAY_MODE"
+  lower_brightness_for_battery
+  logger -t laptop-auto-battery-life "On battery: profile=$BATTERY_PROFILE turbo_disabled=$BATTERY_DISABLE_TURBO epp=$BATTERY_EPP brightness=${BATTERY_BRIGHTNESS_PERCENT}%"
+fi

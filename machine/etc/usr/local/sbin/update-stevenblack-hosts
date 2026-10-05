@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SOURCE_URL="https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling/hosts"
+HOSTS_FILE="/etc/hosts"
+BACKUP_DIR="/var/backups/stevenblack-hosts"
+STATE_DIR="/var/lib/stevenblack-hosts"
+LOG_FILE="/var/log/update-stevenblack-hosts.log"
+MAX_BACKUPS=10
+BACKUP_RETENTION_DAYS=30
+MAX_LOG_BYTES=1048576
+BEGIN_MARKER="# BEGIN update-stevenblack-hosts managed block"
+END_MARKER="# END update-stevenblack-hosts managed block"
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+log() {
+  line="$(printf '%s %s' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*")"
+  printf '%s\n' "$line"
+  printf '%s\n' "$line" >>"$LOG_FILE" 2>/dev/null || true
+}
+
+fail() {
+  log "ERROR: $*"
+  exit 1
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+  fail "this updater must run as root"
+fi
+
+for cmd in awk chmod cmp cp curl date find grep head install mkdir mktemp rm rmdir sed sort tail touch wc; do
+  command -v "$cmd" >/dev/null 2>&1 || fail "missing required command: $cmd"
+done
+
+[ -f "$HOSTS_FILE" ] || fail "$HOSTS_FILE does not exist"
+install -d -o root -g root -m 0755 "$BACKUP_DIR" "$STATE_DIR"
+touch "$LOG_FILE"
+chmod 0644 "$LOG_FILE"
+
+cleanup_old_files() {
+  find "$BACKUP_DIR" -maxdepth 1 -type f -name 'hosts.*' -mtime +"$BACKUP_RETENTION_DAYS" -delete 2>/dev/null || true
+
+  backup_count="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'hosts.*' | wc -l)"
+  if [ "$backup_count" -gt "$MAX_BACKUPS" ]; then
+    remove_count="$((backup_count - MAX_BACKUPS))"
+    find "$BACKUP_DIR" -maxdepth 1 -type f -name 'hosts.*' -printf '%T@ %p\n' \
+      | sort -n \
+      | head -n "$remove_count" \
+      | awk '{ $1 = ""; sub(/^ /, ""); print }' \
+      | while IFS= read -r old_backup; do
+          rm -f -- "$old_backup"
+        done
+  fi
+
+  if [ -f "$LOG_FILE" ]; then
+    log_size="$(wc -c <"$LOG_FILE")"
+    if [ "$log_size" -gt "$MAX_LOG_BYTES" ]; then
+      tail -c "$MAX_LOG_BYTES" "$LOG_FILE" >"$work_dir/log.tail"
+      install -o root -g root -m 0644 "$work_dir/log.tail" "$LOG_FILE"
+    fi
+  fi
+}
+
+lock_dir="/run/update-stevenblack-hosts.lock"
+if ! mkdir "$lock_dir" 2>/dev/null; then
+  log "another update is already running"
+  exit 0
+fi
+
+work_dir="$(mktemp -d)"
+cleanup() {
+  rm -rf "$work_dir"
+  rmdir "$lock_dir" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+downloaded="$work_dir/hosts.downloaded"
+body="$work_dir/hosts.body"
+block="$work_dir/hosts.block"
+base="$work_dir/hosts.base"
+new_hosts="$work_dir/hosts.new"
+
+curl -fsSL \
+  --retry 3 \
+  --retry-delay 5 \
+  --connect-timeout 15 \
+  --max-time 180 \
+  "$SOURCE_URL" \
+  -o "$downloaded" \
+  || fail "failed to download $SOURCE_URL"
+
+grep -q '^# Title: StevenBlack/hosts' "$downloaded" || fail "download does not look like StevenBlack hosts"
+grep -Eq '^# Extensions added to this file: .*fakenews.*gambling' "$downloaded" || fail "download is not the fakenews-gambling variant"
+grep -q '^# Start StevenBlack$' "$downloaded" || fail "download is missing StevenBlack body marker"
+if grep -Eiq '<html|<!doctype html' "$downloaded"; then
+  fail "download appears to be HTML, not a hosts file"
+fi
+
+awk 'found { print } /^# Start StevenBlack$/ { found = 1; print }' "$downloaded" >"$body"
+entry_count="$(grep -Ec '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]+' "$body" || true)"
+[ "$entry_count" -gt 10000 ] || fail "downloaded body has too few host entries: $entry_count"
+
+{
+  printf '# Source: %s\n' "$SOURCE_URL"
+  sed -n '1,12p' "$downloaded"
+  printf '\n'
+  cat "$body"
+} >"$block"
+
+awk -v begin="$BEGIN_MARKER" -v end="$END_MARKER" '
+  $0 == begin { skipping = 1; seen_begin = 1; next }
+  $0 == end { skipping = 0; seen_end = 1; next }
+  !skipping { print }
+  END {
+    if (skipping) {
+      exit 2
+    }
+  }
+' "$HOSTS_FILE" >"$base" || fail "$HOSTS_FILE has a malformed managed block"
+
+{
+  sed -e :a -e '/^[[:space:]]*$/{$d;N;ba' -e '}' "$base"
+  printf '\n\n%s\n' "$BEGIN_MARKER"
+  cat "$block"
+  printf '%s\n' "$END_MARKER"
+} >"$new_hosts"
+
+if cmp -s "$HOSTS_FILE" "$new_hosts"; then
+  printf '%s\n' "$(date -u '+%Y%m%dT%H%M%SZ')" >"$STATE_DIR/last-check-utc"
+  cleanup_old_files
+  log "hosts already up to date; entries=$entry_count"
+  exit 0
+fi
+
+timestamp="$(date -u '+%Y%m%dT%H%M%SZ')"
+backup="$BACKUP_DIR/hosts.$timestamp"
+cp -a "$HOSTS_FILE" "$backup"
+
+install -o root -g root -m 0644 "$new_hosts" "$HOSTS_FILE"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  sha="$(sha256sum "$downloaded" | awk '{print $1}')"
+  printf '%s\n' "$sha" >"$STATE_DIR/last-download.sha256"
+fi
+
+printf '%s\n' "$SOURCE_URL" >"$STATE_DIR/source-url"
+printf '%s\n' "$timestamp" >"$STATE_DIR/last-check-utc"
+printf '%s\n' "$timestamp" >"$STATE_DIR/last-success-utc"
+cleanup_old_files
+log "updated $HOSTS_FILE; entries=$entry_count backup=$backup"
