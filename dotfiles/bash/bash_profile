@@ -1,3 +1,9 @@
 # Bash login-shell bridge.
 [[ -r "$HOME/.profile" ]] && source "$HOME/.profile"
 [[ -r "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+
+# Vite+ bin (https://viteplus.dev)
+[ -f "$HOME/.config/vite-plus/env" ] && . "$HOME/.config/vite-plus/env"
+
+# Added by Antigravity CLI installer
+export PATH="$HOME/.local/bin:$PATH"

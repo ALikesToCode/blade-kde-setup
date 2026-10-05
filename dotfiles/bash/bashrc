@@ -1,8 +1,8 @@
 
 # ~/.bashrc — interactive Bash configuration
 
-# User-installed development commands without duplicating PATH entries when
-# this file is sourced more than once.
+# User-installed commands, including Codex, without duplicating PATH entries
+# when this file is sourced more than once.
 case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;
@@ -13,6 +13,9 @@ case ":$PATH:" in
     *":$PNPM_HOME/bin:"*) ;;
     *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
+
+# MultiLLM Knowledge Gateway proxy key for Claude Code and Codex MCP clients.
+[ -r "$HOME/.config/multillm/knowledge-api-key" ] && export MULTILLM_KNOWLEDGE_API_KEY="$(tr -d '[:space:]' < "$HOME/.config/multillm/knowledge-api-key")"
 
 # Stop here when Bash is not interactive.
 case $- in
@@ -98,6 +101,12 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias cls='clear'
 
+# Use the system-managed Chromium build for fast-cli.
+fast() {
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+        "$PNPM_HOME/bin/fast" "$@"
+}
+
 # Prefer pnpm interactively while retaining explicit access to Arch's npm.
 if command -v pnpm >/dev/null 2>&1; then
     alias npm='pnpm'
@@ -110,3 +119,12 @@ fi
 if command -v direnv >/dev/null 2>&1; then
     eval "$(direnv hook bash)"
 fi
+
+# >>> Codex installer >>>
+export PATH="$HOME/.local/bin:$PATH"
+# <<< Codex installer <<<
+
+[ -f "$HOME/.config/saarthi-mobile/env.sh" ] && . "$HOME/.config/saarthi-mobile/env.sh"
+
+# Vite+ bin (https://viteplus.dev)
+[ -f "$HOME/.config/vite-plus/env" ] && . "$HOME/.config/vite-plus/env"

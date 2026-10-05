@@ -15,3 +15,9 @@ export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export PAGER="${PAGER:-less}"
 export LESS="${LESS:--R}"
+
+# Vite+ bin (https://viteplus.dev)
+[ -f "$HOME/.config/vite-plus/env" ] && . "$HOME/.config/vite-plus/env"
+
+# Added by Antigravity CLI installer
+export PATH="$HOME/.local/bin:$PATH"
