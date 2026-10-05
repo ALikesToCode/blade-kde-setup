@@ -205,7 +205,7 @@ rg -q 'configure_playwright_server playwright_safe headless' \
     "$ROOT/extras/hardened-workspace/install.sh"
 rg -q 'configure_playwright_server playwright_safe_headed headed' \
     "$ROOT/extras/hardened-workspace/install.sh"
-rg -q '^### Atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Mandatory atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Maintainable module and file boundaries$' "$ROOT/dotfiles/agents/AGENTS.md"
