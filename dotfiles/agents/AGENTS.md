@@ -27,6 +27,13 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Keep the change tightly scoped to the request. Do not mix unrelated cleanup, formatting, dependency upgrades, or refactors into the work.
 - Preserve user-authored and pre-existing uncommitted changes. Never overwrite them to make an implementation easier.
 
+### Token use
+
+- Wait for long work with the longest wait or timeout the tool allows, or its completion notice, not short polling loops.
+- Batch independent reads, searches and commands into one turn.
+- Locate code with `rg`, then read only the range you need.
+- When a task finishes in a long thread, offer a short handoff summary to start the next task in a new thread.
+
 ### Skill and configuration access
 
 - Files and directories under `~/.agents` and `~/.codex` are explicitly in scope for read-only access whenever they are needed for skills, instructions, configuration, documentation, diagnostics, or task context.
