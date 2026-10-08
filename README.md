@@ -22,6 +22,9 @@ The setup includes:
 - Native, reliable Konsole tabs and a matching dark profile
 - Coordinated 4K 16:10 and 3440×1440 ultrawide desktop wallpapers
 - Matching Artix Material You SDDM login screen with blue/green quick-setting icons
+- [Blade Music](docs/MUSIC.md): MPD, a local myMPD web player, and a panel
+  widget, with an hourly offline cache of liked, favourite, most-played, and
+  mixed YouTube Music songs in `~/storage/music`
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, a supervised aria2 queue with local
   AriaNg, Yay, and makepkg defaults
 - Global modular-development, verification, atomic-commit, identity, and
