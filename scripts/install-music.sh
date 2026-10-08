@@ -67,15 +67,20 @@ fi
 copy_file "$ROOT/dotfiles/music/mpd.conf" "$CONFIG_ROOT/mpd/mpd.conf"
 copy_file "$ROOT/dotfiles/music/mympd/Sync YouTube Music.lua" \
     "$CONFIG_ROOT/mympd/scripts/Sync YouTube Music.lua"
+plasmoid=org.mysterious.blademusic
+copy_file "$ROOT/kde/plasma/plasmoids/$plasmoid/metadata.json" "$DATA_ROOT/plasma/plasmoids/$plasmoid/metadata.json"
+copy_file "$ROOT/kde/plasma/plasmoids/$plasmoid/contents/ui/main.qml" "$DATA_ROOT/plasma/plasmoids/$plasmoid/contents/ui/main.qml"
+copy_file "$ROOT/kde/plasma/music-controls.js" "$DATA_ROOT/blade-kde/music-controls.js"
 sed "s|__HOME__|$HOME|g" "$ROOT/dotfiles/apps/blade-music/blade-music.desktop" >"$RENDER_DIR/blade-music.desktop"
 copy_file "$RENDER_DIR/blade-music.desktop" "$DATA_ROOT/applications/blade-music.desktop"
 
 ((ACTIVATE)) || exit 0
 if ((DRY_RUN)); then
-    printf 'Would configure myMPD for loopback-only access and start mpd, mpd-mpris, mympd, and blade-music-sync.timer.\n'
+    printf 'Would configure myMPD for loopback-only access, start mpd, mpd-mpris, mympd, and blade-music-sync.timer,\n'
+    printf 'and add Blade Music to existing application panels.\n'
     exit 0
 fi
-for executable in python3 mpd mpc mympd mpd-mpris yt-dlp ffmpeg systemctl; do
+for executable in python3 mpd mpc mympd mpd-mpris yt-dlp ffmpeg systemctl qdbus6; do
     command -v "$executable" >/dev/null || {
         printf 'Missing %s. Install prerequisites: sudo pacman -S --needed mpd mpc mpd-mpris mympd rmpc python-ytmusicapi python-mutagen yt-dlp yt-dlp-ejs ffmpeg\n' "$executable" >&2
         exit 1
@@ -102,6 +107,14 @@ write_value "$mympd_config/state/mpd_host" "$STATE_ROOT/mpd/socket"
 systemctl --user daemon-reload
 systemctl --user enable --now mpd.service mpd-mpris.service mympd.service blade-music-sync.timer
 systemctl --user restart mympd.service
+layout="$CONFIG_ROOT/plasma-org.kde.plasma.desktop-appletsrc"
+if [[ -f $layout ]]; then
+    mkdir -p -- "$BACKUP_ROOT"
+    cp -a -- "$layout" "$BACKUP_ROOT/plasma-org.kde.plasma.desktop-appletsrc"
+    printf 'Panel backup: %s/plasma-org.kde.plasma.desktop-appletsrc\n' "$BACKUP_ROOT"
+fi
+qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+    "$(<"$DATA_ROOT/blade-kde/music-controls.js")"
 if command -v update-desktop-database >/dev/null; then
     update-desktop-database "$DATA_ROOT/applications"
 fi

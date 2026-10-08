@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{ "Name": "ALikesToCode" }],
+        "Category": "Multimedia",
+        "Description": "Play cached YouTube Music playlists through MPD and start a sync",
+        "Icon": "audio-headphones",
+        "Id": "org.mysterious.blademusic",
+        "License": "MIT",
+        "Name": "Blade Music",
+        "Version": "1.0.0"
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}
