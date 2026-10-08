@@ -22,6 +22,7 @@ sudo pacman -S --needed mpd mpc mpd-mpris mympd rmpc python-ytmusicapi python-mu
 
 | List | Source |
 | --- | --- |
+| Favourites | The songs in `~/.config/blade-music-favourites.txt` |
 | Liked | Every liked song |
 | Like ‹song› | Each favourite and its YouTube Music radio of similar songs |
 | Your playlists | Playlists you created in YouTube Music |
