@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Blade Music sync check
+
+[Timer]
+OnCalendar=hourly
+OnStartupSec=5min
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

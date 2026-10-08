@@ -1,0 +1,13 @@
+[Unit]
+Description=Blade Music YouTube Music sync
+# User managers can't order against system mount units, so condition on the mount.
+ConditionPathIsMountPoint=%h/storage
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/blade-music sync
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h
+NoNewPrivileges=true

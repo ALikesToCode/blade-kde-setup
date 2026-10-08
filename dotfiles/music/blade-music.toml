@@ -1,0 +1,23 @@
+# Blade Music settings; anything omitted uses the defaults in
+# ~/.local/share/blade-kde/lib/blade_music/config.py.
+music_root = "~/storage/music"
+mount_point = "~/storage"
+
+# Your YouTube login is read live from the browser for the API and downloads.
+# "zen" uses the most recently active Zen profile.
+cookies_from_browser = "zen"
+auth_user = 0                # which signed-in Google account (0 = first)
+brand_account = ""           # page ID of a brand channel, if you listen on one
+
+liked_limit = 1000           # all liked songs
+top_count = 300              # most played, counted by days played
+top_window_days = 90
+mixes = ["My Supermix", "Replay Mix", "Discover Mix", "New Release Mix", "Archive Mix"]
+all_personal_mixes = false   # true = also themed mixes and "My Mix N"
+mix_limit = 50               # top of each personal mix
+include_own_playlists = true # playlists you created in YouTube Music
+
+max_downloads_per_run = 50
+min_hours_between_syncs = 6  # the timer fires hourly; real syncs at most this often
+skip_metered = true          # no downloads on hotspots or metered Wi-Fi
+keep_days_after_unwanted = 30

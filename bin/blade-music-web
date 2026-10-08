@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+endpoint=http://127.0.0.1:8080
+systemctl --user start mpd.service mympd.service
+
+ready=0
+for _ in {1..50}; do
+    if curl --fail --silent --show-error --max-time 1 "$endpoint/serverinfo" >/dev/null 2>&1; then
+        ready=1
+        break
+    fi
+    sleep 0.1
+done
+((ready == 1)) || {
+    printf 'blade-music-web: myMPD did not become ready at %s\n' "$endpoint" >&2
+    exit 1
+}
+
+exec xdg-open "$endpoint/"

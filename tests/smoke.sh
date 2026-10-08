@@ -5,6 +5,7 @@ set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 bash -n "$ROOT/scripts/install-power-control.sh"
+bash -n "$ROOT/scripts/install-music.sh" "$ROOT/bin/blade-music-web"
 bash "$ROOT/tests/dark-mode.sh"
 python3 -B "$ROOT/tests/power-control.py"
 python3 -B "$ROOT/tests/music-sync.py"

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Blade Music
+GenericName=Music Player
+Comment=Play the local library and cached YouTube Music in myMPD
+Exec=__HOME__/.local/bin/blade-music-web
+TryExec=__HOME__/.local/bin/blade-music-web
+Icon=multimedia-audio-player
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+StartupNotify=true
