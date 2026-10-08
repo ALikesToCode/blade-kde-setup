@@ -64,6 +64,9 @@ done
 if [[ ! -e $CONFIG_ROOT/blade-music.toml ]]; then
     copy_file "$ROOT/dotfiles/music/blade-music.toml" "$CONFIG_ROOT/blade-music.toml" 600
 fi
+if [[ ! -e $CONFIG_ROOT/blade-music-favourites.txt ]]; then
+    copy_file "$ROOT/dotfiles/music/blade-music-favourites.txt" "$CONFIG_ROOT/blade-music-favourites.txt" 600
+fi
 copy_file "$ROOT/dotfiles/music/mpd.conf" "$CONFIG_ROOT/mpd/mpd.conf"
 copy_file "$ROOT/dotfiles/music/mympd/Sync YouTube Music.lua" \
     "$CONFIG_ROOT/mympd/scripts/Sync YouTube Music.lua"

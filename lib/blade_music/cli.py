@@ -64,6 +64,8 @@ def run() -> None:
     commands.add_parser("status", help="JSON status for the panel widget")
     play_parser = commands.add_parser("play", help="play a stored playlist, or the whole library shuffled")
     play_parser.add_argument("playlist", nargs="?", help="MPD playlist name; omit for the whole library")
+    favourite_parser = commands.add_parser("favourite", help="songs whose radio of similar songs is cached")
+    favourite_parser.add_argument("link", nargs="?", help="YouTube Music link or video ID to add; omit to list")
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
@@ -81,6 +83,12 @@ def run() -> None:
             "SELECT COUNT(*), COUNT(video_id), SUM(key_tags != '') FROM local_files").fetchone()
         print(f"{total} files indexed: {with_id} with a YouTube ID, {tagged} tagged, "
               f"{total - (tagged or 0)} matched by filename only")
+        return
+    if args.command == "favourite":
+        if args.link:
+            print(f"added {config.add_favourite(args.link)}; run blade-music sync-now to fetch similar songs")
+        for video_id in config.read_favourites():
+            print(f"https://music.youtube.com/watch?v={video_id}")
         return
     if args.command == "status":
         print(json.dumps(status(settings), ensure_ascii=False))

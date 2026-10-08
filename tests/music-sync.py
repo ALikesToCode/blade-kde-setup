@@ -134,6 +134,24 @@ class ConfigTests(unittest.TestCase):
                 os.utime(root / name / "cookies.sqlite", (stamp, stamp))
             self.assertEqual(config.newest_zen_profile(root), root / "new.default")
 
+    def test_favourite_links_resolve_to_video_ids(self):
+        self.assertEqual(config.video_id_from(
+            "https://music.youtube.com/watch?v=JZOGJGcFfD8&si=ONTs0_uWYWr5lKJQ"), "JZOGJGcFfD8")
+        self.assertEqual(config.video_id_from("https://youtu.be/iqJ5XKrFtco?si=x"), "iqJ5XKrFtco")
+        self.assertEqual(config.video_id_from("iqJ5XKrFtco"), "iqJ5XKrFtco")
+        self.assertIsNone(config.video_id_from("https://music.youtube.com/playlist?list=PL123"))
+
+    def test_favourites_file_skips_comments_and_duplicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "favourites.txt"
+            path.write_text("# mine\nJZOGJGcFfD8\n")
+            self.assertEqual(config.add_favourite("https://music.youtube.com/watch?v=JZOGJGcFfD8&si=a", path),
+                             "JZOGJGcFfD8")
+            config.add_favourite("https://music.youtube.com/watch?v=iqJ5XKrFtco", path)
+            self.assertEqual(config.read_favourites(path), ["JZOGJGcFfD8", "iqJ5XKrFtco"])
+            with self.assertRaises(SystemExit):
+                config.add_favourite("not a link", path)
+
     def test_profile_path_after_browser_name_is_expanded(self):
         self.assertEqual(config.resolve_cookie_source("firefox:~/p"), f"firefox:{Path.home()}/p")
 

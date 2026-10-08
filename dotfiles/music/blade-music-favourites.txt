@@ -1,0 +1,3 @@
+# One YouTube Music link or video ID per line. Each song and its radio of
+# similar songs are cached as a "Like <song>" playlist.
+# Add from a shared link with: blade-music favourite <link>

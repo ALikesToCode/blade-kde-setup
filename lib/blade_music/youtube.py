@@ -131,11 +131,28 @@ def own_playlists(yt) -> dict[str, str]:
     return {p["title"]: p["playlistId"] for p in playlists if p.get("playlistId", "").startswith("PL")}
 
 
+def favourite_radios(yt, video_ids: list[str], limit: int) -> dict[str, list[Track]]:
+    """{"Like <song>": the song plus its YouTube Music radio} for each favourite."""
+    radios = {}
+    for video_id in video_ids:
+        try:
+            items = yt.get_watch_playlist(videoId=video_id, radio=True, limit=limit).get("tracks", [])
+        except Exception as e:
+            log.warning("could not read the radio for favourite %s: %s", video_id, e)
+            continue
+        tracks = [t for i in items[:limit + 1] if (t := to_track(i, "favourite"))]
+        if tracks:
+            title = tracks[0].title if len(tracks[0].title) <= 40 else tracks[0].title[:39] + "…"
+            radios[f"Like {title}"] = tracks
+    return radios
+
+
 def fetch_wanted(db, yt, settings, today: dt.date) -> dict[str, list[Track]]:
     """{list name: tracks} in download priority order; refreshes the tracks table."""
     history = record_history(db, yt, today)
     liked = yt.get_liked_songs(limit=settings["liked_limit"]).get("tracks", [])
     lists = {"Liked": [t for i in liked if (t := to_track(i, "liked"))]}
+    favourites = favourite_radios(yt, settings["favourites"], settings["favourite_radio_limit"])
     own = own_playlists(yt) if settings["include_own_playlists"] else {}
     mixes = find_mixes(db, yt, settings["mixes"], settings["all_personal_mixes"])
     for name, playlist_id in {**own, **mixes}.items():
@@ -147,13 +164,13 @@ def fetch_wanted(db, yt, settings, today: dt.date) -> dict[str, list[Track]]:
             continue
         lists.setdefault(name, [t for i in items if (t := to_track(i, name))])
 
-    known = {t.video_id: t for tracks in [history, *lists.values()] for t in tracks}
+    known = {t.video_id: t for tracks in [history, *lists.values(), *favourites.values()] for t in tracks}
     db.executemany(
         "INSERT INTO tracks VALUES (?,?,?,?,?) ON CONFLICT(video_id) DO UPDATE SET "
         "artist=excluded.artist, title=excluded.title, duration=coalesce(excluded.duration, duration)",
         [(t.video_id, t.artist, t.title, t.duration, None) for t in known.values()],
     )
-    ordered = {"Liked": lists["Liked"]}
+    ordered = {"Liked": lists["Liked"], **favourites}
     ordered.update((n, lists[n]) for n in own if n in lists)
     ordered["Most played"] = top_played(db, settings, today, known)
     ordered.update((n, lists[n]) for n in mixes if n in lists and n not in ordered)

@@ -2,10 +2,15 @@
 
 import os
 from pathlib import Path
+import re
 import tomllib
 
 HOME = Path.home()
-CONFIG_FILE = Path(os.environ.get("XDG_CONFIG_HOME", str(HOME / ".config"))) / "blade-music.toml"
+CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", str(HOME / ".config")))
+CONFIG_FILE = CONFIG_DIR / "blade-music.toml"
+# One YouTube Music link or video ID per line; each seeds a "Like <song>" radio.
+FAVOURITES_FILE = CONFIG_DIR / "blade-music-favourites.txt"
+VIDEO_ID = re.compile(r"(?:[?&]v=|youtu\.be/|^)([A-Za-z0-9_-]{11})(?=$|[?&#])")
 STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", str(HOME / ".local/state"))) / "blade-music"
 
 DEFAULTS = {
@@ -21,6 +26,7 @@ DEFAULTS = {
     "mixes": ["My Supermix", "Replay Mix", "Discover Mix", "New Release Mix", "Archive Mix"],
     "all_personal_mixes": False,  # also themed mixes and "My Mix N"
     "mix_limit": 50,
+    "favourite_radio_limit": 50,  # similar songs fetched per favourite
     "include_own_playlists": True,
     "own_playlist_limit": 500,
     "max_downloads_per_run": 50,
@@ -54,6 +60,34 @@ def resolve_cookie_source(value: str) -> str:
     return value
 
 
+def video_id_from(text: str) -> str | None:
+    """The video ID in a YouTube (Music) link, a youtu.be link, or a bare ID."""
+    match = VIDEO_ID.search(text.strip())
+    return match.group(1) if match else None
+
+
+def read_favourites(path: Path = FAVOURITES_FILE) -> list[str]:
+    if not path.exists():
+        return []
+    ids = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        video_id = None if line.lstrip().startswith("#") else video_id_from(line)
+        if video_id and video_id not in ids:
+            ids.append(video_id)
+    return ids
+
+
+def add_favourite(text: str, path: Path = FAVOURITES_FILE) -> str:
+    video_id = video_id_from(text)
+    if video_id is None:
+        raise SystemExit(f"not a YouTube Music link or video ID: {text}")
+    if video_id not in read_favourites(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as favourites:
+            favourites.write(f"https://music.youtube.com/watch?v={video_id}\n")
+    return video_id
+
+
 def load(path: Path = CONFIG_FILE) -> dict:
     settings = dict(DEFAULTS)
     if path.exists():
@@ -62,4 +96,5 @@ def load(path: Path = CONFIG_FILE) -> dict:
         settings[key] = Path(os.path.expanduser(settings[key])) if settings[key] else None
     settings["cache_dir"] = settings["music_root"] / "ytm-cache"
     settings["playlist_dir"] = settings["music_root"] / "playlists"
+    settings["favourites"] = read_favourites()
     return settings
