@@ -65,6 +65,18 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(backfill, ("c", "2026-09-08:Last week"))
 
 
+class FavouriteTests(unittest.TestCase):
+    def test_radio_playlist_starts_with_the_favourite_itself(self):
+        class Radio:
+            def get_watch_playlist(self, videoId, radio, limit):
+                items = [{"videoId": "similar0001", "title": "Similar"},
+                         {"videoId": videoId, "title": "4eVR", "artists": [{"name": "Hiroyuki SAWANO"}]}]
+                return {"tracks": items}
+        radios = youtube.favourite_radios(Radio(), ["iqJ5XKrFtco"], 50)
+        self.assertEqual(list(radios), ["Like 4eVR"])
+        self.assertEqual([t.video_id for t in radios["Like 4eVR"]], ["iqJ5XKrFtco", "similar0001"])
+
+
 class CacheTests(TemporaryState):
     def settings(self):
         music = self.root / "music"

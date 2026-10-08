@@ -132,7 +132,7 @@ def own_playlists(yt) -> dict[str, str]:
 
 
 def favourite_radios(yt, video_ids: list[str], limit: int) -> dict[str, list[Track]]:
-    """{"Like <song>": the song plus its YouTube Music radio} for each favourite."""
+    """{"Like <song>": the song, then its YouTube Music radio} for each favourite."""
     radios = {}
     for video_id in video_ids:
         try:
@@ -141,6 +141,9 @@ def favourite_radios(yt, video_ids: list[str], limit: int) -> dict[str, list[Tra
             log.warning("could not read the radio for favourite %s: %s", video_id, e)
             continue
         tracks = [t for i in items[:limit + 1] if (t := to_track(i, "favourite"))]
+        # The radio normally opens with the song itself; make sure it does.
+        seed = [t for t in tracks if t.video_id == video_id]
+        tracks = seed[:1] + [t for t in tracks if t.video_id != video_id]
         if tracks:
             title = tracks[0].title if len(tracks[0].title) <= 40 else tracks[0].title[:39] + "…"
             radios[f"Like {title}"] = tracks
@@ -170,7 +173,8 @@ def fetch_wanted(db, yt, settings, today: dt.date) -> dict[str, list[Track]]:
         "artist=excluded.artist, title=excluded.title, duration=coalesce(excluded.duration, duration)",
         [(t.video_id, t.artist, t.title, t.duration, None) for t in known.values()],
     )
-    ordered = {"Liked": lists["Liked"], **favourites}
+    # Songs you named yourself download before anything else.
+    ordered = {"Favourites": [radio[0] for radio in favourites.values()], "Liked": lists["Liked"], **favourites}
     ordered.update((n, lists[n]) for n in own if n in lists)
     ordered["Most played"] = top_played(db, settings, today, known)
     ordered.update((n, lists[n]) for n in mixes if n in lists and n not in ordered)
