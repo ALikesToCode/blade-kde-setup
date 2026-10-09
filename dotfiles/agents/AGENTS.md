@@ -158,3 +158,11 @@ Do not use CloakBrowser stealth functionality to bypass authentication, CAPTCHA,
 <!-- codex-safe browser policy: end -->
 
 @__HOME__/.codex/RTK.md
+
+<!-- BEGIN ARTEMIS MOBILE TESTING RULES -->
+# ARTEMIS Android integration
+
+For Android device automation or mobile UI testing with ARTEMIS, read `__HOME__/.codex/rules/artemis.md` before using its tools. These rules apply only to ARTEMIS mobile work.
+
+The `artemis` MCP server provides `mobile_diagnose`, `mobile_get_device_state`, `mobile_run_task`, `mobile_manage_task`, and `mobile_inspect_trace`. It is enabled only in projects that opt in with `blade-agents mcp enable artemis <project>`; if its tools are missing, say so instead of working around it. Diagnose readiness with `attempt_fix=false` first. Model credentials are configured privately in `__HOME__/.local/share/artemis/.env`; never request keys in chat. Existing authorization, credential-handling, browser, and destructive-action policies take precedence. Do not use ARTEMIS for unrelated programming or browser tests.
+<!-- END ARTEMIS MOBILE TESTING RULES -->
