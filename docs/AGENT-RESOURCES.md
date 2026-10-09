@@ -26,8 +26,8 @@ about a hundred idle copies of each server, over 25 GB between RAM and swap.
 The shared code-review-graph server has no default repository. Agents pass the
 absolute repository or worktree root as `repo_root` on every call, as the agent
 instructions require. The server runs from an empty runtime directory, so a
-call without it sees an empty graph instead of indexing the home-directory
-checkout. Port 5555, the upstream default, is the Android emulator console, and
+call without it fails with "repo_root does not look like a project" instead of
+indexing the home-directory checkout. Port 5555, the upstream default, is the Android emulator console, and
 ports from 32768 up can be taken by outbound connections.
 
 Turn a heavy server on for one project, or off again:
