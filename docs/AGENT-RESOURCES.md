@@ -141,9 +141,9 @@ scripts/add-swapfile.sh
 
 `~/storage` is an NTFS drive mounted through FUSE `ntfs-3g`, a user-space
 driver that spends one CPU core on heavy small-file work: every `git status`,
-`node_modules` lookup, and test run of every agent goes through it. The best
-fix is to keep active checkouts and worktrees on the ext4 `/home` drive. When
-they have to stay on NTFS, the in-kernel `ntfs3` driver is much faster:
+`node_modules` lookup, and test run of every agent goes through it. The fix is
+to reformat it as ext4 in place; see [Storage](STORAGE.md). If it has to stay
+NTFS, the in-kernel `ntfs3` driver is much faster:
 
 ```sh
 scripts/switch-storage-ntfs3.sh --dry-run

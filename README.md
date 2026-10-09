@@ -28,6 +28,8 @@ The setup includes:
 - [Agent resources](docs/AGENT-RESOURCES.md): one shared code-review-graph
   server, heavy MCP servers only in the projects that use them, and
   machine-wide test slots for parallel coding agents
+- [Storage](docs/STORAGE.md): an in-place, verified move of `~/storage` from
+  NTFS to ext4, and the emergency Windows install mounted by UUID
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, a supervised aria2 queue with local
   AriaNg, Yay, and makepkg defaults
 - Global modular-development, verification, atomic-commit, identity, and
