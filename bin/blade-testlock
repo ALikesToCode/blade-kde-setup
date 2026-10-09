@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Run a command once one of a few machine-wide test slots is free, so parallel
+# agents don't all run full suites, builds, and type checks at the same time.
+
+set -Eeuo pipefail
+
+if (($# == 0)) || [[ $1 == -h || $1 == --help ]]; then
+    printf 'Usage: blade-testlock COMMAND [ARGUMENT...]\n'
+    printf 'Runs COMMAND once one of BLADE_TEST_SLOTS (default 3) slots is free.\n'
+    (($#)) && exit 0
+    exit 2
+fi
+slots=${BLADE_TEST_SLOTS:-3}
+[[ $slots =~ ^[1-9][0-9]*$ ]] || {
+    printf 'blade-testlock: BLADE_TEST_SLOTS must be a positive integer\n' >&2
+    exit 2
+}
+lock_dir=${XDG_RUNTIME_DIR:-/tmp}/blade-testlock
+mkdir -p -m 700 -- "$lock_dir"
+
+waiting=0
+while :; do
+    for ((slot = 1; slot <= slots; slot++)); do
+        exec {lock}>"$lock_dir/slot-$slot"
+        if flock -n "$lock"; then
+            # This shell holds the slot. The command gets no copy of the lock,
+            # so a server it leaves running in the background can't keep it.
+            status=0
+            "$@" {lock}>&- || status=$?
+            exit "$status"
+        fi
+        exec {lock}>&-
+    done
+    if ((!waiting)); then
+        printf 'blade-testlock: all %d slots are busy; waiting\n' "$slots" >&2
+        waiting=1
+    fi
+    sleep 2
+done

@@ -19,7 +19,7 @@ fi
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
     "$ROOT/bin/aria2-daemon" "$ROOT/bin/aria2-update-trackers" \
-    "$ROOT/bin/ariang" \
+    "$ROOT/bin/ariang" "$ROOT/bin/blade-testlock" "$ROOT/tests/testlock.sh" \
     "$ROOT/scripts/apply-kde.sh" "$ROOT/scripts/apply-wallpapers.sh" \
     "$ROOT/scripts/apply-panels.sh" "$ROOT/scripts/doctor.sh" \
     "$ROOT/scripts/install-event-calendar.sh"
@@ -206,6 +206,7 @@ bash "$ROOT/tests/aria2-daemon.sh" >/dev/null
 bash "$ROOT/tests/aria2-trackers.sh" >/dev/null
 bash "$ROOT/tests/ariang.sh" >/dev/null
 bash "$ROOT/tests/machine-snapshot.sh" >/dev/null
+bash "$ROOT/tests/testlock.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \
@@ -229,6 +230,7 @@ grep -Fq 'ExecStart=%h/.local/bin/playwright-mcp-shared' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/systemd/user/playwright-safe-mcp.service"
 rg -q '^### Mandatory atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Shared machine resources$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Maintainable module and file boundaries$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Repository-authored publication voice$' "$ROOT/dotfiles/agents/AGENTS.md"

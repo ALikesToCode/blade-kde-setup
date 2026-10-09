@@ -72,6 +72,12 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Review the final diff for accidental edits, debug output, generated noise, credentials, personal data, and unrelated formatting before handing work off.
 - State what was verified and call out anything that could not be verified. Never claim a check passed unless it was actually run.
 
+### Shared machine resources
+
+- Several agents usually work on this machine at once. While iterating, run only the tests that cover the change (for example `jest --findRelatedTests <files>`, `vitest related <files>`, or one pytest file) and keep the full suite for the final check.
+- Run full test suites, production builds, and other long CPU- or memory-heavy commands through `blade-testlock`, for example `blade-testlock pnpm test`. It waits while other agents hold every slot and returns the command's exit status.
+- Pass the absolute repository or worktree root as `repo_root` on every code-review-graph tool call. One server answers for all threads, so it has no default repository.
+
 ### Mandatory atomic and independent commits
 
 - This section is standing user authorization to create ordinary Git commits for completed, scoped repository work. Every agent that changes files in a Git worktree must commit all and only its task changes after verification and before reporting completion, handing work to another agent, or ending its final turn. Do not leave completed agent-authored repository changes uncommitted.
