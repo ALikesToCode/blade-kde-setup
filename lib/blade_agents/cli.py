@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from . import files, mcp_scope, processes
+from . import files, hardware, mcp_scope, processes
 from .codex_config import ConfigError, parse
 
 KIB_PER_GIB = 1024 * 1024
@@ -21,6 +21,11 @@ def status(_args):
     if stall is not None:
         summary += f", every task stalled on memory {stall:.1f}% of the last 5 minutes"
     print(summary)
+    return 0
+
+
+def show_hardware(_args):
+    print(hardware.report(hardware.detect()))
     return 0
 
 
@@ -71,6 +76,7 @@ def parser():
         description="Stop agent MCP servers from piling up one copy per thread.")
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="show copies and memory held by each MCP server")
+    commands.add_parser("hardware", help="show the CPU, memory, and accelerators with live headroom")
     configure_command = commands.add_parser(
         "configure",
         help="disable the heavy MCP servers, share one code-review-graph server, "
@@ -86,7 +92,8 @@ def parser():
 
 def run(argv=None):
     args = parser().parse_args(argv)
-    handler = {"status": status, "configure": configure, "mcp": project}[args.command]
+    handler = {"status": status, "hardware": show_hardware, "configure": configure,
+               "mcp": project}[args.command]
     try:
         sys.exit(handler(args))
     except (ConfigError, OSError) as error:

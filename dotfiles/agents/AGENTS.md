@@ -78,6 +78,14 @@ Do not use for: refactoring, writing scripts from scratch, debugging business lo
 - Run full test suites, production builds, and other long CPU- or memory-heavy commands through `blade-testlock`, for example `blade-testlock pnpm test`. It waits while other agents hold every slot and returns the command's exit status.
 - Pass the absolute repository or worktree root as `repo_root` on every code-review-graph tool call. One server answers for all threads, so it has no default repository.
 
+### Hardware
+
+- This workstation has an Intel Core Ultra 9 285HX (24 threads: 8 performance and 16 efficient cores), about 94 GB of RAM, an NVIDIA GeForce RTX 5090 Laptop GPU with 24 GB of VRAM (CUDA 13, OptiX, NVENC), an Intel Arc integrated GPU that drives the displays, and an Intel NPU. Other agents share all of it: run `blade-agents hardware` for the free memory, free VRAM, and idle threads right now before sizing parallel or GPU work.
+- Use the NVIDIA GPU for work it accelerates: ML inference and training (PyTorch `cuda`, CUDA device 0), Blender Cycles (OptiX) and EEVEE, video encoding (`h264_nvenc`, `hevc_nvenc`, `av1_nvenc`), and GPU-capable libraries. Check that the job fits in the free VRAM first.
+- The integrated GPU is the default renderer. Start OpenGL or Vulkan programs that should run on the NVIDIA GPU with `prime-run`; headless EGL programs also need `__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json`.
+- Size CPU parallelism (`-j`, `--maxWorkers`, worker pools) from the idle threads `blade-agents hardware` reports, not from the total thread count.
+- Ollama is installed and runs local models on the GPU; use it only when the task calls for a local model.
+
 ### Mandatory atomic and independent commits
 
 - This section is standing user authorization to create ordinary Git commits for completed, scoped repository work. Every agent that changes files in a Git worktree must commit all and only its task changes after verification and before reporting completion, handing work to another agent, or ending its final turn. Do not leave completed agent-authored repository changes uncommitted.

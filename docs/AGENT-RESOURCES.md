@@ -53,6 +53,17 @@ after the shared server answers. Codex Desktop rewrites `~/.codex/config.toml`
 from its settings screen, so run it again if a server comes back. Each change
 backs the file up under `~/.local/state/blade-kde-backups/`.
 
+## Hardware
+
+The global agent instructions describe the CPU, memory, RTX GPU, integrated
+GPU, and NPU, and when to reach for each. `blade-agents hardware` adds what
+changes minute to minute: idle threads, available memory, free VRAM, and which
+hardware encoders and GPU tools are installed.
+
+```sh
+blade-agents hardware
+```
+
 ## Blender on the GPU
 
 Both Blender MCP servers run Blender headless, and `higgsfield-use-blender`

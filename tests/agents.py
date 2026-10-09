@@ -12,7 +12,7 @@ import unittest
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from blade_agents import files, mcp_scope, processes
+from blade_agents import files, hardware, mcp_scope, processes
 from blade_agents.codex_config import ConfigError, drop_key, set_key
 
 USER_CONFIG = '''model = "m"
@@ -195,6 +195,40 @@ class ProcessTests(unittest.TestCase):
                 "some avg10=0.00 avg60=0.60 avg300=7.34 total=1\n"
                 "full avg10=0.00 avg60=0.57 avg300=7.07 total=1\n")
             self.assertEqual(processes.memory_summary(proc), (40, 16, 4, 7.07))
+
+
+class HardwareTests(unittest.TestCase):
+    def test_count_cpus_reads_sysfs_ranges(self):
+        self.assertEqual(hardware.count_cpus("0-7\n"), 8)
+        self.assertEqual(hardware.count_cpus("8-23,30"), 17)
+        self.assertEqual(hardware.count_cpus(""), 0)
+
+    def test_parsers_read_nvidia_smi_and_lspci(self):
+        gpus = hardware.parse_nvidia("0, NVIDIA GeForce RTX 5090 Laptop GPU, 24463, 463, 7, 615.71.09\n")
+        self.assertEqual(gpus, [{"index": 0, "name": "NVIDIA GeForce RTX 5090 Laptop GPU",
+                                 "total_mib": 24463, "free_mib": 24000, "busy": 7,
+                                 "driver": "615.71.09"}])
+        devices = hardware.parse_lspci(
+            '00:02.0 "VGA compatible controller" "Intel Corporation" "Arrow Lake-S" -r06 "MSI" "D"\n'
+            '00:0b.0 "Processing accelerators" "Intel Corporation" "Core Ultra NPU" -r01 "MSI" "D"\n'
+            '00:14.0 "USB controller" "Intel Corporation" "USB" -r01 "MSI" "D"\n')
+        self.assertEqual(devices, ["Intel Corporation Arrow Lake-S", "Intel Corporation Core Ultra NPU"])
+
+    def test_report_lists_headroom_and_skips_the_duplicate_nvidia_entry(self):
+        facts = {"cpu": "Intel Core Ultra 9 285HX", "threads": 24, "performance_cores": 8,
+                 "efficient_cores": 16, "load": 6.4, "memory_kib": 96 * 1024 * 1024,
+                 "available_kib": 20 * 1024 * 1024, "swap_free_kib": 0,
+                 "devices": ["Intel Corporation Arrow Lake-S", "NVIDIA Corporation GB203M"],
+                 "nvidia": [{"index": 0, "name": "RTX 5090", "total_mib": 24576, "free_mib": 23552,
+                             "busy": 0, "driver": "615"}],
+                 "cuda": "13.4", "npu": ["/dev/accel/accel0"], "encoders": ["av1_nvenc"],
+                 "tools": ["nvcc"]}
+        text = hardware.report(facts)
+        self.assertIn("24 threads (8 performance cores, 16 efficient cores); about 18 threads idle", text)
+        self.assertIn("NVIDIA GPU 0: RTX 5090, 23.0 of 24 GiB VRAM free, 0% busy, driver 615, CUDA 13.4", text)
+        self.assertIn("Device: Intel Corporation Arrow Lake-S", text)
+        self.assertNotIn("GB203M", text)
+        self.assertIn("NPU device nodes: /dev/accel/accel0", text)
 
 
 if __name__ == "__main__":

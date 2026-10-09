@@ -244,6 +244,7 @@ grep -Fq 'ExecStart=%h/.local/bin/playwright-mcp-shared' \
 rg -q '^### Mandatory atomic and independent commits$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Destructive actions require approval$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Shared machine resources$' "$ROOT/dotfiles/agents/AGENTS.md"
+rg -q '^### Hardware$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Skill and configuration access$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Maintainable module and file boundaries$' "$ROOT/dotfiles/agents/AGENTS.md"
 rg -q '^### Repository-authored publication voice$' "$ROOT/dotfiles/agents/AGENTS.md"
