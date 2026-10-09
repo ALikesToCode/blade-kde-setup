@@ -1,4 +1,4 @@
 [General]
 dbVersion=2
-exclude folders[$e]=$HOME/Recovered-Structured-Backup/,$HOME/Recovered-Ext4magic-Home/,$HOME/Recovered-PhotoRec/,$HOME/recovery-staging/
+exclude folders[$e]=$HOME/Recovered-Structured-Backup/,$HOME/Recovered-Ext4magic-Home/,$HOME/Recovered-PhotoRec/,$HOME/recovery-staging/,$HOME/storage/github/
 only basic indexing=true

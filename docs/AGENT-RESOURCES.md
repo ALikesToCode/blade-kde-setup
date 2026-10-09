@@ -65,3 +65,15 @@ BLADE_TEST_SLOTS=2 blade-testlock cargo test
 Agents call test runners directly, so the wrapper is opt-in: the global agent
 instructions ask for targeted tests while iterating and `blade-testlock` for
 full suites and production builds.
+
+## File indexing
+
+Every agent worktree under `~/storage/github` is another full copy of a
+checkout, and Baloo was holding over three million indexed files. The machine
+snapshot excludes `~/storage/github/` from Baloo; Baloo's built-in filters
+already skip `node_modules`, `.git`, and virtual environments elsewhere. Apply
+it to a running session without a full restore:
+
+```sh
+balooctl6 config add excludeFolders "$HOME/storage/github"
+```
