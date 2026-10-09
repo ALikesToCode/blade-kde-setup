@@ -39,6 +39,9 @@ def configure(args):
     path = mcp_scope.user_config_path()
     current = files.read_text(path)
     updated = mcp_scope.share_code_review_graph(mcp_scope.disable_heavy(current))
+    gpu_env = mcp_scope.blender_gpu_env(files.data_root() / "blade-kde/blender/scripts",
+                                        mcp_scope.NVIDIA_EGL_VENDOR)
+    updated = mcp_scope.render_blender_on_gpu(updated, gpu_env)
     return _write(path, current, updated, args.dry_run, "Codex user config")
 
 
@@ -70,7 +73,8 @@ def parser():
     commands.add_parser("status", help="show copies and memory held by each MCP server")
     configure_command = commands.add_parser(
         "configure",
-        help="disable the heavy MCP servers and share one code-review-graph server")
+        help="disable the heavy MCP servers, share one code-review-graph server, "
+             "and put the Blender servers on the GPU")
     configure_command.add_argument("-n", "--dry-run", action="store_true")
     mcp = commands.add_parser("mcp", help="enable or disable one server for one project")
     mcp.add_argument("action", choices=("enable", "disable"))

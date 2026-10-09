@@ -91,6 +91,13 @@ import sys
 path = pathlib.Path(sys.argv[1])
 compile(path.read_text(), str(path), "exec")
 PY
+python3 - "$ROOT/dotfiles/blender/scripts/startup/blade_gpu.py" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+compile(path.read_text(), str(path), "exec")
+PY
 python3 - "$ROOT/bin/ariang-server" <<'PY'
 import pathlib
 import sys
@@ -189,6 +196,7 @@ required=(
     docs/AGENT-RESOURCES.md
     scripts/install-agents.sh
     dotfiles/systemd/user/code-review-graph.service
+    dotfiles/blender/scripts/startup/blade_gpu.py
 )
 for path in "${required[@]}"; do
     [[ -e $ROOT/$path ]] || { printf 'Missing required file: %s\n' "$path" >&2; exit 1; }

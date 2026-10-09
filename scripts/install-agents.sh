@@ -52,6 +52,8 @@ for source in "$ROOT"/lib/blade_agents/*.py; do
 done
 copy_file "$ROOT/dotfiles/systemd/user/code-review-graph.service" \
     "$CONFIG_ROOT/systemd/user/code-review-graph.service"
+copy_file "$ROOT/dotfiles/blender/scripts/startup/blade_gpu.py" \
+    "$DATA_ROOT/blade-kde/blender/scripts/startup/blade_gpu.py"
 # The shared server depends on agents passing repo_root, which these
 # instructions require, so --agents installs them even without --user.
 sed "s|__HOME__|${HOME//&/\\&}|g" "$ROOT/dotfiles/agents/AGENTS.md" >"$RENDER_DIR/AGENTS.md"
@@ -60,7 +62,8 @@ copy_file "$RENDER_DIR/AGENTS.md" "$HOME/.codex/AGENTS.md"
 ((ACTIVATE)) || exit 0
 if ((DRY_RUN)); then
     printf 'Would start code-review-graph.service, then disable artemis, blender-lab, and\n'
-    printf 'higgsfield-use-blender and point code-review-graph at it in ~/.codex/config.toml.\n'
+    printf 'higgsfield-use-blender, point code-review-graph at it, and give the Blender\n'
+    printf 'servers the NVIDIA GPU in ~/.codex/config.toml.\n'
     exit 0
 fi
 for executable in code-review-graph systemctl curl; do

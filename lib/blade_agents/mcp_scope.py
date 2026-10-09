@@ -1,5 +1,6 @@
 """Keep rarely used MCP servers off by default and opt single projects back in."""
 
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,6 +11,8 @@ from .codex_config import ConfigError, drop_key, parse, set_key
 # keeps it until the thread closes; these domain servers hold 40-130 MB each.
 HEAVY_SERVERS = ("artemis", "blender-lab", "higgsfield-use-blender")
 PROJECT_CONFIG = ".codex/config.toml"
+BLENDER_SERVERS = ("blender-lab", "higgsfield-use-blender")
+NVIDIA_EGL_VENDOR = Path("/usr/share/glvnd/egl_vendor.d/10_nvidia.json")
 # Served by code-review-graph.service. 5555, the upstream default, is the
 # Android emulator console; ports from 32768 can be taken by outbound sockets.
 CODE_REVIEW_GRAPH_URL = "http://127.0.0.1:14155/mcp"
@@ -50,6 +53,39 @@ def share_code_review_graph(text):
                           "takes its environment from code-review-graph.service")
     if server.get("url") != CODE_REVIEW_GRAPH_URL:
         raise ConfigError("could not point code-review-graph at the shared server")
+    return text
+
+
+def blender_gpu_env(scripts_dir, nvidia_egl_vendor):
+    """Environment that puts headless Blender on the discrete NVIDIA GPU.
+
+    Headless EEVEE otherwise renders through Mesa on the integrated GPU, about
+    ten times slower at 4K, and Cycles stays on the CPU because the servers
+    never load the user's preferences.
+    """
+    env = {}
+    if (scripts_dir / "startup/blade_gpu.py").is_file():
+        env["BLENDER_SYSTEM_SCRIPTS"] = str(scripts_dir)
+    if nvidia_egl_vendor.is_file():
+        env.update({
+            "__NV_PRIME_RENDER_OFFLOAD": "1",
+            "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+            "__EGL_VENDOR_LIBRARY_FILENAMES": str(nvidia_egl_vendor),
+            "__VK_LAYER_NV_optimus": "NVIDIA_only",
+        })
+    return env
+
+
+def render_blender_on_gpu(text, env):
+    servers = parse(text, "Codex user config").get("mcp_servers", {})
+    for name in BLENDER_SERVERS:
+        if name not in servers:
+            continue
+        for key, value in env.items():
+            text = set_key(text, f"mcp_servers.{name}.env", key, json.dumps(value))
+        configured = parse(text, "updated Codex user config")["mcp_servers"][name].get("env", {})
+        if any(configured.get(key) != value for key, value in env.items()):
+            raise ConfigError(f"could not set the GPU environment for {name}")
     return text
 
 

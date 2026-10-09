@@ -103,6 +103,25 @@ class ScopeTests(unittest.TestCase):
                           (root / script).read_text(), script)
         self.assertLess(int(port), 32768)
 
+    def test_blender_servers_get_the_gpu_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scripts = root / "scripts"
+            (scripts / "startup").mkdir(parents=True)
+            (scripts / "startup/blade_gpu.py").write_text("")
+            vendor = root / "10_nvidia.json"
+            vendor.write_text("{}")
+            env = mcp_scope.blender_gpu_env(scripts, vendor)
+            self.assertEqual(env["BLENDER_SYSTEM_SCRIPTS"], str(scripts))
+            self.assertEqual(env["__EGL_VENDOR_LIBRARY_FILENAMES"], str(vendor))
+            self.assertEqual(mcp_scope.blender_gpu_env(root / "none", root / "none"), {})
+            text = mcp_scope.render_blender_on_gpu(USER_CONFIG, env)
+            servers = tomllib.loads(text)["mcp_servers"]
+            self.assertEqual(servers["blender-lab"]["env"], env)
+            self.assertEqual(servers["blender-lab"]["command"], "uv")
+            self.assertNotIn("env", servers["context7"])
+            self.assertEqual(mcp_scope.render_blender_on_gpu(text, env), text)
+
     def test_project_override_is_one_key(self):
         text = mcp_scope.set_project("", "artemis", True)
         self.assertEqual(tomllib.loads(text), {"mcp_servers": {"artemis": {"enabled": True}}})

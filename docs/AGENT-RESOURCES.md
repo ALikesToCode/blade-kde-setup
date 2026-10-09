@@ -53,6 +53,22 @@ after the shared server answers. Codex Desktop rewrites `~/.codex/config.toml`
 from its settings screen, so run it again if a server comes back. Each change
 backs the file up under `~/.local/state/blade-kde-backups/`.
 
+## Blender on the GPU
+
+Both Blender MCP servers run Blender headless, and `higgsfield-use-blender`
+adds `--factory-startup`, so the user's preferences never reach them. Cycles
+then renders on the CPU, and EEVEE renders through Mesa on the integrated GPU.
+`blade-agents configure` gives both servers:
+
+- `BLENDER_SYSTEM_SCRIPTS` pointing at `~/.local/share/blade-kde/blender/scripts`,
+  whose `startup/blade_gpu.py` switches every Cycles render to OptiX (then
+  CUDA, HIP, oneAPI) with the GPU alone. It runs even under
+  `--factory-startup`, and `BLADE_BLENDER_DEVICE=CPU` keeps a session on the CPU.
+- The NVIDIA PRIME offload variables, including the NVIDIA EGL vendor file, so
+  headless EEVEE and the viewport render on the RTX GPU. Measured here, a 4K
+  256-sample EEVEE frame took 0.8 s on the RTX 5090 against 8.7 s on the
+  integrated GPU. They are added only when the NVIDIA EGL vendor file exists.
+
 ## Test runs
 
 `blade-testlock COMMAND` runs a command once one of `BLADE_TEST_SLOTS` (3 by

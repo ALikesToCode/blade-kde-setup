@@ -11,6 +11,10 @@ def state_root():
     return Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
 
 
+def data_root():
+    return Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share")))
+
+
 def backup_root():
     override = os.environ.get("BLADE_BACKUP_ROOT")
     if override:
