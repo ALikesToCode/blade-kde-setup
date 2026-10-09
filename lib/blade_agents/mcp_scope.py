@@ -10,9 +10,9 @@ from .codex_config import ConfigError, drop_key, parse, set_key
 # keeps it until the thread closes; these domain servers hold 40-130 MB each.
 HEAVY_SERVERS = ("artemis", "blender-lab", "higgsfield-use-blender")
 PROJECT_CONFIG = ".codex/config.toml"
-# Served by code-review-graph.service; 5555, the upstream default, is the
-# Android emulator console port.
-CODE_REVIEW_GRAPH_URL = "http://127.0.0.1:47555/mcp"
+# Served by code-review-graph.service. 5555, the upstream default, is the
+# Android emulator console; ports from 32768 can be taken by outbound sockets.
+CODE_REVIEW_GRAPH_URL = "http://127.0.0.1:14155/mcp"
 
 
 def codex_home():

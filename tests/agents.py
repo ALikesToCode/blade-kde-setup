@@ -97,6 +97,11 @@ class ScopeTests(unittest.TestCase):
         port = mcp_scope.CODE_REVIEW_GRAPH_URL.rsplit(":", 1)[1].split("/")[0]
         self.assertIn(f"--host 127.0.0.1 --port {port}", unit)
         self.assertNotRegex(unit, r"(?m)^Environment=.*CRG_REPO_ROOT")
+        root = Path(__file__).resolve().parents[1]
+        for script in ("scripts/install-codex-tools.sh", "scripts/install-agents.sh"):
+            self.assertIn(mcp_scope.CODE_REVIEW_GRAPH_URL.removesuffix("/mcp"),
+                          (root / script).read_text(), script)
+        self.assertLess(int(port), 32768)
 
     def test_project_override_is_one_key(self):
         text = mcp_scope.set_project("", "artemis", True)

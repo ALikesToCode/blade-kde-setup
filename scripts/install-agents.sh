@@ -67,10 +67,10 @@ systemctl --user daemon-reload
 systemctl --user enable --now code-review-graph.service
 # Switch Codex only once the server answers, or new threads start without it.
 for _ in {1..30}; do
-    curl -s -o /dev/null --max-time 2 http://127.0.0.1:47555/mcp && break
+    curl -s -o /dev/null --max-time 2 http://127.0.0.1:14155/mcp && break
     sleep 1
 done
-curl -s -o /dev/null --max-time 2 http://127.0.0.1:47555/mcp || {
+curl -s -o /dev/null --max-time 2 http://127.0.0.1:14155/mcp || {
     printf 'code-review-graph.service is not answering; see journalctl --user -u code-review-graph\n' >&2
     exit 1
 }

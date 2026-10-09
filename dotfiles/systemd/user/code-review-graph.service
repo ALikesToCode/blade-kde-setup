@@ -9,7 +9,7 @@ Type=simple
 # one). CRG_REPO_ROOT stays unset: it would override every per-call repo_root.
 RuntimeDirectory=code-review-graph
 WorkingDirectory=%t/code-review-graph
-ExecStart=%h/.local/bin/code-review-graph serve --http --host 127.0.0.1 --port 47555
+ExecStart=%h/.local/bin/code-review-graph serve --http --host 127.0.0.1 --port 14155
 Restart=on-failure
 RestartSec=5
 Nice=5

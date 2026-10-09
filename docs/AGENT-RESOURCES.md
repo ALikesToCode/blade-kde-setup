@@ -20,14 +20,15 @@ about a hundred idle copies of each server, over 25 GB between RAM and swap.
 
 | Server | Before | After |
 | --- | --- | --- |
-| `code-review-graph` | One copy per thread | One shared `code-review-graph.service` on `127.0.0.1:47555` |
+| `code-review-graph` | One copy per thread | One shared `code-review-graph.service` on `127.0.0.1:14155` |
 | `artemis`, `blender-lab`, `higgsfield-use-blender` | One copy per thread | Off, except in projects that turn them on |
 
 The shared code-review-graph server has no default repository. Agents pass the
 absolute repository or worktree root as `repo_root` on every call, as the agent
 instructions require. The server runs from an empty runtime directory, so a
 call without it sees an empty graph instead of indexing the home-directory
-checkout. Port 5555, the upstream default, is the Android emulator console.
+checkout. Port 5555, the upstream default, is the Android emulator console, and
+ports from 32768 up can be taken by outbound connections.
 
 Turn a heavy server on for one project, or off again:
 

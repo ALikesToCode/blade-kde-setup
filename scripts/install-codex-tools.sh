@@ -255,7 +255,7 @@ configure_code_review_graph() {
         info 'Unchanged Codex MCP: code-review-graph'
     else
         # code-review-graph.service serves every thread from one process.
-        run codex mcp add code-review-graph --url http://127.0.0.1:47555/mcp
+        run codex mcp add code-review-graph --url http://127.0.0.1:14155/mcp
     fi
 
     if ((DRY_RUN)); then
