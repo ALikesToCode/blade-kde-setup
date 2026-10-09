@@ -56,6 +56,14 @@ blade-music sync-now
   Set `brand_account` in `~/.config/blade-music.toml` when you listen on a brand
   channel; its page ID is shown by YouTube's account switcher.
 
+## Queue
+
+MPD's consume mode stays off, and the installer turns myMPD's jukebox off. The
+jukebox keeps the queue at a few random songs from the library by deleting each
+song after it plays, so the queue never showed what came next and repeat-song
+could not hold. Starting a playlist turns consume off again if something
+switched it on.
+
 ## Commands
 
 | Command | Effect |

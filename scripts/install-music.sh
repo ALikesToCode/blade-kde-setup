@@ -83,9 +83,9 @@ if ((DRY_RUN)); then
     printf 'and add Blade Music to existing application panels.\n'
     exit 0
 fi
-for executable in python3 mpd mpc mympd mpd-mpris yt-dlp ffmpeg systemctl qdbus6; do
+for executable in python3 mpd mpc mympd mpd-mpris yt-dlp ffmpeg systemctl qdbus6 curl; do
     command -v "$executable" >/dev/null || {
-        printf 'Missing %s. Install prerequisites: sudo pacman -S --needed mpd mpc mpd-mpris mympd rmpc python-ytmusicapi python-mutagen yt-dlp yt-dlp-ejs ffmpeg\n' "$executable" >&2
+        printf 'Missing %s. Install prerequisites: sudo pacman -S --needed mpd mpc mpd-mpris mympd rmpc python-ytmusicapi python-mutagen yt-dlp yt-dlp-ejs ffmpeg curl\n' "$executable" >&2
         exit 1
     }
 done
@@ -110,6 +110,13 @@ write_value "$mympd_config/state/mpd_host" "$STATE_ROOT/mpd/socket"
 systemctl --user daemon-reload
 systemctl --user enable --now mpd.service mpd-mpris.service mympd.service blade-music-sync.timer
 systemctl --user restart mympd.service
+# myMPD's jukebox deletes each song after it plays and refills the queue with
+# random ones, which hides what plays next and breaks repeat-song.
+curl -fsS --retry 10 --retry-connrefused --retry-delay 1 -X POST \
+    -H 'Content-Type: application/json' http://127.0.0.1:8080/api/default \
+    -d '{"jsonrpc":"2.0","id":0,"method":"MYMPD_API_PLAYER_OPTIONS_SET","params":{"jukeboxMode":"off"}}' \
+    >/dev/null
+mpc -q consume off
 layout="$CONFIG_ROOT/plasma-org.kde.plasma.desktop-appletsrc"
 if [[ -f $layout ]]; then
     mkdir -p -- "$BACKUP_ROOT"

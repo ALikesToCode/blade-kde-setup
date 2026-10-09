@@ -8,11 +8,12 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from blade_music import cache, config, playlists, youtube
+from blade_music import cache, cli, config, playlists, youtube
 from blade_music.library import Track, find_local, norm, tag_key
 from blade_music.store import open_db
 
@@ -166,6 +167,19 @@ class ConfigTests(unittest.TestCase):
 
     def test_profile_path_after_browser_name_is_expanded(self):
         self.assertEqual(config.resolve_cookie_source("firefox:~/p"), f"firefox:{Path.home()}/p")
+
+
+class PlayerTests(unittest.TestCase):
+    def run_steps(self, function, *args):
+        with mock.patch.object(cli.subprocess, "run") as run:
+            run.return_value = mock.Mock(returncode=0, stderr="")
+            self.assertEqual(function(*args), 0)
+        return [call.args[0] for call in run.call_args_list]
+
+    def test_play_keeps_the_playlist_in_the_queue(self):
+        steps = self.run_steps(cli.play, "Liked")
+        self.assertEqual(steps[:3], [["mpc", "-q", "clear"], ["mpc", "-q", "consume", "off"],
+                                     ["mpc", "-q", "load", "Liked"]])
 
 
 if __name__ == "__main__":

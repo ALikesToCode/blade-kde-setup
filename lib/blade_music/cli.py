@@ -41,7 +41,8 @@ def status(settings) -> dict:
 
 def play(playlist: str | None) -> int:
     """Replace the queue with a stored playlist, or the shuffled library, and play."""
-    steps = [["mpc", "-q", "clear"]]
+    # Consume deletes each song once played, emptying the playlist behind it.
+    steps = [["mpc", "-q", "clear"], ["mpc", "-q", "consume", "off"]]
     steps += [["mpc", "-q", "load", playlist]] if playlist else [["mpc", "-q", "add", "/"], ["mpc", "-q", "shuffle"]]
     steps += [["mpc", "-q", "play"]]
     for step in steps:
