@@ -28,12 +28,13 @@ a timestamped directory under:
 | `--apply` | Activates the appearance, wallpapers, and safe multi-display panel/widget layout | User |
 | `--packages` | Installs `packages/pacman.txt`, then `packages/aur.txt` through Yay | Sudo for Pacman |
 | `--system` | Tunes Pacman, installs Reflector settings, enables its timer, and installs SDDM | Sudo |
-| `--all` | Runs packages, tools, user files, charger-aware power controls, music, system tuning, and live KDE apply | Mixed |
+| `--all` | Runs packages, tools, user files, charger-aware power controls, music, agent resources, system tuning, and live KDE apply | Mixed |
 | `--hardened` | Stages and integrates the optional verified workspace/browser launcher | User, after documented prerequisites |
 | `--tools` | Installs pinned OpenWiki, npm-check-updates, and OfficeCLI commands plus the Codex skill collection | User |
 | `--downloads` | Installs and starts the aria2 daemon and checksum-pinned local AriaNg UI | User |
 | `--power` | Installs and activates the brightness and charger-status widgets and user power-policy service | User |
 | `--music` | Installs and starts MPD, myMPD, the Blade Music widget, and the YouTube Music sync timer | User |
+| `--agents` | Starts the shared code-review-graph server and disables the heavy MCP servers outside opted-in projects | User |
 | `--machine` | Restores the recorded packages, user tools, system tuning, services, groups, and KDE settings from `machine/`; not part of `--all` | Sudo |
 
 See [Machine snapshot](MACHINE-SNAPSHOT.md) for recording and restoring the

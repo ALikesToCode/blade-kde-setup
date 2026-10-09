@@ -25,6 +25,9 @@ The setup includes:
 - [Blade Music](docs/MUSIC.md): MPD, a local myMPD web player, and a panel
   widget, with an hourly offline cache of liked, favourite, most-played, and
   mixed YouTube Music songs in `~/storage/music`
+- [Agent resources](docs/AGENT-RESOURCES.md): one shared code-review-graph
+  server, heavy MCP servers only in the projects that use them, and
+  machine-wide test slots for parallel coding agents
 - Bash, Git, Neovim, tmux, MPV, yt-dlp, a supervised aria2 queue with local
   AriaNg, Yay, and makepkg defaults
 - Global modular-development, verification, atomic-commit, identity, and

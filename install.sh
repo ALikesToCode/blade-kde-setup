@@ -16,6 +16,7 @@ DO_TOOLS=0
 DO_DOWNLOADS=0
 DO_POWER=0
 DO_MUSIC=0
+DO_AGENTS=0
 DO_MACHINE=0
 MODE_SELECTED=0
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/blade-kde-backups/$(date +%Y%m%d-%H%M%S)"
@@ -38,6 +39,7 @@ Modes:
   --downloads    Install and start the aria2 + AriaNg download manager
   --power        Install and activate charger-aware brightness and panel controls
   --music        Install and start MPD, myMPD, and the YouTube Music offline sync
+  --agents       Share one code-review-graph server and scope heavy MCP servers per project
   --machine      Restore the recorded packages, services, tuning, and KDE settings
 
 Options:
@@ -57,7 +59,7 @@ EOF
 while (($#)); do
     case $1 in
         --all)
-            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; DO_TOOLS=1; DO_POWER=1; DO_MUSIC=1; MODE_SELECTED=1
+            DO_USER=1; DO_APPLY=1; DO_PACKAGES=1; DO_SYSTEM=1; DO_TOOLS=1; DO_POWER=1; DO_MUSIC=1; DO_AGENTS=1; MODE_SELECTED=1
             ;;
         --user) DO_USER=1; MODE_SELECTED=1 ;;
         --apply) DO_APPLY=1; MODE_SELECTED=1 ;;
@@ -68,6 +70,7 @@ while (($#)); do
         --downloads) DO_DOWNLOADS=1; MODE_SELECTED=1 ;;
         --power) DO_POWER=1; MODE_SELECTED=1 ;;
         --music) DO_MUSIC=1; MODE_SELECTED=1 ;;
+        --agents) DO_AGENTS=1; MODE_SELECTED=1 ;;
         --machine) DO_MACHINE=1; MODE_SELECTED=1 ;;
         -n|--dry-run) DRY_RUN=1 ;;
         -y|--yes) ASSUME_YES=1 ;;
@@ -351,9 +354,11 @@ install_user_files() {
     if ((DRY_RUN)); then
         bash "$ROOT/scripts/install-power-control.sh" --dry-run
         bash "$ROOT/scripts/install-music.sh" --dry-run
+        bash "$ROOT/scripts/install-agents.sh" --dry-run
     else
         bash "$ROOT/scripts/install-power-control.sh"
         bash "$ROOT/scripts/install-music.sh"
+        bash "$ROOT/scripts/install-agents.sh"
     fi
     section 'Installing user configuration and desktop assets'
 
@@ -636,6 +641,14 @@ if ((DO_MUSIC)); then
         bash "$ROOT/scripts/install-music.sh" --dry-run --activate
     else
         bash "$ROOT/scripts/install-music.sh" --activate
+    fi
+fi
+if ((DO_AGENTS)); then
+    section 'Activating the shared code-review-graph server and MCP scoping'
+    if ((DRY_RUN)); then
+        bash "$ROOT/scripts/install-agents.sh" --dry-run --activate
+    else
+        bash "$ROOT/scripts/install-agents.sh" --activate
     fi
 fi
 if ((DO_DOWNLOADS && !DO_USER)); then
