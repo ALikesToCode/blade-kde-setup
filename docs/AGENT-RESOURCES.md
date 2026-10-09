@@ -77,3 +77,19 @@ it to a running session without a full restore:
 ```sh
 balooctl6 config add excludeFolders "$HOME/storage/github"
 ```
+
+## Memory headroom
+
+The machine snapshot sizes zram at half of RAM (at most 32 GiB uncompressed)
+instead of a quarter. zram is resized only at boot: restarting it live would
+first have to move everything already in swap back into RAM.
+
+`scripts/add-swapfile.sh` adds a 16 GiB `/swapfile` at priority 10, below
+zram's 100, and records it in `/etc/fstab`. zram still fills first; the disk
+only takes pages after that, instead of the OOM killer ending a process. It
+takes effect immediately and asks for sudo:
+
+```sh
+scripts/add-swapfile.sh --dry-run
+scripts/add-swapfile.sh
+```
