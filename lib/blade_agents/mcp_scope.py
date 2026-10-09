@@ -4,12 +4,15 @@ import os
 from pathlib import Path
 import subprocess
 
-from .codex_config import ConfigError, parse, set_key
+from .codex_config import ConfigError, drop_key, parse, set_key
 
 # Codex starts a private copy of every enabled stdio server for each thread and
 # keeps it until the thread closes; these domain servers hold 40-130 MB each.
 HEAVY_SERVERS = ("artemis", "blender-lab", "higgsfield-use-blender")
 PROJECT_CONFIG = ".codex/config.toml"
+# Served by code-review-graph.service; 5555, the upstream default, is the
+# Android emulator console port.
+CODE_REVIEW_GRAPH_URL = "http://127.0.0.1:47555/mcp"
 
 
 def codex_home():
@@ -32,6 +35,21 @@ def disable_heavy(text):
             text = set_key(text, f"mcp_servers.{name}", "enabled", "false")
             if _server_enabled(text, name, "updated Codex user config"):
                 raise ConfigError(f"could not disable {name}")
+    return text
+
+
+def share_code_review_graph(text):
+    """Point Codex at the one shared server instead of a stdio copy per thread."""
+    table = "mcp_servers.code-review-graph"
+    for key in ("command", "args", "cwd"):
+        text = drop_key(text, table, key)
+    text = set_key(text, table, "url", f'"{CODE_REVIEW_GRAPH_URL}"')
+    server = parse(text, "updated Codex user config")["mcp_servers"]["code-review-graph"]
+    if server.get("env"):
+        raise ConfigError("remove [mcp_servers.code-review-graph.env]; the shared server "
+                          "takes its environment from code-review-graph.service")
+    if server.get("url") != CODE_REVIEW_GRAPH_URL:
+        raise ConfigError("could not point code-review-graph at the shared server")
     return text
 
 

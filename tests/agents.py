@@ -32,6 +32,10 @@ PYTHONUNBUFFERED = "1"
 command = "uv"
 enabled = true
 
+[mcp_servers.code-review-graph]
+command = "code-review-graph"
+args = ["serve"]
+
 [mcp_servers.context7]
 url = "https://example.invalid/mcp"
 '''
@@ -73,6 +77,26 @@ class ScopeTests(unittest.TestCase):
     def test_disable_heavy_rejects_invalid_toml(self):
         with self.assertRaises(ConfigError):
             mcp_scope.disable_heavy("[broken")
+
+    def test_code_review_graph_moves_to_the_shared_server(self):
+        text = mcp_scope.share_code_review_graph(USER_CONFIG)
+        server = tomllib.loads(text)["mcp_servers"]["code-review-graph"]
+        self.assertEqual(server, {"url": mcp_scope.CODE_REVIEW_GRAPH_URL})
+        self.assertEqual(mcp_scope.share_code_review_graph(text), text)
+        self.assertEqual(tomllib.loads(mcp_scope.share_code_review_graph(""))
+                         ["mcp_servers"]["code-review-graph"]["url"], mcp_scope.CODE_REVIEW_GRAPH_URL)
+
+    def test_code_review_graph_refuses_to_keep_a_stdio_environment(self):
+        with self.assertRaises(ConfigError):
+            mcp_scope.share_code_review_graph(
+                USER_CONFIG + '\n[mcp_servers.code-review-graph.env]\nCRG_TOOLS = "x"\n')
+
+    def test_service_listens_where_codex_connects(self):
+        unit = (Path(__file__).resolve().parents[1]
+                / "dotfiles/systemd/user/code-review-graph.service").read_text()
+        port = mcp_scope.CODE_REVIEW_GRAPH_URL.rsplit(":", 1)[1].split("/")[0]
+        self.assertIn(f"--host 127.0.0.1 --port {port}", unit)
+        self.assertNotRegex(unit, r"(?m)^Environment=.*CRG_REPO_ROOT")
 
     def test_project_override_is_one_key(self):
         text = mcp_scope.set_project("", "artemis", True)

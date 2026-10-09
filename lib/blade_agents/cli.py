@@ -38,8 +38,8 @@ def _write(path, current, updated, dry_run, label):
 def configure(args):
     path = mcp_scope.user_config_path()
     current = files.read_text(path)
-    return _write(path, current, mcp_scope.disable_heavy(current), args.dry_run,
-                  "Codex user config")
+    updated = mcp_scope.share_code_review_graph(mcp_scope.disable_heavy(current))
+    return _write(path, current, updated, args.dry_run, "Codex user config")
 
 
 def project(args):
@@ -69,7 +69,8 @@ def parser():
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="show copies and memory held by each MCP server")
     configure_command = commands.add_parser(
-        "configure", help="disable the heavy MCP servers in ~/.codex/config.toml")
+        "configure",
+        help="disable the heavy MCP servers and share one code-review-graph server")
     configure_command.add_argument("-n", "--dry-run", action="store_true")
     mcp = commands.add_parser("mcp", help="enable or disable one server for one project")
     mcp.add_argument("action", choices=("enable", "disable"))

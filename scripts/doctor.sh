@@ -45,6 +45,11 @@ if codex mcp get code-review-graph --json >/dev/null 2>&1; then
 else
     warn 'code-review-graph MCP is not registered with Codex'
 fi
+if systemctl --user is-active --quiet code-review-graph.service 2>/dev/null; then
+    ok 'shared code-review-graph server'
+else
+    warn 'code-review-graph.service is not running: systemctl --user enable --now code-review-graph.service'
+fi
 agency_agent_count=$(find "$HOME/.codex/agents" -maxdepth 1 -type f -name '*.toml' \
     2>/dev/null | wc -l)
 if ((agency_agent_count >= 263)); then

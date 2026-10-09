@@ -1,0 +1,18 @@
+[Unit]
+Description=Shared code-review-graph MCP server for Codex threads
+
+[Service]
+Type=simple
+# Tools take repo_root on every call. The runtime directory sits outside any
+# Git checkout, so a call that omits it sees an empty graph instead of indexing
+# whichever repository contains the working directory (the home directory is
+# one). CRG_REPO_ROOT stays unset: it would override every per-call repo_root.
+RuntimeDirectory=code-review-graph
+WorkingDirectory=%t/code-review-graph
+ExecStart=%h/.local/bin/code-review-graph serve --http --host 127.0.0.1 --port 47555
+Restart=on-failure
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=default.target
