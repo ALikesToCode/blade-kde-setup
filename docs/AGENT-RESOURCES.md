@@ -93,3 +93,23 @@ takes effect immediately and asks for sudo:
 scripts/add-swapfile.sh --dry-run
 scripts/add-swapfile.sh
 ```
+
+## Checkout storage
+
+`~/storage` is an NTFS drive mounted through FUSE `ntfs-3g`, a user-space
+driver that spends one CPU core on heavy small-file work: every `git status`,
+`node_modules` lookup, and test run of every agent goes through it. The best
+fix is to keep active checkouts and worktrees on the ext4 `/home` drive. When
+they have to stay on NTFS, the in-kernel `ntfs3` driver is much faster:
+
+```sh
+scripts/switch-storage-ntfs3.sh --dry-run
+scripts/switch-storage-ntfs3.sh
+```
+
+The script only rewrites the `/etc/fstab` entry, after `findmnt --verify`
+accepts it, and keeps a dated backup next to it. It never remounts, so the
+change arrives with the next boot. Unlike `ntfs-3g`, `ntfs3` will not mount a
+volume Windows left dirty (Fast Startup, hibernation, or an unclean shutdown);
+the entry keeps `nofail`, so the system still boots, but `~/storage` is then
+missing until the volume is cleaned or the backup is restored.
