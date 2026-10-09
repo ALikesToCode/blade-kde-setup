@@ -9,6 +9,7 @@ bash -n "$ROOT/scripts/install-music.sh" "$ROOT/bin/blade-music-web"
 bash "$ROOT/tests/dark-mode.sh"
 python3 -B "$ROOT/tests/power-control.py"
 python3 -B "$ROOT/tests/music-sync.py"
+python3 -B "$ROOT/tests/agents.py"
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.bladepower/metadata.json" >/dev/null
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.blademusic/metadata.json" >/dev/null
 if command -v node >/dev/null 2>&1; then
