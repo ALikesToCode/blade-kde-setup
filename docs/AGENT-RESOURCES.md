@@ -80,6 +80,21 @@ then renders on the CPU, and EEVEE renders through Mesa on the integrated GPU.
   256-sample EEVEE frame took 0.8 s on the RTX 5090 against 8.7 s on the
   integrated GPU. They are added only when the NVIDIA EGL vendor file exists.
 
+## Android emulator
+
+ARTEMIS starts emulators with a bare `emulator -avd NAME`, so each AVD's
+`config.ini` decides how much of the machine it gets. The test AVD had the GPU
+off (software rendering), 4 cores, and 2 GiB. `scripts/tune-android-avd.sh`
+turns on host GPU rendering and raises every AVD to at least 8 cores and
+4 GiB, never lowering a larger setting. It skips an AVD whose emulator is
+running and backs up each `config.ini` it changes. The first boot afterwards is
+a cold boot, because the old quick-boot snapshot no longer matches.
+
+```sh
+scripts/tune-android-avd.sh --dry-run
+scripts/tune-android-avd.sh
+```
+
 ## Test runs
 
 `blade-testlock COMMAND` runs a command once one of `BLADE_TEST_SLOTS` (3 by

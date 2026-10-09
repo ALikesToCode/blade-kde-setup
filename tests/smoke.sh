@@ -7,7 +7,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 bash -n "$ROOT/scripts/install-power-control.sh"
 bash -n "$ROOT/scripts/install-music.sh" "$ROOT/bin/blade-music-web"
 bash -n "$ROOT/scripts/install-agents.sh" "$ROOT/scripts/add-swapfile.sh" \
-    "$ROOT/scripts/switch-storage-ntfs3.sh"
+    "$ROOT/scripts/switch-storage-ntfs3.sh" "$ROOT/scripts/tune-android-avd.sh"
 bash "$ROOT/tests/dark-mode.sh"
 python3 -B "$ROOT/tests/power-control.py"
 python3 -B "$ROOT/tests/music-sync.py"
@@ -220,6 +220,7 @@ bash "$ROOT/tests/aria2-trackers.sh" >/dev/null
 bash "$ROOT/tests/ariang.sh" >/dev/null
 bash "$ROOT/tests/machine-snapshot.sh" >/dev/null
 bash "$ROOT/tests/testlock.sh" >/dev/null
+bash "$ROOT/tests/android-avd.sh" >/dev/null
 rg -q 'shell_environment_policy\.set\.CLOAK_CDP_ENDPOINT' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/runtime-inner.sh"
 rg -q 'mcp_servers\.playwright_safe\.env\.CLOAK_CDP_ENDPOINT' \
