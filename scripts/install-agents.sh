@@ -22,6 +22,8 @@ DATA_ROOT=${XDG_DATA_HOME:-$HOME/.local/share}
 CONFIG_ROOT=${XDG_CONFIG_HOME:-$HOME/.config}
 STATE_ROOT=${XDG_STATE_HOME:-$HOME/.local/state}
 BACKUP_ROOT=${BLADE_BACKUP_ROOT:-$STATE_ROOT/blade-kde-backups/agents-$(date +%Y%m%d-%H%M%S-%N)}
+RENDER_DIR=$(mktemp -d)
+trap 'rm -rf -- "$RENDER_DIR"' EXIT
 
 copy_file() {
     local source=$1 target=$2 mode=${3:-644}
@@ -50,6 +52,10 @@ for source in "$ROOT"/lib/blade_agents/*.py; do
 done
 copy_file "$ROOT/dotfiles/systemd/user/code-review-graph.service" \
     "$CONFIG_ROOT/systemd/user/code-review-graph.service"
+# The shared server depends on agents passing repo_root, which these
+# instructions require, so --agents installs them even without --user.
+sed "s|__HOME__|${HOME//&/\\&}|g" "$ROOT/dotfiles/agents/AGENTS.md" >"$RENDER_DIR/AGENTS.md"
+copy_file "$RENDER_DIR/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
 ((ACTIVATE)) || exit 0
 if ((DRY_RUN)); then
