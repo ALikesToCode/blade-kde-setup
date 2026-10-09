@@ -43,3 +43,23 @@ partition path before erasing it. The staging copy stays until you run
 
 Files copied from NTFS keep the owner-only `0700` modes ntfs-3g reported, so
 keep `core.fileMode=false` in existing checkouts.
+
+## Windows
+
+`scripts/fix-windows-mount.sh` points `~/Windows` at the Windows partition by
+UUID (NVMe device names change between boots) with the in-kernel `ntfs3`
+driver. It is `noauto`: run `mount ~/Windows` when you need it. `ntfs3`
+refuses to write to a volume Windows left hibernated; turn Fast Startup off
+in Windows if you boot it.
+
+`scripts/enable-windows-boot-entry.sh` turns on os-prober and regenerates the
+GRUB menu, so Windows boots from GRUB as well as from the firmware boot menu.
+
+To read `~/storage` from Windows, use WSL 2 from an administrator terminal:
+
+```powershell
+wsl --mount \\.\PHYSICALDRIVE1 --partition 1
+```
+
+`Get-CimInstance -ClassName Win32_DiskDrive` lists the drive numbers. Avoid
+Ext2Fsd: it is unmaintained and can corrupt current ext4 volumes.
