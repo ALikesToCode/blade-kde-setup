@@ -56,13 +56,18 @@ blade-music sync-now
   Set `brand_account` in `~/.config/blade-music.toml` when you listen on a brand
   channel; its page ID is shown by YouTube's account switcher.
 
-## Queue
+## Playing and repeating
+
+The Blade Music widget shows the current song, its place in the queue, and the
+next song, and switches between no repeat, repeat all, and repeat song. Plasma's
+Media Player widget and media keys control the same MPD queue through
+`mpd-mpris`, so its repeat button does the same thing.
 
 MPD's consume mode stays off, and the installer turns myMPD's jukebox off. The
 jukebox keeps the queue at a few random songs from the library by deleting each
 song after it plays, so the queue never showed what came next and repeat-song
-could not hold. Starting a playlist turns consume off again if something
-switched it on.
+could not hold. Starting a playlist or changing the repeat mode turns consume
+off again if something switched it on.
 
 ## Commands
 
@@ -70,6 +75,7 @@ switched it on.
 | --- | --- |
 | `blade-music-web` | Open myMPD in the browser |
 | `blade-music play ['YTM - Liked']` | Play a stored playlist, or the shuffled library |
+| `blade-music loop off\|playlist\|song` | Repeat nothing, the whole queue, or the current song (also in the panel widget) |
 | `blade-music sync-now` | Start a sync now (also in the panel widget and myMPD's menu) |
 | `blade-music sync --dry-run --force -v` | Show what a sync would download and delete |
 | `journalctl --user -u blade-music-sync -u blade-music-sync-now` | Sync logs |

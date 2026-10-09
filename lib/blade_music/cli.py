@@ -12,6 +12,10 @@ from .store import meta_get, open_db
 
 SYNC_NOW_UNIT = "blade-music-sync-now.service"
 SYNC_UNITS = ("blade-music-sync.service", SYNC_NOW_UNIT)
+SONG_FORMAT = "[%artist% - ]%title%|%file%"
+# MPD's repeat and single flags for each loop mode. Consume stays off: it
+# deletes each song once played, which defeats both kinds of repeat.
+LOOP_MODES = {"off": ("off", "off"), "playlist": ("on", "off"), "song": ("on", "on")}
 
 
 def _output(*command: str) -> str:
@@ -19,6 +23,23 @@ def _output(*command: str) -> str:
         return subprocess.run(command, capture_output=True, text=True, timeout=5).stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return ""
+
+
+def loop_mode(repeat: str, single: str) -> str:
+    if repeat != "on":
+        return "off"
+    return "song" if single == "on" else "playlist"
+
+
+def _queue() -> dict:
+    fields = _output("mpc", "status", "%repeat% %single% %songpos% %length%").split()
+    repeat, single, position, length = (fields + ["", "", "", ""])[:4]
+    return {
+        "loop": loop_mode(repeat, single),
+        "position": int(position) if position.isdigit() else 0,
+        "length": int(length) if length.isdigit() else 0,
+        "next": _output("mpc", "queued", "-f", SONG_FORMAT),
+    }
 
 
 def status(settings) -> dict:
@@ -33,10 +54,20 @@ def status(settings) -> dict:
         "syncing": bool({"active", "activating"} & states),
         "mounted": environment.mounted(settings["mount_point"]),
         "cached": sum(1 for _ in cache_dir.glob("*.*")) if cache_dir.is_dir() else 0,
-        "current": _output("mpc", "current", "-f", "[%artist% - ]%title%|%file%"),
+        "current": _output("mpc", "current", "-f", SONG_FORMAT),
         "state": _output("mpc", "status", "%state%") or "stopped",
         "playlists": json.loads(summary.read_text(encoding="utf-8")) if summary.exists() else [],
+        **_queue(),
     }
+
+
+def _run_steps(steps: list[list[str]]) -> int:
+    for step in steps:
+        result = subprocess.run(step, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(result.stderr.strip() or f"{' '.join(step)} failed", file=sys.stderr)
+            return 1
+    return 0
 
 
 def play(playlist: str | None) -> int:
@@ -45,12 +76,14 @@ def play(playlist: str | None) -> int:
     steps = [["mpc", "-q", "clear"], ["mpc", "-q", "consume", "off"]]
     steps += [["mpc", "-q", "load", playlist]] if playlist else [["mpc", "-q", "add", "/"], ["mpc", "-q", "shuffle"]]
     steps += [["mpc", "-q", "play"]]
-    for step in steps:
-        result = subprocess.run(step, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(result.stderr.strip() or f"{' '.join(step)} failed", file=sys.stderr)
-            return 1
-    return 0
+    return _run_steps(steps)
+
+
+def set_loop(mode: str) -> int:
+    """Repeat nothing, the whole queue, or the current song."""
+    repeat, single = LOOP_MODES[mode]
+    return _run_steps([["mpc", "-q", "consume", "off"], ["mpc", "-q", "repeat", repeat],
+                       ["mpc", "-q", "single", single]])
 
 
 def run() -> None:
@@ -65,6 +98,8 @@ def run() -> None:
     commands.add_parser("status", help="JSON status for the panel widget")
     play_parser = commands.add_parser("play", help="play a stored playlist, or the whole library shuffled")
     play_parser.add_argument("playlist", nargs="?", help="MPD playlist name; omit for the whole library")
+    loop_parser = commands.add_parser("loop", help="repeat nothing, the whole queue, or the current song")
+    loop_parser.add_argument("mode", choices=tuple(LOOP_MODES))
     favourite_parser = commands.add_parser("favourite", help="songs whose radio of similar songs is cached")
     favourite_parser.add_argument("link", nargs="?", help="YouTube Music link or video ID to add; omit to list")
     args = parser.parse_args()
@@ -91,6 +126,8 @@ def run() -> None:
         for video_id in config.read_favourites():
             print(f"https://music.youtube.com/watch?v={video_id}")
         return
+    if args.command == "loop":
+        sys.exit(set_loop(args.mode))
     if args.command == "status":
         print(json.dumps(status(settings), ensure_ascii=False))
         return

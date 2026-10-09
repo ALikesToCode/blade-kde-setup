@@ -13,8 +13,22 @@ PlasmoidItem {
     property string commandError: ""
     readonly property string executable: '"$HOME/.local/bin/blade-music"'
     readonly property string statusCommand: executable + " status"
-    readonly property string nowPlaying: status.state === "play" || status.state === "pause"
-        ? status.current : "Nothing playing"
+    // mpc reports "playing", "paused", or "stopped".
+    readonly property bool active: status.state === "playing" || status.state === "paused"
+    readonly property string nowPlaying: active && status.current
+        ? (status.state === "paused" ? "Paused: " : "") + status.current : "Nothing playing"
+    readonly property string upNext: {
+        if (!active) return "";
+        const position = status.length > 1 ? "Song " + status.position + " of " + status.length + " · " : "";
+        if (status.loop === "song") return position + "Repeating this song";
+        if (status.next) return position + "Up next: " + status.next;
+        return position + (status.loop === "playlist" ? "Then the queue starts again" : "Last song in the queue");
+    }
+    readonly property var loopModes: [
+        {mode: "off", label: "No repeat", icon: "media-repeat-none"},
+        {mode: "playlist", label: "Repeat all", icon: "media-repeat-all"},
+        {mode: "song", label: "Repeat song", icon: "media-repeat-single"}
+    ]
     readonly property string syncLabel: {
         if (status.mounted === false) return "Music drive is not mounted";
         if (status.syncing) return "Syncing YouTube Music…";
@@ -22,7 +36,7 @@ PlasmoidItem {
         return "Last sync " + last + " · " + (status.cached || 0) + " cached songs";
     }
     toolTipMainText: nowPlaying
-    toolTipSubText: syncLabel
+    toolTipSubText: upNext ? upNext + "\n" + syncLabel : syncLabel
     preferredRepresentation: compactRepresentation
 
     function shellQuote(text) {
@@ -83,6 +97,27 @@ PlasmoidItem {
             text: root.nowPlaying
             elide: Text.ElideRight
             Layout.fillWidth: true
+        }
+        QQC2.Label {
+            text: root.upNext
+            visible: text.length > 0
+            elide: Text.ElideRight
+            Layout.fillWidth: true
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            Repeater {
+                model: root.loopModes
+                delegate: QQC2.Button {
+                    required property var modelData
+                    text: modelData.label
+                    icon.name: modelData.icon
+                    checkable: true
+                    checked: root.status.loop === modelData.mode
+                    onClicked: root.run(root.executable + " loop " + modelData.mode)
+                    Layout.fillWidth: true
+                }
+            }
         }
         QQC2.Label {
             text: root.syncLabel

@@ -21,4 +21,11 @@ const types = application.widgets().map(w => w.type);
 assert.equal(types.filter(t => t === "org.mysterious.blademusic").length, 1, "repeated setup must not duplicate the widget");
 assert.equal(types[1], "org.kde.plasma.mediacontroller", "the existing media widget must stay");
 assert.equal(desktopOnly.widgets().length, 1, "panels without a launcher or task manager are left alone");
+const widget = fs.readFileSync(path.join(__dirname,
+    "../kde/plasma/plasmoids/org.mysterious.blademusic/contents/ui/main.qml"), "utf8");
+assert.match(widget, /status\.state === "playing"/, "mpc reports playing, not play");
+assert.doesNotMatch(widget, /status\.state === "play"\s/, "the old state name never matches");
+for (const mode of ["off", "playlist", "song"]) {
+    assert.ok(widget.includes(`mode: "${mode}"`), `the widget offers loop mode ${mode}`);
+}
 console.log("Music panel preservation and idempotence checks passed.");

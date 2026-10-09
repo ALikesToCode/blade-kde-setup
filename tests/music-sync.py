@@ -176,10 +176,25 @@ class PlayerTests(unittest.TestCase):
             self.assertEqual(function(*args), 0)
         return [call.args[0] for call in run.call_args_list]
 
+    def test_loop_modes_map_repeat_and_single(self):
+        self.assertEqual(cli.loop_mode("off", "on"), "off")
+        self.assertEqual(cli.loop_mode("on", "off"), "playlist")
+        self.assertEqual(cli.loop_mode("on", "on"), "song")
+
+    def test_set_loop_turns_consume_off_first(self):
+        self.assertEqual(self.run_steps(cli.set_loop, "song"), [
+            ["mpc", "-q", "consume", "off"], ["mpc", "-q", "repeat", "on"], ["mpc", "-q", "single", "on"]])
+
     def test_play_keeps_the_playlist_in_the_queue(self):
         steps = self.run_steps(cli.play, "Liked")
         self.assertEqual(steps[:3], [["mpc", "-q", "clear"], ["mpc", "-q", "consume", "off"],
                                      ["mpc", "-q", "load", "Liked"]])
+
+    def test_queue_reports_loop_position_and_next_song(self):
+        outputs = {"status": "on off 3 40", "queued": "Artist - Next"}
+        with mock.patch.object(cli, "_output", side_effect=lambda *command: outputs[command[1]]):
+            self.assertEqual(cli._queue(), {"loop": "playlist", "position": 3, "length": 40,
+                                            "next": "Artist - Next"})
 
 
 if __name__ == "__main__":
