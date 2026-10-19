@@ -69,6 +69,18 @@ song after it plays, so the queue never showed what came next and repeat-song
 could not hold. Starting a playlist or changing the repeat mode turns consume
 off again if something switched it on.
 
+## Bluetooth headphones
+
+PipeWire picks the best codec the headphones offer: LDAC, then AAC, then SBC.
+The CMF Headphone Pro offers LDAC only after High-quality audio is turned on in
+the Nothing X app (Device settings), and Nothing recommends turning dual
+connection off with it. `pactl list cards | grep -i codec` shows what is in use.
+
+`51-blade-bluetooth.conf` keeps headphones on music quality when an app opens
+the microphone, instead of the mono hands-free profile, and mutes the speakers
+when headphones disconnect. Pick the headset profile in the volume applet when
+you want the headphone microphone for a call.
+
 ## Commands
 
 | Command | Effect |
