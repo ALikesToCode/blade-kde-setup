@@ -237,7 +237,7 @@ if [[ "$action" == stage ]]; then
   [[ -x "$HOME/.local/share/codex-safe/playwright-cli/node_modules/.bin/playwright-mcp" ]] || die "official Playwright MCP is missing"
   [[ -x "$HOME/.local/share/codex-safe/tools/shellcheck" ]] || die "verified standalone ShellCheck is missing"
   [[ $(sha256sum "$HOME/.local/share/codex-safe/tools/shellcheck" | awk '{print $1}') == 4da528ddb3a4d1b7b24a59d4e16eb2f5fd960f4bd9a3708a15baddbdf1d5a55b ]] || die "standalone ShellCheck checksum mismatch"
-  [[ $(sha256sum "$(command -v Xephyr)" | awk '{print $1}') == 9aa504766d16660bfbe512dc2ec346a039f6486053adf4e35090fad86f8b994d ]] || die "Xephyr checksum mismatch"
+  [[ $(sha256sum "$(command -v Xephyr)" | awk '{print $1}') == d11a87999fe8b7c1ee6a089659e81885dc0fde0d2a5c164488285d66dc94daa9 ]] || die "Xephyr checksum mismatch"
 
   ephemeral_mount="$HOME/.cache/codex-safe-runtime"
   if [[ ! -e "$ephemeral_mount" && ! -L "$ephemeral_mount" ]]; then
