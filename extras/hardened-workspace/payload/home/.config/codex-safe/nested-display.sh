@@ -73,16 +73,28 @@ codex_safe_resolve_host_x11() {
     codex_safe_nested_display_error "cannot discover the active KDE X11 display" || return
 }
 
+# The checksum pacman recorded when it installed the package owning a file, so
+# package updates pass and a file changed outside pacman does not.
+codex_safe_packaged_sha256() {
+  local path=$1 package version mtree
+  package=$(pacman -Qqo -- "$path" 2>/dev/null) || return 1
+  version=$(pacman -Q -- "$package" | awk '{print $2}') || return 1
+  mtree="/var/lib/pacman/local/$package-$version/mtree"
+  [[ -f "$mtree" ]] || return 1
+  zcat -- "$mtree" | awk -v want="./${path#/}" \
+    '$1 == want { for (i = 2; i <= NF; i++) if (sub(/^sha256digest=/, "", $i)) print $i }'
+}
+
 codex_safe_verify_xephyr() {
-  local resolved hash
+  local resolved hash expected
   [[ -x "${XEPHYR_BIN-}" ]] || codex_safe_nested_display_error "Xephyr is missing" || return
-  [[ -n "${XEPHYR_BINARY_SHA256-}" ]] || \
-    codex_safe_nested_display_error "pinned Xephyr checksum is missing" || return
   resolved=$(realpath -e -- "$XEPHYR_BIN") || \
     codex_safe_nested_display_error "cannot resolve Xephyr" || return
+  expected=$(codex_safe_packaged_sha256 "$resolved") && [[ -n "$expected" ]] || \
+    codex_safe_nested_display_error "Xephyr is not a file of an installed pacman package" || return
   hash=$(sha256sum "$resolved" | awk '{print $1}')
-  [[ "$hash" == "$XEPHYR_BINARY_SHA256" ]] || \
-    codex_safe_nested_display_error "Xephyr checksum mismatch" || return
+  [[ "$hash" == "$expected" ]] || \
+    codex_safe_nested_display_error "Xephyr differs from its pacman package" || return
   XEPHYR_BIN=$resolved
 }
 
