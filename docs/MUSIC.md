@@ -69,6 +69,20 @@ song after it plays, so the queue never showed what came next and repeat-song
 could not hold. Starting a playlist or changing the repeat mode turns consume
 off again if something switched it on.
 
+## Same loudness for every song
+
+YouTube uploads range from quiet orchestral rips to heavily compressed
+masters, and YouTube evens them out only while streaming. Each sync measures
+new cached songs with ffmpeg's EBU R128 meter and writes an `R128_TRACK_GAIN`
+tag, and MPD (`replaygain "track"`) applies it, so every song plays at about
+-14 LUFS, the level YouTube Music uses. Loud songs are turned down; quiet ones
+are raised by at most 12 dB and never past -1 dBFS true peak, since the tag
+carries no peak value for MPD's clipping guard. Only Opus files in `ytm-cache/`
+are tagged, and the audio itself is never rewritten.
+
+`blade-music loudness --jobs 4` tags everything not yet tagged, for example
+after installing this the first time.
+
 ## Bluetooth headphones
 
 PipeWire picks the best codec the headphones offer: LDAC, then AAC, then SBC.
@@ -90,4 +104,5 @@ you want the headphone microphone for a call.
 | `blade-music loop off\|playlist\|song` | Repeat nothing, the whole queue, or the current song (also in the panel widget) |
 | `blade-music sync-now` | Start a sync now (also in the panel widget and myMPD's menu) |
 | `blade-music sync --dry-run --force -v` | Show what a sync would download and delete |
+| `blade-music loudness --jobs 4` | Tag cached songs that have no loudness tag yet |
 | `journalctl --user -u blade-music-sync -u blade-music-sync-now` | Sync logs |

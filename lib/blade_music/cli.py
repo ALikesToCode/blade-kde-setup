@@ -1,13 +1,14 @@
 """Command-line entry points for Blade Music."""
 
 import argparse
+import fcntl
 import json
 import logging
 import sqlite3
 import subprocess
 import sys
 
-from . import config, environment, library, sync
+from . import config, environment, library, loudness, sync
 from .store import meta_get, open_db
 
 SYNC_NOW_UNIT = "blade-music-sync-now.service"
@@ -95,6 +96,8 @@ def run() -> None:
     sync_parser.add_argument("--dry-run", action="store_true", help="no downloads or deletions")
     commands.add_parser("sync-now", help="start a forced sync in the background")
     commands.add_parser("index", help="scan the music folder")
+    loudness_parser = commands.add_parser("loudness", help="tag cached songs so they play at the same level")
+    loudness_parser.add_argument("--jobs", type=int, default=2, help="songs measured at once (default 2)")
     commands.add_parser("status", help="JSON status for the panel widget")
     play_parser = commands.add_parser("play", help="play a stored playlist, or the whole library shuffled")
     play_parser.add_argument("playlist", nargs="?", help="MPD playlist name; omit for the whole library")
@@ -119,6 +122,12 @@ def run() -> None:
             "SELECT COUNT(*), COUNT(video_id), SUM(key_tags != '') FROM local_files").fetchone()
         print(f"{total} files indexed: {with_id} with a YouTube ID, {tagged} tagged, "
               f"{total - (tagged or 0)} matched by filename only")
+        return
+    if args.command == "loudness":
+        config.STATE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(config.STATE_DIR / "sync.lock", "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # a sync tags the same files; wait for it
+            print(f"{loudness.tag_cache(settings['cache_dir'], args.jobs)} songs tagged")
         return
     if args.command == "favourite":
         if args.link:

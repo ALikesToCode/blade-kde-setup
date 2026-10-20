@@ -4,6 +4,8 @@
 import datetime as dt
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -13,7 +15,7 @@ from unittest import mock
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from blade_music import cache, cli, config, playlists, youtube
+from blade_music import cache, cli, config, loudness, playlists, youtube
 from blade_music.library import Track, find_local, norm, tag_key
 from blade_music.store import open_db
 
@@ -195,6 +197,42 @@ class PlayerTests(unittest.TestCase):
         with mock.patch.object(cli, "_output", side_effect=lambda *command: outputs[command[1]]):
             self.assertEqual(cli._queue(), {"loop": "playlist", "position": 3, "length": 40,
                                             "next": "Artist - Next"})
+
+
+class LoudnessTests(unittest.TestCase):
+    SUMMARY = """[Parsed_ebur128_0 @ 0x1] Summary:
+
+  Integrated loudness:
+    I:          -9.2 LUFS
+    Threshold: -19.4 LUFS
+
+  True peak:
+    Peak:        0.8 dBFS
+"""
+
+    def test_ebur128_summary_is_parsed(self):
+        self.assertEqual(loudness.parse_ebur128(self.SUMMARY), (-9.2, 0.8))
+        self.assertIsNone(loudness.parse_ebur128("Invalid data found when processing input"))
+
+    def test_gain_lowers_loud_songs_and_offsets_mpds_five_db(self):
+        # -9.2 LUFS to -14 is -4.8 dB; MPD adds 5 dB, so the tag holds -9.8 dB.
+        self.assertEqual(loudness.r128_gain(-9.2, 0.8), round(-9.8 * 256))
+
+    def test_quiet_songs_are_raised_only_to_the_peak_ceiling(self):
+        self.assertEqual(loudness.r128_gain(-24.0, -4.0), round((3.0 - 5) * 256))
+        self.assertEqual(loudness.r128_gain(-70.0, float("-inf")), round((12.0 - 5) * 256))
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
+    def test_cache_songs_are_tagged_once(self):
+        from mutagen.oggopus import OggOpus
+
+        with tempfile.TemporaryDirectory() as directory:
+            song = Path(directory) / "Artist - Song [aaaaaaaaaaa].opus"
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=duration=3",
+                            "-c:a", "libopus", str(song)], check=True)
+            self.assertEqual(loudness.tag_cache(Path(directory)), 1)
+            self.assertIn(loudness.TAG, OggOpus(song).tags)
+            self.assertEqual(loudness.tag_cache(Path(directory)), 0)
 
 
 if __name__ == "__main__":

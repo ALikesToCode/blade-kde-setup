@@ -5,7 +5,7 @@ import fcntl
 import logging
 import subprocess
 
-from . import cache, environment, library, playlists, youtube
+from . import cache, environment, library, loudness, playlists, youtube
 from .store import meta_get, meta_set, open_db
 
 log = logging.getLogger("blade-music")
@@ -81,6 +81,8 @@ def run(settings, state_dir, force: bool = False, dry_run: bool = False) -> int:
             log.info("downloaded %s", rel)
     if len(missing) > budget:
         log.info("%d tracks left for later runs", len(missing) - budget)
+    if not dry_run:
+        loudness.tag_cache(settings["cache_dir"])
 
     library.index_library(db, settings["music_root"])
     if settings["mpd_playlist_dir"]:  # rescan first so MPD knows the new files
