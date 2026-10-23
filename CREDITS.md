@@ -2,6 +2,9 @@
 
 - **Candy Icons** by Eliver Lara — bundled from
   [EliverLara/candy-icons](https://github.com/EliverLara/candy-icons), GPL-3.0.
+- **Orchis-dark Plasma style** by vinceliuice — vendored unmodified from
+  [vinceliuice/Orchis-kde](https://github.com/vinceliuice/Orchis-kde) (commit
+  b2a9691, 2025-10-18), GPL-3.0; see `kde/desktoptheme/Orchis-dark/UPSTREAM`.
 - **Qylock** by Darkkal44 — the login experience was adapted from ideas and
   structure in [Darkkal44/qylock](https://github.com/Darkkal44/qylock), GPL-3.0.
 - **Klassy** — rounded KDE window decoration and preset support from

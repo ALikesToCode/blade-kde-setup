@@ -67,6 +67,7 @@ printf '\nUser assets\n'
 declare -a assets=(
     "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
     "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded/metadata.json"
+    "$HOME/.local/share/plasma/desktoptheme/Orchis-dark/metadata.desktop"
     "$HOME/.local/share/plasma/plasmoids/org.mysterious.bladeclock/metadata.json"
     "$HOME/.local/share/plasma/plasmoids/org.kde.plasma.eventcalendar/metadata.json"
     "$HOME/.local/share/icons/candy-icons/index.theme"

@@ -1,0 +1,3 @@
+Vendored from https://github.com/vinceliuice/Orchis-kde at commit
+b2a96919eee40264e79db402b915f926436100ad (2025-10-18), plasma/desktoptheme/Orchis-dark.
+Unmodified; it has no colors file, so Plasma surfaces follow the ArtixDarkRounded scheme.

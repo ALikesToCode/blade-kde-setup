@@ -1,10 +1,11 @@
 # Plasma panels and widgets
 
 The Blade layout adapts the strongest ideas from a highly visual Quickshell
-desktop to Plasma 6 without replacing KDE's working services. Plasma's complete
-Breeze Dark surface assets provide stable near-black, rounded panels and
-popups; the Artix color scheme keeps blue as the primary accent and green for
-memory and healthy-state telemetry.
+desktop to Plasma 6 without replacing KDE's working services. The vendored
+Orchis-dark Plasma style provides the rounded panel, popups, tooltips, and
+slim pill indicators under running tasks; it has no colors of its own, so the
+Artix color scheme keeps blue as the primary accent and green for memory and
+healthy-state telemetry.
 
 Each display receives a translucent, blurred bottom panel in three groups:
 

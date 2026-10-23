@@ -43,9 +43,9 @@ run kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
 # The brightness widget switches global themes, not just application colors.
 run kwriteconfig6 --file kdeglobals --group KDE --key DefaultDarkLookAndFeel --notify org.mysterious.artixdarkrounded.desktop
 run kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme breeze_cursors
-# Use Plasma's complete, version-matched surface assets. The Artix color scheme
-# still provides the blue/green application accents.
-run kwriteconfig6 --file plasmarc --group Theme --key name breeze-dark
+# Orchis-dark supplies rounded panel, popup, tooltip and task shapes. It ships
+# no colors file, so the Artix color scheme still provides every accent.
+run kwriteconfig6 --file plasmarc --group Theme --key name Orchis-dark
 
 run kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key library org.kde.klassy
 run kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key theme Klassy

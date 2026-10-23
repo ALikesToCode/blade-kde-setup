@@ -124,6 +124,8 @@ required=(
     kde/look-and-feel/org.mysterious.artixdarkrounded.desktop/metadata.json
     kde/desktoptheme/artix-dark-rounded/metadata.json
     kde/desktoptheme/artix-dark-rounded/colors
+    kde/desktoptheme/Orchis-dark/metadata.desktop
+    kde/desktoptheme/Orchis-dark/widgets/tasks.svgz
     kde/sddm/artix-material-you/Main.qml
     kde/plasma/plasmoids/org.mysterious.bladeclock/metadata.json
     kde/plasma/plasmoids/org.mysterious.bladeclock/contents/ui/main.qml

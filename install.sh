@@ -405,6 +405,8 @@ install_user_files() {
         "$HOME/.local/share/plasma/look-and-feel/org.mysterious.artixdarkrounded.desktop"
     install_tree "$ROOT/kde/desktoptheme/artix-dark-rounded" \
         "$HOME/.local/share/plasma/desktoptheme/artix-dark-rounded"
+    install_tree "$ROOT/kde/desktoptheme/Orchis-dark" \
+        "$HOME/.local/share/plasma/desktoptheme/Orchis-dark"
     install_tree "$ROOT/kde/plasma/plasmoids/org.mysterious.bladeclock" \
         "$HOME/.local/share/plasma/plasmoids/org.mysterious.bladeclock"
     if ((DRY_RUN)); then

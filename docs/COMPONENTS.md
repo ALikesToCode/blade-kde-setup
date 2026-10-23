@@ -3,7 +3,8 @@
 | Area | Repository source | Installed destination |
 |---|---|---|
 | Plasma global theme | `kde/look-and-feel/` | `~/.local/share/plasma/look-and-feel/` |
-| Plasma surface palette | `kde/desktoptheme/artix-dark-rounded/` | Optional palette asset; stable Breeze Dark supplies the selected popup/widget SVG set |
+| Plasma surface palette | `kde/desktoptheme/artix-dark-rounded/` | Optional palette asset |
+| Plasma style (active) | `kde/desktoptheme/Orchis-dark/` | `~/.local/share/plasma/desktoptheme/Orchis-dark/`; vendored Orchis rounded panel, popup, tooltip and task shapes, coloured by the Artix scheme |
 | KDE colors | `kde/color-schemes/` | `~/.local/share/color-schemes/` |
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
 | Blade Candy icons (active theme: Candy apps, Breeze Dark tray status) | `assets/icons/blade-candy/` | `~/.local/share/icons/blade-candy/` |
