@@ -70,7 +70,8 @@ PlasmoidItem {
 
     compactRepresentation: QQC2.ToolButton {
         text: root.shortLabel
-        icon.name: root.status.source === "battery" ? "battery" : "battery-charging"
+        // Not a battery icon: the tray battery already sits beside this widget.
+        icon.name: "preferences-system-power"
         display: QQC2.AbstractButton.TextBesideIcon
         Accessible.name: root.sourceLabel
         onClicked: root.expanded = !root.expanded

@@ -4,7 +4,7 @@
         "Authors": [{ "Name": "ALikesToCode" }],
         "Category": "System Information",
         "Description": "Power source, battery charging flow, and charger-aware brightness settings",
-        "Icon": "battery-charging",
+        "Icon": "preferences-system-power",
         "Id": "org.mysterious.bladepower",
         "License": "MIT",
         "Name": "Blade Power",

@@ -81,7 +81,8 @@ PlasmoidItem {
     }
 
     compactRepresentation: QQC2.ToolButton {
-        icon.name: "audio-headphones"
+        // Not audio-headphones: the volume applet shows that icon for headphones.
+        icon.name: "youtube-music"
         Accessible.name: "Blade Music: " + root.nowPlaying
         onClicked: root.expanded = !root.expanded
     }

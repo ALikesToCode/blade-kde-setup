@@ -4,7 +4,7 @@
         "Authors": [{ "Name": "ALikesToCode" }],
         "Category": "Multimedia",
         "Description": "Play cached YouTube Music playlists through MPD and start a sync",
-        "Icon": "audio-headphones",
+        "Icon": "youtube-music",
         "Id": "org.mysterious.blademusic",
         "License": "MIT",
         "Name": "Blade Music",
