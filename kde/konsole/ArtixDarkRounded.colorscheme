@@ -1,11 +1,11 @@
 [Background]
-Color=10,16,30
+Color=5,7,10
 
 [BackgroundFaint]
-Color=10,16,30
+Color=5,7,10
 
 [BackgroundIntense]
-Color=15,23,40
+Color=10,16,30
 
 [Color0]
 Color=22,32,54

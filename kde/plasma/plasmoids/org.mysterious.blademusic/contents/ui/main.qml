@@ -87,13 +87,13 @@ PlasmoidItem {
         onClicked: root.expanded = !root.expanded
     }
 
-    // A rounded, softly tinted surface shared by the cards and tiles below.
+    // A rounded night-blue card on the black popup, shared by the cards and tiles below.
     component Surface: Rectangle {
         property bool emphasised: false
         radius: Kirigami.Units.largeSpacing
-        color: emphasised ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22) : Qt.alpha(Kirigami.Theme.textColor, 0.06)
+        color: Qt.alpha(Kirigami.Theme.highlightColor, emphasised ? 0.24 : 0.09)
         border.width: 1
-        border.color: emphasised ? Qt.alpha(Kirigami.Theme.highlightColor, 0.55) : Qt.alpha(Kirigami.Theme.textColor, 0.08)
+        border.color: Qt.alpha(Kirigami.Theme.highlightColor, emphasised ? 0.6 : 0.16)
     }
 
     component Tile: QQC2.AbstractButton {
@@ -105,8 +105,8 @@ PlasmoidItem {
         Accessible.name: subtitle ? text + ", " + subtitle : text
         background: Surface {
             emphasised: tile.selected
-            color: tile.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
-                : Qt.alpha(Kirigami.Theme.textColor, tile.down ? 0.14 : tile.hovered ? 0.10 : 0.06)
+            color: Qt.alpha(Kirigami.Theme.highlightColor,
+                tile.selected ? 0.24 : tile.down ? 0.22 : tile.hovered ? 0.15 : 0.09)
         }
         contentItem: RowLayout {
             spacing: Kirigami.Units.smallSpacing * 2
