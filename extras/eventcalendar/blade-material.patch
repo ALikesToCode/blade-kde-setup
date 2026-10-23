@@ -249,3 +249,41 @@ diff --git a/package/contents/ui/config/ConfigGoogleCalendar.qml b/package/conte
  			onCheckedChanged: {
  				if (!credentialsSection.credentialsReady) {
  					return
+diff --git a/package/contents/ui/DayDelegate.qml b/package/contents/ui/DayDelegate.qml
+--- a/package/contents/ui/DayDelegate.qml
++++ b/package/contents/ui/DayDelegate.qml
+@@ -81,15 +81,16 @@ MouseArea {
+ 		visible: todayStyle == "theme"
+ 		opacity: {
+ 			if (selected && today) {
+-				return 0.6
++				return 0.75
+ 			} else if (today) {
+-				return 0.4
++				return 0.5
+ 			} else {
+ 				return 0
+ 			}
+ 		}
+ 		Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration*2 } }
+-		color: Kirigami.Theme.textColor
++		// Blade: a light text-coloured fill left white numbers unreadable on dark themes.
++		color: Kirigami.Theme.highlightColor
+ 		radius: dayStyle.radius
+ 	}
+ 
+diff --git a/package/contents/ui/UpcomingEvents.qml b/package/contents/ui/UpcomingEvents.qml
+--- a/package/contents/ui/UpcomingEvents.qml
++++ b/package/contents/ui/UpcomingEvents.qml
+@@ -30,6 +30,11 @@ CalendarManager {
+ 	}
+ 
+ 	function isSameMinute(a, b) {
++		// Blade: some calendar sources leave startDateTime unset, and the throw
++		// aborted every reminder check once a minute.
++		if (!a || !b) {
++			return false
++		}
+ 		return a.getFullYear() === b.getFullYear()
+ 			&& a.getMonth() === b.getMonth()
+ 			&& a.getDate() === b.getDate()
