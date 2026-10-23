@@ -10,6 +10,10 @@ already paints with currentColor in the ColorScheme-Background class get the
 same treatment: Plasma resolves that class to light grey for notifications
 and tooltips, which left white text on a pale card.
 
+Switch handles are moved from the button background to the button text
+colour: on the black scheme a navy knob on the faint off-state track was
+nearly invisible.
+
 Usage: recolor-orchis.py THEME_DIR --scheme FILE.colors [--write]
 Prints each file that needs a change; rewrites it only with --write.
 """
@@ -72,6 +76,19 @@ def recolour(svg, target, report):
     return ''.join(out)
 
 
+HANDLES = ('handle', 'handle-hover', 'handle-pressed')
+
+
+def light_handles(svg, report):
+    def group(match):
+        new = match.group(0).replace('ColorScheme-ButtonBackground', 'ColorScheme-ButtonText')
+        if new != match.group(0):
+            report.append('handle')
+        return new
+    pattern = r'<g\b[^>]*\bid="(?:%s)"[^>]*>.*?</g>' % '|'.join(HANDLES)
+    return re.sub(pattern, group, svg, flags=re.S)
+
+
 def main(arguments):
     if not arguments or '--scheme' not in arguments[:-1]:
         print(__doc__.split('\n\n')[-1].strip(), file=sys.stderr)
@@ -80,15 +97,16 @@ def main(arguments):
     scheme = arguments[arguments.index('--scheme') + 1]
     write = '--write' in arguments
     for path in sorted(theme.rglob('*.svg*')):
-        if not any(key in path.name for key in ('background', 'tooltip', 'panel')):
+        surface = any(key in path.name for key in ('background', 'tooltip', 'panel'))
+        if not surface and not path.name.startswith('switch.'):
             continue
         raw = path.read_bytes()
         svg = gzip.decompress(raw).decode() if path.suffix == '.svgz' else raw.decode()
         report = []
         target = background(scheme, 'Tooltip' if 'tooltip' in path.name else 'Window')
-        new = recolour(svg, target, report)
+        new = recolour(svg, target, report) if surface else light_handles(svg, report)
         if report:
-            print(path.relative_to(theme), len(report), sorted(set(report)), '->', target)
+            print(path.relative_to(theme), len(report), sorted(set(report)), *(('->', target) if surface else ()))
             if write:
                 data = new.encode()
                 path.write_bytes(gzip.compress(data, mtime=0) if path.suffix == '.svgz' else data)

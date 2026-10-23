@@ -7,7 +7,8 @@ popup and widget backgrounds with ArtixDarkRounded's Window background
 Orchis's opacity; shadows and blur masks are unchanged. The colours are
 literal on purpose: in plasmashell, currentColor in the ColorScheme-Background
 class resolved to light grey, so notifications and tooltips showed white text
-on a pale card. Re-run the script after re-vendoring or changing the scheme's
+on a pale card. Switch handles use the button text colour instead of the
+button background so off switches stay visible on black. Re-run the script after re-vendoring or changing the scheme's
 Window or Tooltip background:
 
     scripts/recolor-orchis.py kde/desktoptheme/Orchis-dark \
