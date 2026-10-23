@@ -37,8 +37,7 @@ else
 fi
 
 run kwriteconfig6 --file kdeglobals --group General --key ColorScheme ArtixDarkRounded
-# Candy application icons with Breeze Dark's monochrome tray status icons.
-run kwriteconfig6 --file kdeglobals --group Icons --key Theme blade-candy
+run kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons
 run kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Breeze
 # The brightness widget switches global themes, not just application colors.
 run kwriteconfig6 --file kdeglobals --group KDE --key DefaultDarkLookAndFeel --notify org.mysterious.artixdarkrounded.desktop

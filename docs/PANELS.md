@@ -17,9 +17,8 @@ Each display receives a translucent, blurred bottom panel in three groups:
 
 The tray shows Wi-Fi, Bluetooth, audio, brightness, battery, and notifications.
 Clipboard, KDE Connect, displays, the tray media player, and the duplicate
-KMix and blueman status icons stay under the tray arrow. The active
-`blade-candy` icon theme keeps Candy's colourful application icons but uses
-Breeze Dark's monochrome status icons, so the tray reads as one calm row.
+KMix and blueman status icons stay under the tray arrow. Candy's status icons
+keep the tray colour-coded: each indicator has its own colour.
 Blade Power shows only its icon while the main charger runs automatically and
 adds a label for the USB-C saving charger or a manual choice.
 
