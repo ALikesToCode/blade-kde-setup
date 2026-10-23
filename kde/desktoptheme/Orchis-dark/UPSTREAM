@@ -1,8 +1,12 @@
 Vendored from https://github.com/vinceliuice/Orchis-kde at commit
 b2a96919eee40264e79db402b915f926436100ad (2025-10-18), plasma/desktoptheme/Orchis-dark.
 
-Local change: scripts/recolor-orchis.py turned the hard-coded dark fills of
-panel, popup, tooltip and widget backgrounds into fill:currentColor with the
-ColorScheme-Background class, so those surfaces follow the active colour
-scheme (night-blue ArtixDarkRounded) while keeping Orchis's opacity. Shadows
-and blur masks are unchanged. Re-run the script after re-vendoring.
+Local change: scripts/recolor-orchis.py repaints the hard-coded dark fills of
+panel, popup, tooltip and widget backgrounds with ArtixDarkRounded's Window
+background (#05070a), keeping Orchis's opacity; shadows and blur masks are
+unchanged. The colour is literal on purpose: currentColor turned notification
+popups light grey. Re-run the script after re-vendoring or changing the
+scheme's Window background:
+
+    scripts/recolor-orchis.py kde/desktoptheme/Orchis-dark \
+        --scheme kde/color-schemes/ArtixDarkRounded.colors --write

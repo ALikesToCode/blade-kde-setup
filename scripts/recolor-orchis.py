@@ -1,65 +1,90 @@
 #!/usr/bin/env python3
-"""Make vendored Orchis frame surfaces follow the KDE colour scheme.
+"""Paint vendored Orchis frame surfaces in the KDE colour scheme's background.
 
-Dark hard-coded fills on frame parts (center/top/.../bottomright, any prefix
-except shadow-, mask- and hint-) become fill:currentColor with the
-ColorScheme-Background class; opacity is kept so translucency survives.
+Orchis hard-codes grey and black fills on its panel, popup, tooltip and
+widget frames. Each dark fill on a frame part (center/top/.../bottomright,
+any prefix except shadow-, mask- and hint-) becomes the scheme's Window
+background; opacity is kept so translucency survives. The colour is written
+literally: ColorScheme-Background with currentColor turns notification
+popups light grey, because Plasma resolves that class to a light colour there.
+
+Usage: recolor-orchis.py THEME_DIR --scheme FILE.colors [--write]
+Prints each file that needs a change; rewrites it only with --write.
 """
-import gzip, re, sys, pathlib
+import configparser
+import gzip
+import pathlib
+import re
+import sys
 
 PART = r'(?:[a-z0-9-]*?-)?(?:center|top|bottom|left|right|topleft|topright|bottomleft|bottomright)'
 SKIP = ('shadow-', 'mask-', 'hint-')
 FILL = re.compile(r'fill:\s*(#[0-9a-fA-F]{6})')
+TAG = re.compile(r'<(/?)([\w:]+)([^>]*?)(/?)>', re.S)
 
-def dark(hexcolour):
-    r, g, b = (int(hexcolour[i:i + 2], 16) for i in (1, 3, 5))
-    return max(r, g, b) <= 0x40
 
-def recolour(svg, report):
-    # Walk tags, tracking which ones sit inside a frame part element.
-    out, depth_stack, pos = [], [], 0
-    tag = re.compile(r'<(/?)([\w:]+)([^>]*?)(/?)>', re.S)
-    for m in tag.finditer(svg):
-        out.append(svg[pos:m.start()]); pos = m.end()
+def background(scheme):
+    parser = configparser.ConfigParser(interpolation=None, strict=False)
+    parser.optionxform = str
+    parser.read(scheme)
+    r, g, b = (int(v) for v in parser.get('Colors:Window', 'BackgroundNormal').split(',')[:3])
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+
+def dark(colour):
+    return max(int(colour[i:i + 2], 16) for i in (1, 3, 5)) <= 0x40
+
+
+def recolour(svg, target, report):
+    out, inside_stack, pos = [], [], 0
+    for m in TAG.finditer(svg):
+        out.append(svg[pos:m.start()])
+        pos = m.end()
         closing, name, attrs, selfclose = m.groups()
         if closing:
-            if depth_stack: depth_stack.pop()
-            out.append(m.group(0)); continue
+            if inside_stack:
+                inside_stack.pop()
+            out.append(m.group(0))
+            continue
         ident = re.search(r'\bid="([^"]+)"', attrs)
         ident = ident.group(1) if ident else ''
         is_part = bool(re.fullmatch(PART, ident)) and not ident.startswith(SKIP)
-        inside = is_part or (depth_stack and depth_stack[-1])
+        inside = is_part or (inside_stack and inside_stack[-1])
         if inside and name in ('rect', 'path', 'circle', 'ellipse', 'polygon'):
             style = re.search(r'style="([^"]*)"', attrs)
-            f = FILL.search(style.group(1)) if style else None
-            if f and dark(f.group(1)):
-                new_style = FILL.sub('fill:currentColor', style.group(1), count=1)
+            fill = FILL.search(style.group(1)) if style else None
+            if fill and dark(fill.group(1)) and fill.group(1).lower() != target:
+                new_style = FILL.sub('fill:' + target, style.group(1), count=1)
                 attrs = attrs.replace(style.group(0), f'style="{new_style}"')
-                if 'class="' in attrs:
-                    attrs = re.sub(r'class="[^"]*"', 'class="ColorScheme-Background"', attrs)
-                else:
-                    attrs = ' class="ColorScheme-Background"' + attrs
-                report.append((ident or '(child)', f.group(1)))
+                report.append(fill.group(1).lower())
         out.append(f'<{name}{attrs}{selfclose}>')
         if not selfclose:
-            depth_stack.append(inside)
+            inside_stack.append(inside)
     out.append(svg[pos:])
     return ''.join(out)
 
-def main(theme, write):
-    """Print each changed file; rewrite it only with --write."""
-    for path in sorted(pathlib.Path(theme).rglob('*.svg*')):
-        if not any(k in path.name for k in ('background', 'tooltip', 'panel')):
+
+def main(arguments):
+    if not arguments or '--scheme' not in arguments[:-1]:
+        print(__doc__.split('\n\n')[-1].strip(), file=sys.stderr)
+        return 2
+    theme = pathlib.Path(arguments[0])
+    target = background(arguments[arguments.index('--scheme') + 1])
+    write = '--write' in arguments
+    for path in sorted(theme.rglob('*.svg*')):
+        if not any(key in path.name for key in ('background', 'tooltip', 'panel')):
             continue
         raw = path.read_bytes()
         svg = gzip.decompress(raw).decode() if path.suffix == '.svgz' else raw.decode()
         report = []
-        new = recolour(svg, report)
+        new = recolour(svg, target, report)
         if report:
-            print(path.relative_to(theme), len(report), sorted(set(c for _, c in report)))
+            print(path.relative_to(theme), len(report), sorted(set(report)), '->', target)
             if write:
                 data = new.encode()
                 path.write_bytes(gzip.compress(data, mtime=0) if path.suffix == '.svgz' else data)
+    return 0
+
 
 if __name__ == '__main__':
-    main(sys.argv[1], '--write' in sys.argv)
+    sys.exit(main(sys.argv[1:]))

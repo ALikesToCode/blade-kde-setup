@@ -217,12 +217,12 @@
          transform="translate(0,904.36)"
          style="opacity:0.15" />
     </g>
-    <path class="ColorScheme-Background"
+    <path
        id="path19"
        fill="#1a1a1a"
        d="m19 6c-3.324 0-6 2.676-6 6h6v-5z"
        transform="translate(0,904.36)"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
   </g>
   <rect
      fill="#f60"
@@ -233,7 +233,7 @@
   <g
      transform="translate(15,-904.36)"
      id="top">
-    <rect class="ColorScheme-Background"
+    <rect
        id="rect23"
        fill="#1a1a1a"
        height="32"
@@ -241,7 +241,7 @@
        y="-51"
        x="-916.36"
        transform="matrix(0,-1,-1,0,0,0)"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
     <rect
        id="rect25"
        fill="url(#linearGradient948)"
@@ -255,7 +255,7 @@
   <g
      transform="translate(15,-904.36)"
      id="bottom">
-    <rect class="ColorScheme-Background"
+    <rect
        id="rect28"
        fill="#1a1a1a"
        height="32"
@@ -263,7 +263,7 @@
        y="-51"
        x="948.36"
        transform="rotate(90)"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
     <rect
        id="rect30"
        fill="url(#linearGradient956)"
@@ -277,7 +277,7 @@
   <g
      transform="translate(15,-904.36)"
      id="left">
-    <rect class="ColorScheme-Background"
+    <rect
        id="rect33"
        fill="#1a1a1a"
        height="32"
@@ -285,7 +285,7 @@
        y="916.36"
        x="-19"
        transform="scale(-1,1)"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
     <rect
        id="rect35"
        fill="url(#linearGradient952)"
@@ -299,14 +299,14 @@
   <g
      transform="translate(15,-904.36)"
      id="right">
-    <rect class="ColorScheme-Background"
+    <rect
        id="rect38"
        fill="#1a1a1a"
        height="32"
        width="6"
        y="916.36"
        x="51"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
     <rect
        id="rect40"
        fill="url(#linearGradient958)"
@@ -326,14 +326,14 @@
        width="32"
        y="916.36"
        x="19" />
-    <rect class="ColorScheme-Background"
+    <rect
        id="rect45"
        fill="#1a1a1a"
        height="32"
        width="32"
        y="916.36"
        x="19"
-       style="opacity:0.96;fill:currentColor;fill-opacity:1" />
+       style="opacity:0.96;fill:#05070a;fill-opacity:1" />
   </g>
   <rect
      height="24"

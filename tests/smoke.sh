@@ -17,7 +17,8 @@ python3 -B "$ROOT/tests/agents.py"
 python3 -B "$ROOT/tests/fstab-entry.py"
 python3 -m py_compile "$ROOT/scripts/desktop-shortcuts.py" "$ROOT/scripts/recolor-orchis.py"
 # The vendored Orchis surfaces must already follow the colour scheme.
-[[ -z $(python3 -I "$ROOT/scripts/recolor-orchis.py" "$ROOT/kde/desktoptheme/Orchis-dark") ]]
+[[ -z $(python3 -I "$ROOT/scripts/recolor-orchis.py" "$ROOT/kde/desktoptheme/Orchis-dark" \
+    --scheme "$ROOT/kde/color-schemes/ArtixDarkRounded.colors") ]]
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.bladepower/metadata.json" >/dev/null
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.blademusic/metadata.json" >/dev/null
 if command -v node >/dev/null 2>&1; then
