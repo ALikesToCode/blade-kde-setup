@@ -80,38 +80,153 @@ PlasmoidItem {
         onClicked: root.expanded = !root.expanded
     }
 
+    // A rounded, softly tinted surface shared by the cards and tiles below.
+    component Surface: Rectangle {
+        property bool emphasised: false
+        radius: Kirigami.Units.largeSpacing
+        color: emphasised ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22) : Qt.alpha(Kirigami.Theme.textColor, 0.06)
+        border.width: 1
+        border.color: emphasised ? Qt.alpha(Kirigami.Theme.highlightColor, 0.55) : Qt.alpha(Kirigami.Theme.textColor, 0.08)
+    }
+
+    component Stat: Surface {
+        id: stat
+        property alias label: statLabel.text
+        property alias value: statValue.text
+        property string detail: ""
+        implicitHeight: statColumn.implicitHeight + Kirigami.Units.largeSpacing * 2
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.preferredWidth: 1
+
+        ColumnLayout {
+            id: statColumn
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Kirigami.Units.largeSpacing
+            spacing: 0
+            QQC2.Label {
+                id: statLabel
+                font: Kirigami.Theme.smallFont
+                opacity: 0.65
+                Layout.fillWidth: true
+            }
+            Kirigami.Heading {
+                id: statValue
+                level: 3
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+            QQC2.Label {
+                text: stat.detail
+                visible: text.length > 0
+                font: Kirigami.Theme.smallFont
+                opacity: 0.65
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+        }
+    }
+
+    component ModeTile: QQC2.AbstractButton {
+        id: tile
+        property string subtitle: ""
+        property bool selected: false
+        hoverEnabled: true
+        padding: Kirigami.Units.largeSpacing
+        Layout.fillWidth: true
+        Layout.preferredWidth: 1
+        Accessible.name: text + ", " + subtitle
+        background: Surface {
+            emphasised: tile.selected
+            color: tile.selected ? Qt.alpha(Kirigami.Theme.highlightColor, 0.22)
+                : Qt.alpha(Kirigami.Theme.textColor, tile.down ? 0.14 : tile.hovered ? 0.10 : 0.06)
+        }
+        contentItem: ColumnLayout {
+            spacing: 0
+            opacity: tile.enabled ? 1 : 0.45
+            QQC2.Label {
+                text: tile.text
+                font.bold: tile.selected
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+            QQC2.Label {
+                text: tile.subtitle
+                font: Kirigami.Theme.smallFont
+                opacity: 0.65
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+        }
+    }
+
     fullRepresentation: ColumnLayout {
-        spacing: Kirigami.Units.smallSpacing
+        id: popup
+        spacing: Kirigami.Units.largeSpacing
         Layout.minimumWidth: Kirigami.Units.gridUnit * 20
         Layout.preferredWidth: Kirigami.Units.gridUnit * 22
         Layout.minimumHeight: implicitHeight
 
-        Kirigami.Heading {
-            level: 3
-            text: root.sourceLabel
-            wrapMode: Text.WordWrap
+        readonly property var battery: (root.status.batteries || [])[0] || null
+        readonly property bool canChoose: root.status.detected === "external" || root.status.detected === "usb"
+
+        RowLayout {
+            spacing: Kirigami.Units.largeSpacing
             Layout.fillWidth: true
-        }
-        Repeater {
-            model: root.status.batteries || []
-            delegate: QQC2.Label {
-                required property var modelData
-                text: modelData.status + " · " + (modelData.capacity === null ? "?" : modelData.capacity) + "%"
-                    + (modelData.net_watts === null ? "" : " · " + modelData.net_watts + " W net battery flow")
-                wrapMode: Text.WordWrap
+            Kirigami.Icon {
+                source: "preferences-system-power"
+                Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+            }
+            ColumnLayout {
+                spacing: 0
                 Layout.fillWidth: true
+                Kirigami.Heading {
+                    level: 3
+                    text: root.sourceLabel
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+                    Rectangle {
+                        implicitWidth: Kirigami.Units.smallSpacing * 2
+                        implicitHeight: implicitWidth
+                        radius: width / 2
+                        color: root.status.service_active ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                    }
+                    QQC2.Label {
+                        text: root.status.service_active ? "Automatic switching is running" : "Automatic switching is not running"
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.75
+                    }
+                }
             }
         }
-        QQC2.Label {
-            text: "Brightness target: " + (root.status.brightness_percent ?? "?") + "% · "
-                + (root.status.power_profile || "unknown profile")
-            wrapMode: Text.WordWrap
+
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
             Layout.fillWidth: true
+            Stat {
+                label: "Battery"
+                value: popup.battery && popup.battery.capacity !== null
+                    ? Math.round(popup.battery.capacity) + "%" : "?"
+                detail: !popup.battery ? "" : popup.battery.status
+                    + (popup.battery.net_watts === null ? "" : " · " + popup.battery.net_watts + " W")
+            }
+            Stat {
+                label: "Brightness"
+                value: (root.status.brightness_percent ?? "?") + "%"
+                detail: "target"
+            }
+            Stat {
+                label: "Profile"
+                value: root.status.power_profile || "unknown"
+            }
         }
-        QQC2.Label {
-            text: root.status.service_active ? "Automatic switching is running" : "Automatic switching is not running"
-            Layout.fillWidth: true
-        }
+
         QQC2.Label {
             text: root.commandError || root.status.last_error || root.status.warning || ""
             visible: text.length > 0
@@ -119,32 +234,43 @@ PlasmoidItem {
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
         }
-        QQC2.Button {
-            text: "Automatic detection"
-            checkable: true
-            checked: root.status.selection === "auto"
-            onClicked: root.selectMode("auto")
-            Layout.fillWidth: true
+
+        Kirigami.Heading {
+            level: 5
+            text: "Charger"
+            opacity: 0.75
         }
-        QQC2.Button {
-            text: "400 W main charger — normal mode"
-            enabled: root.status.detected === "external" || root.status.detected === "usb"
-            onClicked: root.selectMode("main")
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
             Layout.fillWidth: true
+            ModeTile {
+                text: "Automatic"
+                subtitle: "detect"
+                selected: root.status.selection === "auto"
+                onClicked: root.selectMode("auto")
+            }
+            ModeTile {
+                text: "400 W"
+                subtitle: "normal mode"
+                selected: root.status.selection === "main"
+                enabled: popup.canChoose
+                onClicked: root.selectMode("main")
+            }
+            ModeTile {
+                text: "USB-C 100 W"
+                subtitle: "saving mode"
+                selected: root.status.selection === "usb"
+                enabled: popup.canChoose
+                onClicked: root.selectMode("usb")
+            }
         }
-        QQC2.Button {
-            text: "100 W USB-C charger — saving mode"
-            enabled: root.status.detected === "external" || root.status.detected === "usb"
-            onClicked: root.selectMode("usb")
-            Layout.fillWidth: true
-        }
+
         QQC2.Label {
-            text: "Manual charger choices reset when the service observes a disconnect or you log out. "
-                + "Select again if you swap chargers without disconnecting power. "
-                + "Use the adjacent brightness control for manual adjustments. "
-                + "Battery flow is not charger wattage; heavy workloads can still drain the battery on USB-C."
+            text: "Manual choices reset when power disconnects or you log out; pick again after swapping chargers "
+                + "without unplugging. Battery flow is not charger wattage, so heavy work can still drain the battery on USB-C."
             wrapMode: Text.WordWrap
-            opacity: 0.8
+            font: Kirigami.Theme.smallFont
+            opacity: 0.6
             Layout.fillWidth: true
         }
     }
