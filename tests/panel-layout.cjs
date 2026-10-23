@@ -99,4 +99,10 @@ const telemetry = laptop.list.find(w => w.type === "org.kde.plasma.systemmonitor
 assert.equal(telemetry.config["Appearance/chartFace"], "org.kde.ksysguard.textonly");
 assert.deepEqual(JSON.parse(telemetry.config["Sensors/highPrioritySensorIds"]),
     ["memory/physical/usedPercent", "network/all/download", "cpu/all/usage", "gpu/gpu1/usage"]);
+const shownSensors = JSON.parse(telemetry.config["Sensors/highPrioritySensorIds"])
+    .concat(JSON.parse(telemetry.config["Sensors/lowPrioritySensorIds"]));
+for (const sensor of shownSensors) {
+    assert.ok(telemetry.config["SensorColors/" + sensor], "no colour for " + sensor);
+    assert.ok(telemetry.config["SensorLabels/" + sensor], "no label for " + sensor);
+}
 console.log("Panel layout checks passed.");

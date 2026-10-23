@@ -213,12 +213,24 @@ function bladeConfigureTelemetry(widget) {
     colors["memory/physical/usedPercent"] = "129,201,149";
     colors[gpu] = "84,209,255";
     colors["network/all/download"] = "197,138,249";
+    // The popup lists the detail sensors too; without their own colour and
+    // label they show a blank swatch and clipped names such as "GB203M / GN...".
+    colors["cpu/all/averageTemperature"] = colors["cpu/all/usage"];
+    colors["memory/physical/used"] = colors["memory/physical/usedPercent"];
+    colors[BLADE_GPU_PREFIX + "/temperature"] = colors[gpu];
+    colors[BLADE_GPU_PREFIX + "/usedVram"] = colors[gpu];
+    colors["network/all/upload"] = colors["network/all/download"];
     bladeWrite(widget, ["SensorColors"], colors);
     var labels = {};
     labels["cpu/all/usage"] = "CPU";
     labels["memory/physical/usedPercent"] = "RAM";
     labels[gpu] = "GPU";
     labels["network/all/download"] = "NET";
+    labels["cpu/all/averageTemperature"] = "CPU temp";
+    labels["memory/physical/used"] = "Memory";
+    labels[BLADE_GPU_PREFIX + "/temperature"] = "GPU temp";
+    labels[BLADE_GPU_PREFIX + "/usedVram"] = "VRAM";
+    labels["network/all/upload"] = "NET up";
     bladeWrite(widget, ["SensorLabels"], labels);
     bladeWrite(widget, ["Sensors"], {
         "highPrioritySensorIds": JSON.stringify(sensors),
