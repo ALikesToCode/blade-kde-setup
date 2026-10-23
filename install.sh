@@ -415,6 +415,7 @@ install_user_files() {
     install_file "$ROOT/kde/color-schemes/ArtixDarkRounded.colors" \
         "$HOME/.local/share/color-schemes/ArtixDarkRounded.colors"
     install_tree "$ROOT/assets/icons/candy-icons" "$HOME/.local/share/icons/candy-icons"
+    install_tree "$ROOT/assets/icons/blade-candy" "$HOME/.local/share/icons/blade-candy"
     install_tree "$ROOT/assets/wallpapers" "$HOME/.local/share/wallpapers/BladeKDE"
     install_file "$ROOT/assets/branding/launcher/a-candy-icon.png" \
         "$HOME/.local/share/blade-kde/branding/launcher/a-candy-icon.png"

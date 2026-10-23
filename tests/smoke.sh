@@ -127,6 +127,7 @@ required=(
     kde/plasma/plasmoids/org.mysterious.bladeclock/metadata.json
     kde/plasma/plasmoids/org.mysterious.bladeclock/contents/ui/main.qml
     assets/icons/candy-icons/index.theme
+    assets/icons/blade-candy/index.theme
     assets/branding/launcher/a-candy-icon.png
     assets/branding/launcher/hicolor/64x64/apps/mysterious-a.png
     assets/wallpapers/desktop/desktop-16x10-3840x2400.png

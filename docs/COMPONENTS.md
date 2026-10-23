@@ -6,6 +6,7 @@
 | Plasma surface palette | `kde/desktoptheme/artix-dark-rounded/` | Optional palette asset; stable Breeze Dark supplies the selected popup/widget SVG set |
 | KDE colors | `kde/color-schemes/` | `~/.local/share/color-schemes/` |
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
+| Blade Candy icons (active theme: Candy apps, Breeze Dark tray status) | `assets/icons/blade-candy/` | `~/.local/share/icons/blade-candy/` |
 | Launcher artwork | `assets/branding/launcher/` | Blade branding data and freedesktop hicolor icon sizes |
 | Plasma panels/widgets | `kde/plasma/`, `scripts/apply-panels.sh` | One native application/status panel per display |
 | Machine snapshot | `machine/`, `scripts/capture-machine.sh`, `scripts/restore-machine.sh` | Recorded packages, user tools, `/etc` tuning, services, groups, and merged KDE settings |

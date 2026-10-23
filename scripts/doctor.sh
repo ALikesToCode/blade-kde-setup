@@ -70,6 +70,7 @@ declare -a assets=(
     "$HOME/.local/share/plasma/plasmoids/org.mysterious.bladeclock/metadata.json"
     "$HOME/.local/share/plasma/plasmoids/org.kde.plasma.eventcalendar/metadata.json"
     "$HOME/.local/share/icons/candy-icons/index.theme"
+    "$HOME/.local/share/icons/blade-candy/index.theme"
     "$HOME/.local/share/konsole/Artix Dark Rounded.profile"
     "$HOME/.local/share/klassy/Artix_Dark_Rounded.klpw"
     "$HOME/.local/share/wallpapers/BladeKDE/desktop/desktop-16x10-3840x2400.png"
