@@ -503,7 +503,7 @@
      opacity="0"
      stroke-width=".375" />
   <rect
-     style="color:#eff0f1;opacity:0.9;fill:currentColor;fill-opacity:1;stroke:none;stop-color:#eff0f1"
+     style="color:#eff0f1;opacity:0.9;fill:#05070a;fill-opacity:1;stroke:none;stop-color:#eff0f1"
      id="thick-center"
      width="32"
      height="32"

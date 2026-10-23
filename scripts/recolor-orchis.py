@@ -4,9 +4,11 @@
 Orchis hard-codes grey and black fills on its panel, popup, tooltip and
 widget frames. Each dark fill on a frame part (center/top/.../bottomright,
 any prefix except shadow-, mask- and hint-) becomes the scheme's Window
-background; opacity is kept so translucency survives. The colour is written
-literally: ColorScheme-Background with currentColor turns notification
-popups light grey, because Plasma resolves that class to a light colour there.
+background, or its Tooltip background in tooltip frames; opacity is kept so
+translucency survives. The colour is written literally, and fills Orchis
+already paints with currentColor in the ColorScheme-Background class get the
+same treatment: Plasma resolves that class to light grey for notifications
+and tooltips, which left white text on a pale card.
 
 Usage: recolor-orchis.py THEME_DIR --scheme FILE.colors [--write]
 Prints each file that needs a change; rewrites it only with --write.
@@ -20,14 +22,15 @@ import sys
 PART = r'(?:[a-z0-9-]*?-)?(?:center|top|bottom|left|right|topleft|topright|bottomleft|bottomright)'
 SKIP = ('shadow-', 'mask-', 'hint-')
 FILL = re.compile(r'fill:\s*(#[0-9a-fA-F]{6})')
+CURRENT = re.compile(r'fill:\s*currentColor')
 TAG = re.compile(r'<(/?)([\w:]+)([^>]*?)(/?)>', re.S)
 
 
-def background(scheme):
+def background(scheme, group):
     parser = configparser.ConfigParser(interpolation=None, strict=False)
     parser.optionxform = str
     parser.read(scheme)
-    r, g, b = (int(v) for v in parser.get('Colors:Window', 'BackgroundNormal').split(',')[:3])
+    r, g, b = (int(v) for v in parser.get('Colors:' + group, 'BackgroundNormal').split(',')[:3])
     return f'#{r:02x}{g:02x}{b:02x}'
 
 
@@ -57,6 +60,11 @@ def recolour(svg, target, report):
                 new_style = FILL.sub('fill:' + target, style.group(1), count=1)
                 attrs = attrs.replace(style.group(0), f'style="{new_style}"')
                 report.append(fill.group(1).lower())
+            elif (style and CURRENT.search(style.group(1))
+                  and re.search(r'class="[^"]*ColorScheme-Background\b', attrs)):
+                new_style = CURRENT.sub('fill:' + target, style.group(1), count=1)
+                attrs = attrs.replace(style.group(0), f'style="{new_style}"')
+                report.append('currentColor')
         out.append(f'<{name}{attrs}{selfclose}>')
         if not selfclose:
             inside_stack.append(inside)
@@ -69,7 +77,7 @@ def main(arguments):
         print(__doc__.split('\n\n')[-1].strip(), file=sys.stderr)
         return 2
     theme = pathlib.Path(arguments[0])
-    target = background(arguments[arguments.index('--scheme') + 1])
+    scheme = arguments[arguments.index('--scheme') + 1]
     write = '--write' in arguments
     for path in sorted(theme.rglob('*.svg*')):
         if not any(key in path.name for key in ('background', 'tooltip', 'panel')):
@@ -77,6 +85,7 @@ def main(arguments):
         raw = path.read_bytes()
         svg = gzip.decompress(raw).decode() if path.suffix == '.svgz' else raw.decode()
         report = []
+        target = background(scheme, 'Tooltip' if 'tooltip' in path.name else 'Window')
         new = recolour(svg, target, report)
         if report:
             print(path.relative_to(theme), len(report), sorted(set(report)), '->', target)
