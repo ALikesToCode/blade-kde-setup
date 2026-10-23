@@ -4,7 +4,7 @@
 |---|---|---|
 | Plasma global theme | `kde/look-and-feel/` | `~/.local/share/plasma/look-and-feel/` |
 | Plasma surface palette | `kde/desktoptheme/artix-dark-rounded/` | Optional palette asset |
-| Plasma style (active) | `kde/desktoptheme/Orchis-dark/` | `~/.local/share/plasma/desktoptheme/Orchis-dark/`; vendored Orchis rounded panel, popup, tooltip and task shapes, coloured by the Artix scheme |
+| Plasma style (active) | `kde/desktoptheme/Orchis-dark/` | `~/.local/share/plasma/desktoptheme/Orchis-dark/`; vendored Orchis rounded panel, popup, tooltip and task shapes; `scripts/recolor-orchis.py` makes their surfaces follow the night-blue Artix scheme |
 | KDE colors | `kde/color-schemes/` | `~/.local/share/color-schemes/` |
 | Candy icons | `assets/icons/candy-icons/` | `~/.local/share/icons/candy-icons/` |
 | Launcher artwork | `assets/branding/launcher/` | Blade branding data and freedesktop hicolor icon sizes |

@@ -1,3 +1,8 @@
 Vendored from https://github.com/vinceliuice/Orchis-kde at commit
 b2a96919eee40264e79db402b915f926436100ad (2025-10-18), plasma/desktoptheme/Orchis-dark.
-Unmodified; it has no colors file, so Plasma surfaces follow the ArtixDarkRounded scheme.
+
+Local change: scripts/recolor-orchis.py turned the hard-coded dark fills of
+panel, popup, tooltip and widget backgrounds into fill:currentColor with the
+ColorScheme-Background class, so those surfaces follow the active colour
+scheme (night-blue ArtixDarkRounded) while keeping Orchis's opacity. Shadows
+and blur masks are unchanged. Re-run the script after re-vendoring.

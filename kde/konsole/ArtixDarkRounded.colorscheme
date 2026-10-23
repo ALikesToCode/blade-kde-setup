@@ -1,14 +1,14 @@
 [Background]
-Color=5,7,10
+Color=10,16,30
 
 [BackgroundFaint]
-Color=5,7,10
+Color=10,16,30
 
 [BackgroundIntense]
-Color=10,14,20
+Color=15,23,40
 
 [Color0]
-Color=5,7,10
+Color=22,32,54
 
 [Color0Faint]
 Color=49,54,63
@@ -83,7 +83,7 @@ Color=240,246,252
 Color=201,209,217
 
 [ForegroundFaint]
-Color=139,148,158
+Color=136,150,176
 
 [ForegroundIntense]
 Color=240,246,252

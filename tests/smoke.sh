@@ -15,6 +15,9 @@ python3 -B "$ROOT/tests/power-control.py"
 python3 -B "$ROOT/tests/music-sync.py"
 python3 -B "$ROOT/tests/agents.py"
 python3 -B "$ROOT/tests/fstab-entry.py"
+python3 -m py_compile "$ROOT/scripts/recolor-orchis.py"
+# The vendored Orchis surfaces must already follow the colour scheme.
+[[ -z $(python3 -I "$ROOT/scripts/recolor-orchis.py" "$ROOT/kde/desktoptheme/Orchis-dark") ]]
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.bladepower/metadata.json" >/dev/null
 python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.blademusic/metadata.json" >/dev/null
 if command -v node >/dev/null 2>&1; then
@@ -203,6 +206,7 @@ required=(
     docs/STORAGE.md
     scripts/migrate-storage.sh
     scripts/fstab-entry.py
+    scripts/recolor-orchis.py
     scripts/install-agents.sh
     dotfiles/systemd/user/code-review-graph.service
     dotfiles/blender/scripts/startup/blade_gpu.py
