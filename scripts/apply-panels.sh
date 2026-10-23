@@ -66,10 +66,10 @@ if ((DRY_RUN)); then
     printf 'Blade Plasma panel plan:\n'
     printf '  mode: %s\n' "$([[ $REPLACE_EXISTING == 1 ]] && printf exact-replacement || printf safe-ensure)"
     printf '  primary: bottom, 52px, floating, translucent with blur, always visible\n'
-    printf '  additional displays: same application panel plus workspaces, auto-hide on hover edge\n'
-    printf '  widgets: launcher and six pinned apps (left), media and Blade Music (centre), one CPU/RAM/GPU/network readout, tray, Blade Power, Event Calendar (right)\n'
+    printf '  additional displays: same application panel, auto-hide on hover edge\n'
+    printf '  widgets: launcher and six pinned apps (left), media and Blade Music (centre), numbered workspaces, one CPU/RAM/GPU/network readout, tray, Blade Power, Event Calendar (right)\n'
     printf '  status: Wi-Fi, Bluetooth, audio, brightness, battery, notifications; clipboard, KDE Connect, displays and media under the tray arrow\n'
-    printf '  retires: separate CPU/RAM/network monitors, panel brightness, separator, laptop workspace switcher\n'
+    printf '  retires: separate CPU/RAM/network monitors, panel brightness, separator\n'
     printf '  accent: pastel blue primary with green and cyan telemetry highlights\n'
     printf '  clock: %s\n' "$([[ $REPLACE_CLOCK == 1 ]] && printf 'replace Digital Clock with Event Calendar' || printf 'preserve existing clocks')"
     exit 0
@@ -133,3 +133,4 @@ fi
 [[ -n $position_output ]] && printf '%s\n' "$position_output"
 
 printf 'Blade panels are configured. Additional displays use auto-hide.\n'
+printf 'A widget added just now moves into place after: systemctl --user restart plasma-plasmashell\n'

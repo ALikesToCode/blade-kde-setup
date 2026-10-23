@@ -2,6 +2,7 @@
 
 set -Eeuo pipefail
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 DRY_RUN=0
 [[ ${1:-} == --dry-run ]] && DRY_RUN=1
 
@@ -97,6 +98,13 @@ if [[ -n $QDBUS ]]; then
         "$QDBUS" org.kde.KWin /KWin org.kde.KWin.reconfigure >/dev/null 2>&1 \
             || warn 'KWin is not running; its decoration will apply next session.'
     fi
+fi
+
+if ((DRY_RUN)); then
+    run "$SCRIPT_DIR/desktop-shortcuts.py"
+else
+    python3 "$SCRIPT_DIR/desktop-shortcuts.py" >/dev/null 2>&1 \
+        || warn 'kglobalaccel is not running; virtual desktop shortcuts will apply next session.'
 fi
 
 printf 'Artix Dark Rounded is configured. Restart Konsole to load its profile.\n'

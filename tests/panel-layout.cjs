@@ -74,13 +74,13 @@ vm.runInNewContext(source, context);
 assert.deepEqual(order(laptop), [
     "org.kde.plasma.kickoff", "org.kde.plasma.icontasks", "org.kde.plasma.panelspacer",
     "org.kde.plasma.mediacontroller", "org.mysterious.blademusic", "org.kde.plasma.panelspacer",
-    "org.kde.plasma.systemmonitor", "org.kde.plasma.systemtray", "org.mysterious.bladepower",
+    "org.kde.plasma.pager", "org.kde.plasma.systemmonitor", "org.kde.plasma.systemtray", "org.mysterious.bladepower",
     "org.kde.plasma.eventcalendar", "org.kde.plasma.showdesktop", "user.custom.widget"
-], "laptop panel: apps left, music centred, status right, user widgets kept");
-assert.equal(laptop.list.length, 12, "repeated runs add no duplicate spacers or widgets");
+], "laptop panel: apps left, music centred, workspaces and status right, user widgets kept");
+assert.equal(laptop.list.length, 13, "repeated runs add no duplicate spacers or widgets");
 
 const externalOrder = order(external);
-assert.ok(externalOrder.includes("org.kde.plasma.pager"), "the large display keeps workspaces");
+assert.ok(externalOrder.includes("org.kde.plasma.pager"), "every display has workspaces");
 assert.ok(!externalOrder.includes("org.mysterious.blademusic"), "optional widgets are not installed here");
 for (const retired of ["org.kde.plasma.systemmonitor.cpu", "org.kde.plasma.systemmonitor.net",
     "org.kde.plasma.brightness", "org.kde.plasma.marginsseparator"]) {

@@ -58,23 +58,9 @@ var bladeRetiredWidgets = [
     "org.kde.plasma.marginsseparator"
 ];
 
-// Apps on the left, music centred between two spacers, status on the right.
-var bladePrimaryOrder = [
-    "org.kde.plasma.kickoff",
-    "org.kde.plasma.icontasks",
-    bladeSpacer,
-    "org.kde.plasma.mediacontroller",
-    "org.mysterious.blademusic",
-    bladeSpacer,
-    bladeTelemetry,
-    "org.kde.plasma.systemtray",
-    "org.mysterious.bladepower",
-    bladeEventCalendar,
-    "org.kde.plasma.showdesktop"
-];
-
-// The auto-hide panel on the large display has room for workspaces.
-var bladeSecondaryOrder = [
+// Apps on the left, music centred between two spacers, then workspaces and
+// status on the right.
+var bladePanelOrder = [
     "org.kde.plasma.kickoff",
     "org.kde.plasma.icontasks",
     bladeSpacer,
@@ -276,9 +262,10 @@ function bladeConfigureWidget(widget, type) {
             "wheelEnabled": true
         });
     } else if (type === "org.kde.plasma.pager") {
+        // Numbers only: window icons made five cells too busy for the bar.
         bladeWrite(widget, ["General"], {
             "displayedText": "Number",
-            "showWindowIcons": true,
+            "showWindowIcons": false,
             "wrapPage": true
         });
     } else if (type === "org.kde.plasma.systemtray") {
@@ -348,10 +335,6 @@ function bladeConfigureWidget(widget, type) {
     }
 }
 
-function bladeOrderFor(panel) {
-    return panel.screen === 0 ? bladePrimaryOrder : bladeSecondaryOrder;
-}
-
 // Resolve each order entry to a widget; a type listed twice (the spacers)
 // maps to its first and second instance. Missing widgets are added unless
 // they are optional or `addMissing` is false.
@@ -383,15 +366,13 @@ function bladeConfigurePanel(panel, screenIndex) {
     // Keep the primary panel steady; the additional-display panel reveals on hover.
     panel.hiding = screenIndex === 0 ? "none" : "autohide";
 
-    var order = bladeOrderFor(panel);
-    bladeRetiredWidgets.concat(order.indexOf("org.kde.plasma.pager") === -1 ? ["org.kde.plasma.pager"] : [])
-        .forEach(function (type) {
-            bladeWidgetsOfType(panel, type).forEach(function (widget) {
-                widget.remove();
-            });
+    bladeRetiredWidgets.forEach(function (type) {
+        bladeWidgetsOfType(panel, type).forEach(function (widget) {
+            widget.remove();
         });
+    });
 
-    var layout = bladeLayoutWidgets(panel, order, true);
+    var layout = bladeLayoutWidgets(panel, bladePanelOrder, true);
     layout.forEach(function (entry) {
         bladeConfigureWidget(entry.widget, entry.type);
     });
@@ -442,7 +423,7 @@ panels().forEach(function (panel) {
     if (bladeWidgetsOfType(panel, "org.kde.plasma.icontasks").length === 0) {
         return;
     }
-    bladeApplyOrder(panel, bladeLayoutWidgets(panel, bladeOrderFor(panel), false).map(function (entry) {
+    bladeApplyOrder(panel, bladeLayoutWidgets(panel, bladePanelOrder, false).map(function (entry) {
         return entry.widget;
     }));
 });

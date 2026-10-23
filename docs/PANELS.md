@@ -12,8 +12,9 @@ Each display receives a translucent, blurred bottom panel in three groups:
 - **left:** the custom multicolor **A** launcher and icon-only application tasks;
 - **centre:** Plasma's media controller with the Blade Music queue button,
   held in the middle by two flexible spacers;
-- **right:** one two-row readout (RAM and network over CPU and GPU, each with a
-  coloured bar), the system tray, Blade Power, and the Blade Event Calendar clock.
+- **right:** numbered virtual desktops, one two-row readout (RAM and network
+  over CPU and GPU, each with a coloured bar), the system tray, Blade Power, and
+  the Blade Event Calendar clock.
 
 The tray shows Wi-Fi, Bluetooth, audio, brightness, battery, and notifications.
 Clipboard, KDE Connect, displays, the tray media player, and the duplicate
@@ -24,10 +25,25 @@ adds a label for the USB-C saving charger or a manual choice.
 
 The text-only sensor face sizes itself from its first two sensors, so the
 readout leads with the widest label (RAM) and widest value (network); any other
-order hides labels. The auto-hide panel on additional displays also carries the
-workspace switcher. Re-applying the layout removes widgets that earlier
+order hides labels. Re-applying the layout removes widgets that earlier
 versions placed in the panel: the separate CPU, memory, and network monitors,
 the panel brightness widget (now in the tray), and the margins separator.
+
+## Virtual desktops
+
+Plasma keeps five virtual desktops. Click a number in the panel, or use:
+
+| Keys | Action |
+| --- | --- |
+| Meta+Alt+1 … 5 | Switch to that desktop (Ctrl+F1 … F4 and Meta+F1 … F4 also work) |
+| Meta+Alt+Shift+1 … 5 | Send the active window to that desktop |
+| Meta+Ctrl+Left / Right | Previous or next desktop |
+| Meta+Ctrl+Shift+Left / Right | Take the active window one desktop over |
+| Meta+W | Overview: drag windows between desktops, add or remove desktops |
+| Meta+G | Grid of every desktop |
+
+`scripts/desktop-shortcuts.py` adds the Meta+Alt keys through kglobalaccel and
+keeps any keys already assigned; `apply-kde.sh` runs it.
 
 The task manager keeps existing pins and ensures the Blade default set is
 available on both displays: Konsole, Dolphin, Zen Browser, Zed, Antigravity,
