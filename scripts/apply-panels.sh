@@ -29,7 +29,7 @@ Options:
 
 Environment:
   BLADE_GPU_SENSOR_PREFIX  Plasma sensor prefix (default: gpu/gpu1)
-  BLADE_GPU_TITLE          GPU donut title (default: RTX 5090 GPU)
+  BLADE_GPU_TITLE          Accepted for older setups; the combined readout labels it GPU
 EOF
 }
 
@@ -65,10 +65,11 @@ done
 if ((DRY_RUN)); then
     printf 'Blade Plasma panel plan:\n'
     printf '  mode: %s\n' "$([[ $REPLACE_EXISTING == 1 ]] && printf exact-replacement || printf safe-ensure)"
-    printf '  primary: bottom, 52px, floating, opaque, always visible\n'
-    printf '  additional displays: same application panel, auto-hide on hover edge\n'
-    printf '  widgets: launcher, six pinned apps, media, CPU/RAM/GPU donuts, live download/upload speed, workspaces, status, Event Calendar\n'
-    printf '  status: Wi-Fi, Bluetooth, audio, battery, notifications\n'
+    printf '  primary: bottom, 52px, floating, translucent with blur, always visible\n'
+    printf '  additional displays: same application panel plus workspaces, auto-hide on hover edge\n'
+    printf '  widgets: launcher and six pinned apps (left), media and Blade Music (centre), one CPU/RAM/GPU/network readout, tray, Blade Power, Event Calendar (right)\n'
+    printf '  status: Wi-Fi, Bluetooth, audio, brightness, battery, notifications; clipboard, KDE Connect, displays and media under the tray arrow\n'
+    printf '  retires: separate CPU/RAM/network monitors, panel brightness, separator, laptop workspace switcher\n'
     printf '  accent: pastel blue primary with green and cyan telemetry highlights\n'
     printf '  clock: %s\n' "$([[ $REPLACE_CLOCK == 1 ]] && printf 'replace Digital Clock with Event Calendar' || printf 'preserve existing clocks')"
     exit 0
@@ -120,13 +121,12 @@ fi
 
 [[ -n $output ]] && printf '%s\n' "$output"
 
-# A new applet is initially appended after evaluateScript returns. Run a
-# placement-only pass after creation has settled so the network display lands
-# beside the existing CPU/RAM/GPU telemetry on a fresh layout too.
+# A new applet is initially appended after evaluateScript returns. Run an
+# ordering-only pass after creation has settled so new widgets land in place.
 position_script=${script/var BLADE_POSITION_ONLY = false;/var BLADE_POSITION_ONLY = true;}
 if ! position_output=$($QDBUS org.kde.plasmashell /PlasmaShell \
     org.kde.PlasmaShell.evaluateScript "$position_script" 2>&1); then
-    printf 'apply-panels: Plasma could not position the network widget: %s\n' \
+    printf 'apply-panels: Plasma could not order the panel widgets: %s\n' \
         "$position_output" >&2
     exit 1
 fi

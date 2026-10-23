@@ -10,9 +10,9 @@ The setup includes:
 - Artix Dark Rounded Plasma global theme and color scheme
 - Candy icon theme
 - Custom blue/green Candy-style **A** application launcher
-- Dual-display native Plasma panels with media, calendar, Wi-Fi, Bluetooth,
-  audio, battery, notifications, live download/upload speed, and CPU/RAM/GPU
-  donut widgets
+- Dual-display translucent Plasma panels: apps on the left, music in the centre,
+  and a compact RAM/network/CPU/GPU readout, quiet monochrome tray, and calendar
+  clock on the right
 - Native brightness control and [Blade Power](docs/POWER-CONTROL.md) for charger
   selection, battery charging flow, and automatic brightness on source changes
 - Plasma 6 Event Calendar with a dark Material card layout, agenda, event

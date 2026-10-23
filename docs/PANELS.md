@@ -6,15 +6,28 @@ Breeze Dark surface assets provide stable near-black, rounded panels and
 popups; the Artix color scheme keeps blue as the primary accent and green for
 memory and healthy-state telemetry.
 
-Each display receives a bottom application panel with:
+Each display receives a translucent, blurred bottom panel in three groups:
 
-- the custom multicolor **A** launcher and Candy icons;
-- icon-only application tasks and numbered workspaces;
-- Plasma's native media controller;
-- compact pastel-blue CPU, pastel-green memory, and cyan GPU donut monitors;
-- a two-line cyan/green display of live download and upload speeds;
-- always-available Wi-Fi, Bluetooth, audio, battery, and notification controls;
-- the Blade Event Calendar clock with a full calendar and agenda popup.
+- **left:** the custom multicolor **A** launcher and icon-only application tasks;
+- **centre:** Plasma's media controller with the Blade Music queue button,
+  held in the middle by two flexible spacers;
+- **right:** one two-row readout (RAM and network over CPU and GPU, each with a
+  coloured bar), the system tray, Blade Power, and the Blade Event Calendar clock.
+
+The tray shows Wi-Fi, Bluetooth, audio, brightness, battery, and notifications.
+Clipboard, KDE Connect, displays, the tray media player, and the duplicate
+KMix and blueman status icons stay under the tray arrow. The active
+`blade-candy` icon theme keeps Candy's colourful application icons but uses
+Breeze Dark's monochrome status icons, so the tray reads as one calm row.
+Blade Power shows only its icon while the main charger runs automatically and
+adds a label for the USB-C saving charger or a manual choice.
+
+The text-only sensor face sizes itself from its first two sensors, so the
+readout leads with the widest label (RAM) and widest value (network); any other
+order hides labels. The auto-hide panel on additional displays also carries the
+workspace switcher. Re-applying the layout removes widgets that earlier
+versions placed in the panel: the separate CPU, memory, and network monitors,
+the panel brightness widget (now in the tray), and the margins separator.
 
 The task manager keeps existing pins and ensures the Blade default set is
 available on both displays: Konsole, Dolphin, Zen Browser, Zed, Antigravity,

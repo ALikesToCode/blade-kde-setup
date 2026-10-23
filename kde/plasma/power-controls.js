@@ -1,4 +1,4 @@
-// Add only the two power controls to existing application panels.
+// Add only the power controls to existing application panels.
 var added = [];
 panels().forEach(function (panel) {
     var widgets = panel.widgets();
@@ -7,7 +7,10 @@ panels().forEach(function (panel) {
     })) {
         return;
     }
-    ["org.kde.plasma.brightness", "org.mysterious.bladepower"].forEach(function (type) {
+    // A panel with a system tray shows brightness there (blade-panels.js).
+    var hasTray = widgets.some(function (widget) { return widget.type === "org.kde.plasma.systemtray"; });
+    var types = hasTray ? ["org.mysterious.bladepower"] : ["org.kde.plasma.brightness", "org.mysterious.bladepower"];
+    types.forEach(function (type) {
         if (!widgets.some(function (widget) { return widget.type === type; })) {
             var widget = panel.addWidget(type);
             if (!widget) { throw new Error("Could not add " + type); }

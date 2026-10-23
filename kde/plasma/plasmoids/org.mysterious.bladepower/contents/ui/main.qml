@@ -72,7 +72,10 @@ PlasmoidItem {
         text: root.shortLabel
         // Not a battery icon: the tray battery already sits beside this widget.
         icon.name: "preferences-system-power"
-        display: QQC2.AbstractButton.TextBesideIcon
+        // The tray already shows the battery; spell out only the saving
+        // charger or a manual choice.
+        display: root.status.source === "usb" || root.shortLabel.endsWith("*")
+            ? QQC2.AbstractButton.TextBesideIcon : QQC2.AbstractButton.IconOnly
         Accessible.name: root.sourceLabel
         onClicked: root.expanded = !root.expanded
     }

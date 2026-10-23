@@ -5,8 +5,22 @@ var bladeStatusItems = [
     "org.kde.plasma.networkmanagement",
     "org.kde.plasma.bluetooth",
     "org.kde.plasma.volume",
+    "org.kde.plasma.brightness",
     "org.kde.plasma.battery",
     "org.kde.plasma.notifications"
+];
+
+// Reachable from the tray arrow, never shown in the bar itself.
+var bladeHiddenTrayItems = [
+    "org.kde.plasma.mediacontroller",
+    "org.kde.plasma.clipboard",
+    "org.kde.kscreen",
+    "org.kde.kdeconnect",
+    "org.kde.kupapplet",
+    "org.kde.plasma.dwellclicker",
+    // Status icons of apps that duplicate Plasma's own audio and Bluetooth applets.
+    "KMix",
+    "blueman"
 ];
 
 var bladeExtraTrayItems = bladeStatusItems.concat([
@@ -26,37 +40,50 @@ var bladePinnedApplications = [
 ];
 
 var bladeEventCalendar = "org.kde.plasma.eventcalendar";
-var bladeNetworkMonitor = "org.kde.plasma.systemmonitor.net";
+var bladeTelemetry = "org.kde.plasma.systemmonitor";
+var bladeSpacer = "org.kde.plasma.panelspacer";
 
+// Installed by their own scripts; placed here only when already present.
+var bladeOptionalWidgets = [
+    "org.mysterious.blademusic",
+    "org.mysterious.bladepower"
+];
+
+// Earlier layouts used these; the tray and the combined telemetry replace them.
+var bladeRetiredWidgets = [
+    "org.kde.plasma.systemmonitor.cpu",
+    "org.kde.plasma.systemmonitor.memory",
+    "org.kde.plasma.systemmonitor.net",
+    "org.kde.plasma.brightness",
+    "org.kde.plasma.marginsseparator"
+];
+
+// Apps on the left, music centred between two spacers, status on the right.
 var bladePrimaryOrder = [
     "org.kde.plasma.kickoff",
     "org.kde.plasma.icontasks",
+    bladeSpacer,
     "org.kde.plasma.mediacontroller",
-    "org.kde.plasma.systemmonitor.cpu",
-    "org.kde.plasma.systemmonitor.memory",
-    "org.kde.plasma.systemmonitor",
-    bladeNetworkMonitor,
-    "org.kde.plasma.pager",
-    "org.kde.plasma.marginsseparator",
+    "org.mysterious.blademusic",
+    bladeSpacer,
+    bladeTelemetry,
     "org.kde.plasma.systemtray",
-    "org.kde.plasma.brightness",
     "org.mysterious.bladepower",
     bladeEventCalendar,
     "org.kde.plasma.showdesktop"
 ];
 
+// The auto-hide panel on the large display has room for workspaces.
 var bladeSecondaryOrder = [
     "org.kde.plasma.kickoff",
     "org.kde.plasma.icontasks",
+    bladeSpacer,
     "org.kde.plasma.mediacontroller",
+    "org.mysterious.blademusic",
+    bladeSpacer,
     "org.kde.plasma.pager",
-    "org.kde.plasma.marginsseparator",
-    "org.kde.plasma.systemmonitor.cpu",
-    "org.kde.plasma.systemmonitor.memory",
-    "org.kde.plasma.systemmonitor",
-    bladeNetworkMonitor,
+    bladeTelemetry,
     "org.kde.plasma.systemtray",
-    "org.kde.plasma.brightness",
     "org.mysterious.bladepower",
     bladeEventCalendar,
     "org.kde.plasma.showdesktop"
@@ -133,149 +160,101 @@ function bladeAddWidget(panel, type) {
     return null;
 }
 
-function bladeEnsureWidget(panel, type) {
-    var matches = bladeWidgetsOfType(panel, type);
-    return matches.length > 0 ? matches[0] : bladeAddWidget(panel, type);
-}
+function bladeApplyOrder(panel, widgets) {
+    var present = {};
+    panel.widgets().forEach(function (widget) {
+        present[String(widget.id)] = true;
+    });
 
-function bladePlaceWidgetAfter(panel, widget, anchorType) {
-    if (!widget) {
-        return;
-    }
+    var ids = [];
+    widgets.forEach(function (widget) {
+        var id = widget ? String(widget.id) : "";
+        if (present[id] && ids.indexOf(id) === -1) {
+            ids.push(id);
+        }
+    });
 
-    var anchors = bladeWidgetsOfType(panel, anchorType);
-    if (anchors.length === 0) {
-        return;
-    }
-
+    // Widgets the user added stay, after the Blade set and in their old order.
     panel.currentConfigGroup = ["General"];
     var storedOrder = panel.readConfig("AppletOrder", "");
     panel.currentConfigGroup = [];
-    if (typeof storedOrder !== "string" || storedOrder.length === 0) {
-        return;
-    }
-
-    var widgetId = String(widget.id);
-    var anchorId = String(anchors[0].id);
-    var order = storedOrder.split(";").filter(function (id) {
-        return id.length > 0 && id !== widgetId;
+    var stored = typeof storedOrder === "string" ? storedOrder.split(";") : [];
+    stored.concat(Object.keys(present)).forEach(function (id) {
+        if (present[id] && ids.indexOf(id) === -1) {
+            ids.push(id);
+        }
     });
-    var anchorIndex = order.indexOf(anchorId);
-    if (anchorIndex === -1) {
-        return;
-    }
 
-    order.splice(anchorIndex + 1, 0, widgetId);
-    bladeWrite(panel, ["General"], {"AppletOrder": order.join(";")});
+    bladeWrite(panel, ["General"], {"AppletOrder": ids.join(";")});
 }
 
-function bladeConfigureNetworkMonitor(widget) {
+function bladeConfigureTelemetry(widget) {
     if (!widget) {
         return;
     }
 
-    var sensors = ["network/all/download", "network/all/upload"];
+    var gpu = BLADE_GPU_PREFIX + "/usage";
+    // The text face fills two rows column by column, but sizes the panel item
+    // from the first two sensors only. Leading with the widest label (RAM) and
+    // the widest value (network) keeps every label visible.
+    var sensors = ["memory/physical/usedPercent", "network/all/download", "cpu/all/usage", gpu];
+    var details = [
+        "cpu/all/averageTemperature",
+        "memory/physical/used",
+        BLADE_GPU_PREFIX + "/temperature",
+        BLADE_GPU_PREFIX + "/usedVram",
+        "network/all/upload"
+    ];
+
     bladeWrite(widget, [], {
         "CurrentPreset": "org.kde.plasma.systemmonitor",
         "highPrioritySensorIds": JSON.stringify(sensors),
-        "lowPrioritySensorIds": JSON.stringify([]),
+        "lowPrioritySensorIds": JSON.stringify(details),
         "showTitle": false,
-        "title": "Network Speed",
+        "title": "System",
         "totalSensors": JSON.stringify([]),
-        "updateRateLimit": 1000
+        "updateRateLimit": 2000
     });
     bladeWrite(widget, ["Appearance"], {
         "chartFace": "org.kde.ksysguard.textonly",
-        "title": "Network Speed"
+        "title": "System"
     });
     bladeWrite(widget, ["FaceConfig"], {
         "groupByTotal": false
     });
-    bladeWrite(widget, ["SensorColors"], {
-        "network/all/download": "84,209,255",
-        "network/all/upload": "129,201,149"
-    });
-    bladeWrite(widget, ["SensorLabels"], {
-        "network/all/download": "DOWN",
-        "network/all/upload": "UP"
-    });
+    var colors = {};
+    colors["cpu/all/usage"] = "138,180,248";
+    colors["memory/physical/usedPercent"] = "129,201,149";
+    colors[gpu] = "84,209,255";
+    colors["network/all/download"] = "197,138,249";
+    bladeWrite(widget, ["SensorColors"], colors);
+    var labels = {};
+    labels["cpu/all/usage"] = "CPU";
+    labels["memory/physical/usedPercent"] = "RAM";
+    labels[gpu] = "GPU";
+    labels["network/all/download"] = "NET";
+    bladeWrite(widget, ["SensorLabels"], labels);
     bladeWrite(widget, ["Sensors"], {
         "highPrioritySensorIds": JSON.stringify(sensors),
-        "lowPrioritySensorIds": JSON.stringify([]),
+        "lowPrioritySensorIds": JSON.stringify(details),
         "totalSensors": JSON.stringify([])
     });
 }
 
-function bladeConfigureMonitor(widget, kind) {
-    if (!widget) {
-        return;
-    }
-
-    var sensor;
-    var title;
-    var color;
-    var lowSensors;
-    var label;
-
-    if (kind === "cpu") {
-        sensor = "cpu/all/usage";
-        title = "CPU Usage";
-        color = "138,180,248";
-        lowSensors = ["cpu/all/averageTemperature", "cpu/all/averageFrequency", "cpu/all/coreCount"];
-        label = "CPU";
-    } else if (kind === "memory") {
-        sensor = "memory/physical/used";
-        title = "Memory Usage";
-        color = "129,201,149";
-        lowSensors = ["memory/physical/total", "memory/physical/application", "memory/physical/cache"];
-        label = "RAM";
-    } else {
-        sensor = BLADE_GPU_PREFIX + "/usage";
-        title = BLADE_GPU_TITLE;
-        color = "84,209,255";
-        lowSensors = [
-            BLADE_GPU_PREFIX + "/temperature",
-            BLADE_GPU_PREFIX + "/usedVram",
-            BLADE_GPU_PREFIX + "/totalVram",
-            BLADE_GPU_PREFIX + "/power"
-        ];
-        label = "GPU";
-    }
-
-    bladeWrite(widget, [], {
-        "CurrentPreset": "org.kde.plasma.systemmonitor",
-        "highPrioritySensorIds": JSON.stringify([sensor]),
-        "lowPrioritySensorIds": JSON.stringify(lowSensors),
-        "showTitle": false,
-        "title": title,
-        "totalSensors": JSON.stringify([kind === "memory" ? "memory/physical/usedPercent" : sensor]),
-        "updateRateLimit": 1000
+function bladeConfigureTray(widget) {
+    bladeMergeList(widget, ["General"], "extraItems", bladeExtraTrayItems);
+    bladeMergeList(widget, ["General"], "hiddenItems", bladeHiddenTrayItems);
+    var shown = bladeReadList(widget, ["General"], "shownItems");
+    bladeStatusItems.forEach(function (item) {
+        if (shown.indexOf(item) === -1) {
+            shown.push(item);
+        }
     });
-    bladeWrite(widget, ["Appearance"], {
-        "chartFace": "org.kde.ksysguard.piechart",
-        "title": title
-    });
-    bladeWrite(widget, ["FaceConfig"], {
-        "fromAngle": -150,
-        "toAngle": 150,
-        "rangeAuto": kind === "memory",
-        "rangeFrom": 0,
-        "rangeTo": 100,
-        "rangeFromMultiplier": 1,
-        "rangeToMultiplier": 1,
-        "showLegend": false,
-        "smoothEnds": true
-    });
-    var colorConfig = {};
-    colorConfig[sensor] = color;
-    bladeWrite(widget, ["SensorColors"], colorConfig);
-    var labelConfig = {};
-    labelConfig[sensor] = label;
-    bladeWrite(widget, ["SensorLabels"], labelConfig);
-    bladeWrite(widget, ["Sensors"], {
-        "highPrioritySensorIds": JSON.stringify([sensor]),
-        "lowPrioritySensorIds": JSON.stringify(kind === "memory" ? ["memory/physical/total"] : lowSensors),
-        "totalSensors": JSON.stringify([kind === "memory" ? "memory/physical/usedPercent" : sensor])
+    bladeWrite(widget, ["General"], {
+        "shownItems": shown.filter(function (item) {
+            return bladeHiddenTrayItems.indexOf(item) === -1;
+        }),
+        "showAllItems": false
     });
 }
 
@@ -303,8 +282,9 @@ function bladeConfigureWidget(widget, type) {
             "wrapPage": true
         });
     } else if (type === "org.kde.plasma.systemtray") {
-        bladeMergeList(widget, ["General"], "extraItems", bladeExtraTrayItems);
-        bladeMergeList(widget, ["General"], "shownItems", bladeStatusItems);
+        bladeConfigureTray(widget);
+    } else if (type === bladeSpacer) {
+        bladeWrite(widget, ["General"], {"expanding": true});
     } else if (type === "org.kde.plasma.digitalclock") {
         bladeWrite(widget, ["Appearance"], {
             "showDate": true,
@@ -322,9 +302,9 @@ function bladeConfigureWidget(widget, type) {
             "clockTimeFormat2": "ddd d MMM",
             "clockShowLine2": true,
             "clockLine2HeightRatio": 0.32,
-            "clockLineBold1": true,
+            "clockLineBold1": false,
             "clockLineBold2": false,
-            "clockMaxHeight": 44,
+            "clockMaxHeight": 38,
             "showOutlines": false,
             "showBackground": false,
             "topRowHeight": 96,
@@ -363,15 +343,32 @@ function bladeConfigureWidget(widget, type) {
             "meteogramNegativeTempColor": "#8ab4f8",
             "meteogramIconColor": "#8ab4f8"
         });
-    } else if (type === bladeNetworkMonitor) {
-        bladeConfigureNetworkMonitor(widget);
-    } else if (type === "org.kde.plasma.systemmonitor.cpu") {
-        bladeConfigureMonitor(widget, "cpu");
-    } else if (type === "org.kde.plasma.systemmonitor.memory") {
-        bladeConfigureMonitor(widget, "memory");
-    } else if (type === "org.kde.plasma.systemmonitor") {
-        bladeConfigureMonitor(widget, "gpu");
+    } else if (type === bladeTelemetry) {
+        bladeConfigureTelemetry(widget);
     }
+}
+
+function bladeOrderFor(panel) {
+    return panel.screen === 0 ? bladePrimaryOrder : bladeSecondaryOrder;
+}
+
+// Resolve each order entry to a widget; a type listed twice (the spacers)
+// maps to its first and second instance. Missing widgets are added unless
+// they are optional or `addMissing` is false.
+function bladeLayoutWidgets(panel, order, addMissing) {
+    var used = {};
+    var widgets = [];
+    order.forEach(function (type) {
+        var index = used[type] || 0;
+        used[type] = index + 1;
+        var matches = bladeWidgetsOfType(panel, type);
+        var widget = matches.length > index ? matches[index] : null;
+        if (!widget && addMissing && bladeOptionalWidgets.indexOf(type) === -1) {
+            widget = bladeAddWidget(panel, type);
+        }
+        widgets.push({type: type, widget: widget});
+    });
+    return widgets;
 }
 
 function bladeConfigurePanel(panel, screenIndex) {
@@ -381,14 +378,22 @@ function bladeConfigurePanel(panel, screenIndex) {
     panel.floating = true;
     panel.alignment = "center";
     panel.lengthMode = "fill";
-    panel.opacity = "opaque";
+    // Translucent with blur over the wallpaper, solid next to maximized windows.
+    panel.opacity = "adaptive";
     // Keep the primary panel steady; the additional-display panel reveals on hover.
     panel.hiding = screenIndex === 0 ? "none" : "autohide";
 
-    var order = screenIndex === 0 ? bladePrimaryOrder : bladeSecondaryOrder;
-    order.forEach(function (type) {
-        var widget = bladeEnsureWidget(panel, type);
-        bladeConfigureWidget(widget, type);
+    var order = bladeOrderFor(panel);
+    bladeRetiredWidgets.concat(order.indexOf("org.kde.plasma.pager") === -1 ? ["org.kde.plasma.pager"] : [])
+        .forEach(function (type) {
+            bladeWidgetsOfType(panel, type).forEach(function (widget) {
+                widget.remove();
+            });
+        });
+
+    var layout = bladeLayoutWidgets(panel, order, true);
+    layout.forEach(function (entry) {
+        bladeConfigureWidget(entry.widget, entry.type);
     });
 
     if (BLADE_REPLACE_CLOCK && bladeWidgetsOfType(panel, bladeEventCalendar).length > 0) {
@@ -431,13 +436,17 @@ if (!bladePositionOnly) {
     }
 }
 
+// New applets join the panel only after the creating script returns, so the
+// wrapper runs this pass again to put them in place.
 panels().forEach(function (panel) {
-    var networkWidgets = bladeWidgetsOfType(panel, bladeNetworkMonitor);
-    if (networkWidgets.length > 0) {
-        bladePlaceWidgetAfter(panel, networkWidgets[0], "org.kde.plasma.systemmonitor");
+    if (bladeWidgetsOfType(panel, "org.kde.plasma.icontasks").length === 0) {
+        return;
     }
+    bladeApplyOrder(panel, bladeLayoutWidgets(panel, bladeOrderFor(panel), false).map(function (entry) {
+        return entry.widget;
+    }));
 });
 
 print(bladePositionOnly
-    ? "Blade panels: positioned network speed beside telemetry"
+    ? "Blade panels: ordered launcher, music, telemetry, tray and clock"
     : "Blade panels: configured " + bladeCount + " display(s)");

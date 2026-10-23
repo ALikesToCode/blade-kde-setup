@@ -15,7 +15,7 @@ reviewed before it changes a system.
 | Dark multi-monitor panels | One application panel per display, primary visible and additional panels auto-hidden | `--apply` |
 | Music | MPD library in `~/storage/music`, loopback-only myMPD, MPRIS panel control, Blade Music widget, and an hourly YouTube Music cache that reuses local files and only deletes from `ytm-cache/` | `--music` |
 | Charger-aware brightness | Internal-screen brightness, power-saving USB/battery profiles, explicit charger selection when firmware reports only generic AC, and net battery-flow status | `--power` |
-| Desktop widgets | SDDM-inspired desktop clock plus native media, Wi-Fi, Bluetooth, audio, battery, notifications, workspaces, live download/upload speed, and CPU/RAM/GPU donuts | `--user --apply` |
+| Desktop widgets | SDDM-inspired desktop clock plus native media, Wi-Fi, Bluetooth, audio, battery, notifications, workspaces, and one RAM/network/CPU/GPU readout | `--user --apply` |
 | Event Calendar | Pinned Plasma 6 calendar/agenda source, reviewed checksums, dark Material card overlay, blue/green panel clock, event badges, optional weather/Google sync, and recurring iCalendar dependencies | `--user --apply` |
 | Login and lock flow | Qylock-compatible Artix Material You files, blue/green power/session/reboot/sleep icons, runtime QML regression test, and SDDM selection | `--user`, then `--system` |
 | Coordinated wallpapers | Separate native 16:10 4K and 3440×1440 ultrawide login/desktop images with checksums | `--user --apply`, plus `--system` for SDDM |
@@ -39,7 +39,7 @@ hardcoded:
   the account already authenticated by the GitHub CLI. The installer never
   replaces identity, signing, SSH, or credential configuration.
 - The default GPU sensor is `gpu/gpu1`; `BLADE_GPU_SENSOR_PREFIX` and
-  `BLADE_GPU_TITLE` adapt the donut to other hardware.
+  `BLADE_GPU_TITLE` (now unused) adapt the GPU reading to other hardware.
 - Plasma screen count is read from the live session. Existing pinned
   applications and unrelated panels are preserved by default.
 - Zen's active profile is discovered from `profiles.ini`; only the integrated

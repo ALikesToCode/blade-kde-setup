@@ -20,6 +20,7 @@ python3 -m json.tool "$ROOT/kde/plasma/plasmoids/org.mysterious.blademusic/metad
 if command -v node >/dev/null 2>&1; then
     node "$ROOT/tests/power-panel.cjs"
     node "$ROOT/tests/music-panel.cjs"
+    node "$ROOT/tests/panel-layout.cjs"
 fi
 
 bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall" \
@@ -31,7 +32,7 @@ bash -n "$ROOT/install.sh" "$ROOT/bin/update-all-packages" "$ROOT/bin/updateall"
 bash -n "$ROOT/scripts/capture-machine.sh" "$ROOT/scripts/restore-machine.sh"
 bash -n "$ROOT/scripts/install-codex-tools.sh" "$ROOT/scripts/install-ariang.sh" \
     "$ROOT/scripts/configure-codex-desktop.sh" "$ROOT/tests/codex-desktop.sh"
-bash -n "$ROOT/tests/network-speed-widget.sh" "$ROOT/tests/browser-mode-isolation.sh" \
+bash -n "$ROOT/tests/browser-mode-isolation.sh" \
     "$ROOT/tests/browser-mode-selection.sh" \
     "$ROOT/tests/browser-profile-persistence.sh" "$ROOT/tests/clipboard-bridge.sh" \
     "$ROOT/tests/aria2-daemon.sh" "$ROOT/tests/aria2-trackers.sh" \
@@ -215,7 +216,6 @@ grep -Fqx "    alias vim='nvim'" "$ROOT/dotfiles/bash/bashrc"
 "$ROOT/tests/zen-window-controls.sh" >/dev/null
 "$ROOT/tests/desktop-clock.sh" >/dev/null
 "$ROOT/tests/event-calendar.sh" >/dev/null
-bash "$ROOT/tests/network-speed-widget.sh" >/dev/null
 bash "$ROOT/tests/update-all-packages.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-isolation.sh" >/dev/null
 bash "$ROOT/tests/browser-mode-selection.sh" >/dev/null
