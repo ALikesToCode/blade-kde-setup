@@ -12,8 +12,8 @@ for argument in "$@"; do
         --help)
             printf 'Usage: %s [--dry-run] [--activate]\n' "$0"
             printf 'Install Blade Agents; --activate starts the shared code-review-graph server\n'
-            printf 'and switches ~/.codex/config.toml to it with the heavy and direct documentation\n'
-            printf 'MCP servers disabled.\n'
+            printf 'and the daily merged-worktree cleanup, and switches ~/.codex/config.toml to the\n'
+            printf 'shared server with the heavy and direct documentation MCP servers disabled.\n'
             exit 0 ;;
         *) printf 'Unknown option: %s\n' "$argument" >&2; exit 2 ;;
     esac
@@ -48,11 +48,13 @@ copy_file() {
 
 copy_file "$ROOT/bin/blade-agents" "$HOME/.local/bin/blade-agents" 755
 copy_file "$ROOT/bin/blade-testlock" "$HOME/.local/bin/blade-testlock" 755
+copy_file "$ROOT/bin/blade-prune-worktrees" "$HOME/.local/bin/blade-prune-worktrees" 755
 for source in "$ROOT"/lib/blade_agents/*.py; do
     copy_file "$source" "$DATA_ROOT/blade-kde/lib/blade_agents/${source##*/}"
 done
-copy_file "$ROOT/dotfiles/systemd/user/code-review-graph.service" \
-    "$CONFIG_ROOT/systemd/user/code-review-graph.service"
+for unit in code-review-graph.service blade-prune-worktrees.service blade-prune-worktrees.timer; do
+    copy_file "$ROOT/dotfiles/systemd/user/$unit" "$CONFIG_ROOT/systemd/user/$unit"
+done
 copy_file "$ROOT/dotfiles/blender/scripts/startup/blade_gpu.py" \
     "$DATA_ROOT/blade-kde/blender/scripts/startup/blade_gpu.py"
 # The shared server depends on agents passing repo_root, which these
@@ -62,10 +64,10 @@ copy_file "$RENDER_DIR/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
 ((ACTIVATE)) || exit 0
 if ((DRY_RUN)); then
-    printf 'Would start code-review-graph.service, then disable artemis, blender-lab,\n'
-    printf 'higgsfield-use-blender, and the documentation servers multillm-knowledge covers,\n'
-    printf 'point code-review-graph at it, and give the Blender servers the NVIDIA GPU in\n'
-    printf '~/.codex/config.toml.\n'
+    printf 'Would start code-review-graph.service and blade-prune-worktrees.timer, then\n'
+    printf 'disable artemis, blender-lab, higgsfield-use-blender, and the documentation servers\n'
+    printf 'multillm-knowledge covers, point code-review-graph at it, and give the Blender\n'
+    printf 'servers the NVIDIA GPU in ~/.codex/config.toml.\n'
     exit 0
 fi
 for executable in code-review-graph systemctl curl; do
@@ -75,7 +77,7 @@ for executable in code-review-graph systemctl curl; do
     }
 done
 systemctl --user daemon-reload
-systemctl --user enable --now code-review-graph.service
+systemctl --user enable --now code-review-graph.service blade-prune-worktrees.timer
 # Switch Codex only once the server answers, or new threads start without it.
 for _ in {1..30}; do
     curl -s -o /dev/null --max-time 2 http://127.0.0.1:14155/mcp && break

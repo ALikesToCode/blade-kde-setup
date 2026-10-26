@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily removal of merged agent worktrees and branches
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=30min
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Remove merged agent worktrees and branches
+# User managers can't order against system mount units, so condition on the mount.
+ConditionPathIsMountPoint=%h/storage
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/blade-prune-worktrees --apply
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h
+NoNewPrivileges=true

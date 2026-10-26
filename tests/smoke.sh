@@ -14,6 +14,7 @@ bash "$ROOT/tests/dark-mode.sh"
 python3 -B "$ROOT/tests/power-control.py"
 python3 -B "$ROOT/tests/music-sync.py"
 python3 -B "$ROOT/tests/agents.py"
+python3 -B "$ROOT/tests/prune-worktrees.py"
 python3 -B "$ROOT/tests/fstab-entry.py"
 python3 -m py_compile "$ROOT/scripts/desktop-shortcuts.py" "$ROOT/scripts/recolor-orchis.py"
 # The vendored Orchis surfaces must already follow the colour scheme.
@@ -211,6 +212,9 @@ required=(
     scripts/recolor-orchis.py
     scripts/install-agents.sh
     dotfiles/systemd/user/code-review-graph.service
+    dotfiles/systemd/user/blade-prune-worktrees.service
+    dotfiles/systemd/user/blade-prune-worktrees.timer
+    bin/blade-prune-worktrees
     dotfiles/blender/scripts/startup/blade_gpu.py
 )
 for path in "${required[@]}"; do

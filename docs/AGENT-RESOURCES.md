@@ -120,6 +120,32 @@ instructions ask for targeted tests while iterating, quick suites directly or
 with `--quick`, and `blade-testlock` for full suites, production builds, and
 emulator jobs.
 
+## Merged worktrees
+
+Agents leave one worktree and branch per task. `blade-prune-worktrees` lists,
+for every repository under `~/storage/github`, the worktrees and local branches
+whose work is finished: the branch's pull request is merged and HEAD is that
+pull request's head commit or an ancestor of it, or there was never a pull
+request and HEAD is already in the default branch. It keeps anything with
+uncommitted or untracked files, ignored env or key files that the main
+checkout has no identical copy of, an open or closed-unmerged pull request,
+commits the merge lacks, a long-lived branch name such as `dev` or `release/*`,
+a T3 thread that is running, queued, or was active in the last six hours, a
+process working inside it, or a change in the last six hours.
+
+```sh
+blade-prune-worktrees            # dry run
+blade-prune-worktrees --apply
+```
+
+`--apply` runs `git worktree remove` (which itself refuses a dirty tree),
+deletes the local branch, deletes origin's branch on the user's own GitHub
+repositories when it holds nothing beyond the merged work, and drops Git's
+records of worktrees whose directories are gone. Every removal is logged to
+`~/.local/state/blade-prune-worktrees/removed.tsv` with the head commit, so
+`git branch <name> <sha>` or the pull request's Restore branch button brings it
+back. `blade-prune-worktrees.timer` runs it daily.
+
 ## File indexing
 
 Agent worktrees, test scratch clusters, and build caches are full of files

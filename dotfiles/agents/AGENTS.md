@@ -84,6 +84,12 @@ Use the MultiLLM Knowledge Gateway (the `multillm-knowledge` MCP server and skil
 - Follow the repository's commit-message convention. With Conventional Commits, pick an accurate type and useful scope (`feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`); never hide a feature or fix behind a vague `update` or misleading `chore`. Write concise imperative subjects that state the outcome, and add a body when motivation, risk, migration, or verification isn't obvious.
 - Do not amend, squash, rebase, reset, force-push, or rewrite published history unless the user authorized that exact Git action. Ordinary commits under this section need no per-task confirmation.
 
+### Clean up merged work
+
+- This is standing user authorization: when a pull request you worked on is merged, remove its worktree, its local branch, and its remote branch on the user's own repositories. The PR's Restore branch button brings the branch back.
+- First check that the worktree is clean (no modified tracked files, no untracked files that aren't ignored) and that its HEAD is the merged PR's head commit or an ancestor of it. Never remove a worktree that another running, waiting, or queued thread is bound to or that a process is working in, and never touch dirty, unmerged, or closed-unmerged work; report it instead.
+- `blade-prune-worktrees` applies the same checks to every checkout under `~/storage/github` (dry run by default, `--apply` to remove) and runs daily.
+
 ### Repository-authored publication voice
 
 - Write commit messages, pull requests, issues, release notes, and code comments in the repository author's established voice, terminology, level of detail, and contribution conventions.
@@ -104,7 +110,7 @@ Use the MultiLLM Knowledge Gateway (the `multillm-knowledge` MCP server and skil
 - Get explicit user approval immediately before removing or overwriting any pre-existing file, directory, data, branch, tag, commit, package, environment, deployment, database object, cloud resource, or user configuration. That includes `rm`, destructive `find` actions, `git clean`, `git reset`, checkout or restore that discards changes, history rewrites, force pushes, database drops or truncations, destructive migrations, uninstalls, and bulk replacements.
 - When asking, explain exactly what will be affected, why it is necessary, whether it is recoverable, and the safer alternatives considered.
 - A request to fix, refactor, clean up, reinstall, or update doesn't by itself authorize destructive actions; use a non-destructive path when one exists. Prefer backups, additive migrations, deprecation phases, dry runs, and reversible edits, and verify the target immediately before an approved destructive operation, stopping if the scope differs from what was approved.
-- Cleaning up temporary artifacts you created during the same task is allowed only when they hold no user data and are unambiguously yours.
+- Two exceptions need no further approval: temporary artifacts you created during the same task that hold no user data and are unambiguously yours, and merged work removed under "Clean up merged work".
 
 <!-- codex-safe browser policy: begin -->
 ## Hardened browser policy
