@@ -352,39 +352,33 @@ agents_end='<!-- codex-safe browser policy: end -->'
 # shellcheck disable=SC2016
 agents_content='## Hardened browser policy
 
-Use CloakBrowser-backed Playwright whenever a task requires opening, rendering, interacting with, screenshotting, extracting from, scraping, dynamically inspecting, or visually validating a webpage. In ordinary Codex sessions, concurrent Codex clients connect to one verified, loopback-only shared CloakBrowser service so they retain the same profile history and signed-in state. Inside `codex-safe`, use either the `playwright-cli` wrapper or `playwright_safe`; both attach to that hardened session'\''s `CLOAK_CDP_ENDPOINT`.
+Use CloakBrowser-backed Playwright whenever a task needs to open, render, interact with, screenshot, extract from, scrape, dynamically inspect, or visually validate a webpage. Ordinary Codex clients share one verified, loopback-only CloakBrowser service, so they keep the same profile history and signed-in state. Inside `codex-safe`, use the `playwright-cli` wrapper or `playwright_safe`; both attach to that hardened session'\''s `CLOAK_CDP_ENDPOINT`.
 
 ### Browser mode declaration and cursor isolation
 
 - Before the first browser tool call, explicitly state `Browser mode: headless` or `Browser mode: headed` in a commentary update and give the reason for that choice.
-- In ordinary Codex sessions, use `playwright_safe` for headless work and `playwright_safe_headed` for headed work. Use exactly one browser server for a task; never start both modes speculatively.
-- Chromium profile directories are single-instance. Ordinary Codex clients share one browser process and browser context through `playwright-safe-mcp.service`; separately sandboxed `codex-safe` processes use independently locked slots. Never enable both registrations together. Ordinary Codex startup must default to `playwright_safe` in headless mode. Restore that default with `playwright-mcp-mode headless`, then fully quit and restart Codex.
-- With multiple ordinary Codex clients, create and use a dedicated tab for each task. Do not close or repurpose tabs created by another client.
-- To make the browser headed, run `playwright-mcp-mode headed`, fully quit Codex, restart it, and use only `playwright_safe_headed` in the fresh session. Existing sessions cannot hot-load the newly selected namespace.
-- After headed work is complete, run `playwright-mcp-mode headless` and fully restart Codex again so the next startup returns to the headless default.
-- Use headless for automated tests, extraction, scraping, and other work that does not need a user-visible browser. Select headed only when the user asks to see the browser or visible GUI rendering is part of the requirement.
+- Use headless for automated tests, extraction, scraping, and other work that needs no visible browser. Choose headed only when the user asks to see the browser or visible GUI rendering is part of the requirement.
+- In ordinary Codex, use `playwright_safe` for headless and `playwright_safe_headed` for headed work: exactly one browser server per task, never both speculatively, and never both registrations enabled together. Chromium profiles are single-instance: ordinary clients share one browser process and context through `playwright-safe-mcp.service`, and sandboxed `codex-safe` processes use separately locked slots.
+- Ordinary Codex starts with headless `playwright_safe`. To go headed, run `playwright-mcp-mode headed`, fully quit and restart Codex, and use only `playwright_safe_headed` in the fresh session; running sessions can'\''t load the new namespace. Afterwards run `playwright-mcp-mode headless` and fully restart Codex again to restore the default.
+- With several ordinary Codex clients, use a dedicated tab for each task and never close or repurpose another client'\''s tabs.
 - Headed always means visible: it opens `CloakBrowser Automation` on the KDE desktop. Never describe a hidden or off-screen browser as headed.
-- The visible window is a nested Xephyr display. CloakBrowser connects to that nested display, not directly to the KDE X11 display. The dedicated KWin rule allows the user to focus it for manual typing and paste without exposing the host display to Chromium.
-- A private nested window manager tiles every normal Chromium window across the full Xephyr display and focuses newly mapped browser windows. `browser_resize` remains available for responsive page-viewport emulation, but it must not shrink or reposition the native browser window.
-- Headed mode mirrors text from the KDE clipboard into Xephyr only. Clipboard contents remain in memory, are never logged or written to disk, and are never copied from the browser back to KDE.
-- CloakBrowser uses Chromium'\''s `basic` password backend only inside `~/.local/state/codex-safe/cloakbrowser-profile`, a dedicated `0700` persistent profile. It receives no desktop D-Bus address and must never request KDE Wallet or another desktop credential store.
-- The user may perform manual login, 2FA, CAPTCHA, permission prompts, and paste inside the visible CloakBrowser window. Agents must pause for those steps and must never read, request, type, paste, or log the user'\''s credentials.
-- Keep automated page interaction inside Playwright over CDP. Never use Computer Use, `xdotool`, `ydotool`, `wtype`, KWin scripting, desktop coordinates, OS mouse movement, or OS keyboard injection for browser work.
-- Inside `codex-safe`, the selected mode is fixed when the session starts (`CODEX_SAFE_HEADED=true` selects headed). If the active mode does not match the declared mode, stop and request a correctly configured fresh session instead of silently changing modes.
+- The visible window is a nested Xephyr display, which CloakBrowser connects to instead of the KDE X11 display; a dedicated KWin rule lets the user focus it for manual typing and paste without exposing the host display to Chromium. A private nested window manager tiles every normal Chromium window across the Xephyr display and focuses new ones. `browser_resize` stays available for responsive viewport emulation but must not shrink or move the native browser window.
+- Headed mode mirrors text from the KDE clipboard into Xephyr only. Clipboard contents stay in memory, are never logged or written to disk, and never go from the browser back to KDE.
+- CloakBrowser uses Chromium'\''s `basic` password backend only inside `~/.local/state/codex-safe/cloakbrowser-profile`, a dedicated `0700` persistent profile. It gets no desktop D-Bus address and must never request KDE Wallet or another desktop credential store.
+- The user may do manual login, 2FA, CAPTCHA, permission prompts, and paste in the visible CloakBrowser window. Agents must pause for those steps and must never read, request, type, paste, or log the user'\''s credentials.
+- Keep automated page interaction inside Playwright over CDP. Never use Computer Use, `xdotool`, `ydotool`, `wtype`, KWin scripting, desktop coordinates, or OS mouse or keyboard injection for browser work.
+- Inside `codex-safe`, the mode is fixed when the session starts (`CODEX_SAFE_HEADED=true` selects headed). If it doesn'\''t match the declared mode, stop and request a correctly configured fresh session instead of silently switching.
 
 ### Playwright skill protocol
 
-- Invoke the installed `playwright` skill for browser navigation, form interaction, screenshots, responsive checks, console/network inspection, accessibility-tree inspection, or end-to-end UI debugging.
-- In ordinary Codex, use `playwright_safe` MCP tools only. Never run `npx @playwright/cli`, install browsers, invoke the skill'\''s CLI fallback, or silently substitute stock Chromium.
-- Start with `browser_navigate`, then capture `browser_snapshot`. Use refs only from the latest snapshot and refresh the snapshot after navigation or major DOM changes.
-- Use snapshots for semantic understanding and refs; use `browser_take_screenshot` for visual evidence. For important journeys, inspect console messages and network requests after reproduction.
-- Keep downloads, traces, screenshots, and other artifacts inside the active workspace or its repository-prescribed evidence directory. The only browser profile is the fixed private path `~/.local/state/codex-safe/cloakbrowser-profile`.
-- Use synthetic or repository-provided data. Do not bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.
-- If the MCP namespace is unavailable, run the read-only check `codex mcp get playwright_safe`, report that Codex must be restarted, and do not fall back to another browser.
+- Invoke the installed `playwright` skill for navigation, form interaction, screenshots, responsive checks, console or network inspection, accessibility-tree inspection, and end-to-end UI debugging.
+- In ordinary Codex, use `playwright_safe` MCP tools only. Never run `npx @playwright/cli`, install browsers, use the skill'\''s CLI fallback, or substitute stock Chromium.
+- Start with `browser_navigate`, then `browser_snapshot`. Use refs only from the latest snapshot and refresh it after navigation or major DOM changes. Snapshots are for semantics and refs, `browser_take_screenshot` for visual evidence; for important journeys, check console messages and network requests after reproducing.
+- Keep downloads, traces, screenshots, and other artifacts inside the workspace or its repository-prescribed evidence directory. The only browser profile is `~/.local/state/codex-safe/cloakbrowser-profile`.
+- Use synthetic or repository-provided data.
+- If the MCP namespace is unavailable, run the read-only check `codex mcp get playwright_safe`, report that Codex must be restarted, and don'\''t fall back to another browser.
 
-Search APIs may be used only to discover sources and URLs. Do not claim that built-in search traffic itself passes through CloakBrowser. Do not fall back silently to stock Chromium. If CloakBrowser or its CDP endpoint is unavailable, report the failure.
-
-Do not use CloakBrowser stealth functionality to bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions.'
+Search APIs may only discover sources and URLs; don'\''t claim built-in search traffic passes through CloakBrowser. If CloakBrowser or its CDP endpoint is unavailable, report the failure instead of silently falling back to stock Chromium. Never bypass authentication, CAPTCHA, paywalls, access controls, rate limits, robots directives, or legal restrictions, with CloakBrowser'\''s stealth features or any other way.'
 append_block "$HOME/.codex/AGENTS.md" "$agents_begin" "$agents_end" "$agents_content"
 install_kwin_browser_rule
 configure_playwright_safe
