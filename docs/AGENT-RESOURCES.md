@@ -97,17 +97,27 @@ scripts/tune-android-avd.sh
 
 ## Test runs
 
-`blade-testlock COMMAND` runs a command once one of `BLADE_TEST_SLOTS` (3 by
-default) machine-wide slots is free, and returns its exit status:
+`blade-testlock COMMAND` runs a command once one of `BLADE_TEST_SLOTS` (7 by
+default) machine-wide slots is free, and returns its exit status. Quick suites
+that finish in about a minute use `--quick`: they get `BLADE_TEST_QUICK_SLOTS`
+(3 by default) slots that full jobs can't take, and fall back to a free full
+slot, so they never queue behind a half-hour APK build.
 
 ```sh
 blade-testlock pnpm test
+blade-testlock --quick pytest tests/test_parser.py
 BLADE_TEST_SLOTS=2 blade-testlock cargo test
+blade-testlock --status
 ```
 
+While a command waits, it prints each busy slot's command, directory, and how
+long it has held the slot, then again every three minutes
+(`BLADE_TEST_REPORT_SECONDS`); `--status` prints the same at any time.
+
 Agents call test runners directly, so the wrapper is opt-in: the global agent
-instructions ask for targeted tests while iterating and `blade-testlock` for
-full suites and production builds.
+instructions ask for targeted tests while iterating, quick suites directly or
+with `--quick`, and `blade-testlock` for full suites, production builds, and
+emulator jobs.
 
 ## File indexing
 

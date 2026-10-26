@@ -1,39 +1,131 @@
 #!/usr/bin/env bash
 # Run a command once one of a few machine-wide test slots is free, so parallel
 # agents don't all run full suites, builds, and type checks at the same time.
+# Quick suites get slots of their own that full jobs can't take, so a
+# one-minute suite never queues behind a half-hour build.
 
 set -Eeuo pipefail
 
-if (($# == 0)) || [[ $1 == -h || $1 == --help ]]; then
-    printf 'Usage: blade-testlock COMMAND [ARGUMENT...]\n'
-    printf 'Runs COMMAND once one of BLADE_TEST_SLOTS (default 3) slots is free.\n'
-    (($#)) && exit 0
+usage() {
+    printf 'Usage: blade-testlock [--quick] COMMAND [ARGUMENT...]\n'
+    printf '       blade-testlock --status\n'
+    printf 'Runs COMMAND once one of BLADE_TEST_SLOTS (default 7) slots is free.\n'
+    printf -- '--quick is for suites that finish in about a minute on a few cores: they take\n'
+    printf 'one of BLADE_TEST_QUICK_SLOTS (default 3) slots of their own, or a free full slot.\n'
+    printf -- '--status shows what holds each slot and for how long.\n'
+}
+
+lane=full
+case ${1-} in
+    -h | --help) usage; exit 0 ;;
+    --quick) lane=quick; shift ;;
+    --status) lane=status; shift ;;
+esac
+if [[ $lane != status ]] && (($# == 0)); then
+    usage
     exit 2
 fi
-slots=${BLADE_TEST_SLOTS:-3}
-[[ $slots =~ ^[1-9][0-9]*$ ]] || {
-    printf 'blade-testlock: BLADE_TEST_SLOTS must be a positive integer\n' >&2
-    exit 2
-}
+slots=${BLADE_TEST_SLOTS:-7}
+quick_slots=${BLADE_TEST_QUICK_SLOTS:-3}
+report_every=${BLADE_TEST_REPORT_SECONDS:-180}
+for setting in "BLADE_TEST_SLOTS=$slots" "BLADE_TEST_QUICK_SLOTS=$quick_slots" \
+    "BLADE_TEST_REPORT_SECONDS=$report_every"; do
+    [[ ${setting#*=} =~ ^[1-9][0-9]*$ ]] || {
+        printf 'blade-testlock: %s must be a positive integer\n' "${setting%%=*}" >&2
+        exit 2
+    }
+done
 lock_dir=${XDG_RUNTIME_DIR:-/tmp}/blade-testlock
 mkdir -p -m 700 -- "$lock_dir"
 
-waiting=0
+full=() quick=()
+for ((slot = 1; slot <= slots; slot++)); do full+=("slot-$slot"); done
+for ((slot = 1; slot <= quick_slots; slot++)); do quick+=("quick-$slot"); done
+
+duration() {
+    local seconds=$1
+    if ((seconds >= 3600)); then
+        printf '%dh%02dm' $((seconds / 3600)) $((seconds % 3600 / 60))
+    elif ((seconds >= 60)); then
+        printf '%dm' $((seconds / 60))
+    else
+        printf '%ds' "$seconds"
+    fi
+}
+
+# Each holder records itself next to its lock, so a waiting agent can see what
+# it is waiting for instead of hunting through ps and lslocks.
+describe() {
+    local name=$1 pid started dir command
+    if { IFS=$'\t' read -r pid started dir command <"$lock_dir/$name.holder"; } 2>/dev/null &&
+        kill -0 "$pid" 2>/dev/null; then
+        printf '  %-8s %6s  %s  (%s)\n' "${name/-/ }" "$(duration $(($(date +%s) - started)))" \
+            "$command" "$dir"
+    else
+        printf '  %-8s busy, holder not recorded\n' "${name/-/ }"
+    fi
+}
+
+# Flags each slot in NAMES that is busy, briefly taking the free ones.
+show_holders() {
+    local name
+    for name in "$@"; do
+        exec {probe}>"$lock_dir/$name"
+        if flock -n "$probe"; then
+            [[ $lane != status ]] || printf '  %-8s free\n' "${name/-/ }"
+        else
+            describe "$name"
+        fi
+        exec {probe}>&-
+    done
+}
+
+if [[ $lane == status ]]; then
+    show_holders "${full[@]}" "${quick[@]}"
+    exit 0
+fi
+
+run_holding() {
+    local holder="$lock_dir/$1.holder" command
+    shift
+    command=$*
+    command=${command//[$'\t\n']/ }
+    ((${#command} <= 100)) || command="${command:0:97}..."
+    printf '%s\t%s\t%s\t%s\n' "$$" "$(date +%s)" "${PWD/#"$HOME"/\~}" "$command" >"$holder.$$"
+    mv -f -- "$holder.$$" "$holder"
+    # This shell holds the slot. The command gets no copy of the lock,
+    # so a server it leaves running in the background can't keep it.
+    status=0
+    "$@" {lock}>&- || status=$?
+    rm -f -- "$holder"
+    exit "$status"
+}
+
+if [[ $lane == quick ]]; then
+    names=("${quick[@]}" "${full[@]}")
+    busy="all $quick_slots quick and $slots full slots are busy"
+else
+    names=("${full[@]}")
+    busy="all $slots slots are busy"
+fi
+next_report=0
 while :; do
-    for ((slot = 1; slot <= slots; slot++)); do
-        exec {lock}>"$lock_dir/slot-$slot"
+    for name in "${names[@]}"; do
+        exec {lock}>"$lock_dir/$name"
         if flock -n "$lock"; then
-            # This shell holds the slot. The command gets no copy of the lock,
-            # so a server it leaves running in the background can't keep it.
-            status=0
-            "$@" {lock}>&- || status=$?
-            exit "$status"
+            run_holding "$name" "$@"
         fi
         exec {lock}>&-
     done
-    if ((!waiting)); then
-        printf 'blade-testlock: all %d slots are busy; waiting\n' "$slots" >&2
-        waiting=1
+    if ((SECONDS >= next_report)); then
+        if ((next_report == 0)); then
+            printf 'blade-testlock: %s; waiting, and starts by itself when one frees. Holders:\n' \
+                "$busy" >&2
+        else
+            printf 'blade-testlock: still waiting after %s. Holders:\n' "$(duration "$SECONDS")" >&2
+        fi
+        show_holders "${names[@]}" >&2
+        next_report=$((SECONDS + report_every))
     fi
     sleep 2
 done

@@ -64,7 +64,7 @@ Use the MultiLLM Knowledge Gateway (the `multillm-knowledge` MCP server and skil
 ### Shared machine resources
 
 - Several agents usually work on this machine at once. While iterating, run only the tests that cover the change (for example `jest --findRelatedTests <files>`, `vitest related <files>`, or one pytest file) and keep the full suite for the final check.
-- Run full test suites, production builds, and other long CPU- or memory-heavy commands through `blade-testlock`, for example `blade-testlock pnpm test`. It waits while other agents hold every slot and returns the command's exit status.
+- Quick suites that finish in about a minute on a few cores run directly, or through `blade-testlock --quick CMD`, which has slots of its own. Run full suites, production builds, emulator and device jobs, and other long CPU- or memory-heavy commands through `blade-testlock CMD`, for example `blade-testlock pnpm test`. It returns the command's exit status, and while it waits it prints what holds each slot and for how long, so don't investigate the queue; `blade-testlock --status` shows the same.
 - Pass the absolute repository or worktree root as `repo_root` on every code-review-graph tool call. One server answers for all threads, so it has no default repository.
 
 ### Hardware
