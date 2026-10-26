@@ -74,6 +74,18 @@ class ScopeTests(unittest.TestCase):
         self.assertNotIn("enabled", servers["context7"])
         self.assertEqual(mcp_scope.disable_heavy(text), text)
 
+    def test_direct_doc_servers_go_off_only_behind_the_gateway(self):
+        self.assertEqual(mcp_scope.disable_direct_docs(USER_CONFIG), USER_CONFIG)
+        gateway = USER_CONFIG + '\n[mcp_servers.multillm-knowledge]\nurl = "https://example.invalid/g"\n'
+        text = mcp_scope.disable_direct_docs(gateway)
+        servers = tomllib.loads(text)["mcp_servers"]
+        self.assertFalse(servers["context7"]["enabled"])
+        self.assertNotIn("enabled", servers["multillm-knowledge"])
+        self.assertNotIn("enabled", servers["artemis"])
+        self.assertEqual(mcp_scope.disable_direct_docs(text), text)
+        off = gateway + "enabled = false\n"
+        self.assertEqual(mcp_scope.disable_direct_docs(off), off)
+
     def test_disable_heavy_rejects_invalid_toml(self):
         with self.assertRaises(ConfigError):
             mcp_scope.disable_heavy("[broken")

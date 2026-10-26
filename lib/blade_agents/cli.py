@@ -43,7 +43,8 @@ def _write(path, current, updated, dry_run, label):
 def configure(args):
     path = mcp_scope.user_config_path()
     current = files.read_text(path)
-    updated = mcp_scope.share_code_review_graph(mcp_scope.disable_heavy(current))
+    updated = mcp_scope.disable_direct_docs(mcp_scope.disable_heavy(current))
+    updated = mcp_scope.share_code_review_graph(updated)
     gpu_env = mcp_scope.blender_gpu_env(files.data_root() / "blade-kde/blender/scripts",
                                         mcp_scope.NVIDIA_EGL_VENDOR)
     updated = mcp_scope.render_blender_on_gpu(updated, gpu_env)
@@ -79,7 +80,8 @@ def parser():
     commands.add_parser("hardware", help="show the CPU, memory, and accelerators with live headroom")
     configure_command = commands.add_parser(
         "configure",
-        help="disable the heavy MCP servers, share one code-review-graph server, "
+        help="disable the heavy MCP servers and the documentation servers the "
+             "multillm-knowledge gateway covers, share one code-review-graph server, "
              "and put the Blender servers on the GPU")
     configure_command.add_argument("-n", "--dry-run", action="store_true")
     mcp = commands.add_parser("mcp", help="enable or disable one server for one project")

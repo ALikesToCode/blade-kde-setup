@@ -22,6 +22,7 @@ about a hundred idle copies of each server, over 25 GB between RAM and swap.
 | --- | --- | --- |
 | `code-review-graph` | One copy per thread | One shared `code-review-graph.service` on `127.0.0.1:14155` |
 | `artemis`, `blender-lab`, `higgsfield-use-blender` | One copy per thread | Off, except in projects that turn them on |
+| `context7`, `deepwiki`, `mintlify-index`, `exa`, `firecrawl` | Tools in every request | Off while `multillm-knowledge` is on; its gateway reaches the same providers |
 
 The shared code-review-graph server has no default repository. Agents pass the
 absolute repository or worktree root as `repo_root` on every call, as the agent

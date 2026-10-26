@@ -10,6 +10,11 @@ from .codex_config import ConfigError, drop_key, parse, set_key
 # Codex starts a private copy of every enabled stdio server for each thread and
 # keeps it until the thread closes; these domain servers hold 40-130 MB each.
 HEAVY_SERVERS = ("artemis", "blender-lab", "higgsfield-use-blender")
+# Agents reach these documentation providers through the multillm-knowledge
+# gateway, and each enabled server adds its tools to every Codex request.
+# Mintlify Index has shut down and Firecrawl's sign-in fails on every start.
+DIRECT_DOC_SERVERS = ("context7", "deepwiki", "mintlify-index", "exa", "firecrawl")
+DOC_GATEWAY = "multillm-knowledge"
 PROJECT_CONFIG = ".codex/config.toml"
 BLENDER_SERVERS = ("blender-lab", "higgsfield-use-blender")
 NVIDIA_EGL_VENDOR = Path("/usr/share/glvnd/egl_vendor.d/10_nvidia.json")
@@ -30,15 +35,27 @@ def _server_enabled(text, name, origin):
     return parse(text, origin).get("mcp_servers", {}).get(name, {}).get("enabled", True)
 
 
-def disable_heavy(text):
-    """Return the user config with every configured heavy server disabled."""
+def _disable(text, names):
     servers = parse(text, "Codex user config").get("mcp_servers", {})
-    for name in HEAVY_SERVERS:
+    for name in names:
         if name in servers and servers[name].get("enabled", True):
             text = set_key(text, f"mcp_servers.{name}", "enabled", "false")
             if _server_enabled(text, name, "updated Codex user config"):
                 raise ConfigError(f"could not disable {name}")
     return text
+
+
+def disable_heavy(text):
+    """Return the user config with every configured heavy server disabled."""
+    return _disable(text, HEAVY_SERVERS)
+
+
+def disable_direct_docs(text):
+    """Turn off the direct documentation servers once the gateway serves them."""
+    servers = parse(text, "Codex user config").get("mcp_servers", {})
+    if not servers.get(DOC_GATEWAY, {"enabled": False}).get("enabled", True):
+        return text
+    return _disable(text, DIRECT_DOC_SERVERS)
 
 
 def share_code_review_graph(text):

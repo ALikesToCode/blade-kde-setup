@@ -12,7 +12,8 @@ for argument in "$@"; do
         --help)
             printf 'Usage: %s [--dry-run] [--activate]\n' "$0"
             printf 'Install Blade Agents; --activate starts the shared code-review-graph server\n'
-            printf 'and switches ~/.codex/config.toml to it with the heavy MCP servers disabled.\n'
+            printf 'and switches ~/.codex/config.toml to it with the heavy and direct documentation\n'
+            printf 'MCP servers disabled.\n'
             exit 0 ;;
         *) printf 'Unknown option: %s\n' "$argument" >&2; exit 2 ;;
     esac
@@ -61,9 +62,10 @@ copy_file "$RENDER_DIR/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
 ((ACTIVATE)) || exit 0
 if ((DRY_RUN)); then
-    printf 'Would start code-review-graph.service, then disable artemis, blender-lab, and\n'
-    printf 'higgsfield-use-blender, point code-review-graph at it, and give the Blender\n'
-    printf 'servers the NVIDIA GPU in ~/.codex/config.toml.\n'
+    printf 'Would start code-review-graph.service, then disable artemis, blender-lab,\n'
+    printf 'higgsfield-use-blender, and the documentation servers multillm-knowledge covers,\n'
+    printf 'point code-review-graph at it, and give the Blender servers the NVIDIA GPU in\n'
+    printf '~/.codex/config.toml.\n'
     exit 0
 fi
 for executable in code-review-graph systemctl curl; do
