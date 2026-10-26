@@ -111,14 +111,21 @@ full suites and production builds.
 
 ## File indexing
 
-Every agent worktree under `~/storage/github` is another full copy of a
-checkout, and Baloo was holding over three million indexed files. The machine
-snapshot excludes `~/storage/github/` from Baloo; Baloo's built-in filters
-already skip `node_modules`, `.git`, and virtual environments elsewhere. Apply
-it to a running session without a full restore:
+Agent worktrees, test scratch clusters, and build caches are full of files
+nobody searches for, and Baloo was holding over eight million of them in a
+5 GiB index while re-indexing agent output around the clock. The machine
+snapshot excludes `~/storage`, `~/github`, `~/.t3`, `~/.cache`, `~/.local`,
+`~/.gradle`, `~/Android`, `~/.npm`, `~/.cargo`, and `/tmp`, and indexes file
+names only. Apply it to a running session without a full restore, then rebuild
+the index:
 
 ```sh
-balooctl6 config add excludeFolders "$HOME/storage/github"
+for folder in storage github .t3 .cache .local .gradle Android .npm .cargo; do
+    balooctl6 config add excludeFolders "$HOME/$folder"
+done
+balooctl6 config add excludeFolders /tmp
+balooctl6 config set contentIndexing no
+balooctl6 purge
 ```
 
 ## Memory headroom
