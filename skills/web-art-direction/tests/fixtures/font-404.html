@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: declared web font whose file is missing</title>
+<!-- Defect: @font-face points at a file that returns 404. A font check should fail. -->
+<style>
+  @font-face { font-family: "Ghost Grotesk"; src: url("/missing-font.woff2") format("woff2"); font-weight: 700; }
+  body { margin: 0; padding: 8vw; }
+  h1 { font-family: "Ghost Grotesk", sans-serif; font-weight: 700; font-size: clamp(40px, 9vw, 96px); }
+</style></head>
+<body><main><h1>Declared font, missing file</h1><p>Text</p></main></body></html>

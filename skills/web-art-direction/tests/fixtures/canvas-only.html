@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: all motion is inside a canvas</title>
+<!-- The hero is a canvas that animates continuously. No DOM element changes box or opacity.
+     A motion capture should still say that something moved. ?blank=1 never draws. -->
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0d12; color: #fff; font-family: system-ui, sans-serif; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+  main { position: relative; padding: 14vh 8vw; }
+  h1 { font-size: 88px; margin: 0; }
+</style></head>
+<body><canvas id="c"></canvas><main><h1>Canvas hero</h1><p>The picture moves, the DOM does not.</p><button type="button">Start</button></main>
+<script>
+  const blank = new URLSearchParams(location.search).has('blank');
+  const c = document.getElementById('c'), g = c.getContext('2d');
+  const fit = () => { c.width = innerWidth; c.height = innerHeight; };
+  fit(); addEventListener('resize', fit);
+  const draw = (now) => {
+    if (!blank) {
+      g.fillStyle = '#0b0d12'; g.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < 40; i++) {
+        const a = now / 900 + i * 0.4, r = 80 + i * 9;
+        g.fillStyle = `hsl(${(i * 9 + now / 30) % 360} 80% 60%)`;
+        g.beginPath(); g.arc(c.width * 0.68 + Math.cos(a) * r, c.height * 0.5 + Math.sin(a * 1.3) * r * 0.6, 10, 0, 7); g.fill();
+      }
+    }
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+</script></body></html>

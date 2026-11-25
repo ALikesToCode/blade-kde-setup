@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: content mounts after DOMContentLoaded, then animates</title>
+<!-- Like a client-rendered app: the body is empty at DOMContentLoaded. 400 ms later the hero
+     mounts and its headline rises 60 px over 800 ms. A load capture should see that move. -->
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; background: #f6f3ee; }
+  #root { padding: 12vh 8vw; }
+  @keyframes rise { from { transform: translateY(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+  h1 { font-size: 96px; margin: 0; animation: rise 800ms cubic-bezier(.22,1,.36,1) both; }
+  p { font-size: 22px; animation: rise 800ms 160ms cubic-bezier(.22,1,.36,1) both; }
+</style></head>
+<body><div id="root"></div>
+<script>
+  setTimeout(() => {
+    document.getElementById('root').innerHTML = '<main><h1>Mounted late</h1><p>Rises after the app renders.</p><button type="button">Go</button></main>';
+  }, 400);
+</script></body></html>

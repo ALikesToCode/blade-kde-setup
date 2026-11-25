@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: looping hero video with a poster</title>
+<!-- A correct page: muted, inline, looping clip with a poster and live text. Under reduced motion
+     the clip does not start and the poster stays. Still checks should pass. A motion capture
+     should say that something moved. tests/run.mjs makes clip.webm and poster.jpg with ffmpeg. -->
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: system-ui, sans-serif; }
+  video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  main { position: relative; padding: 14vh 8vw; }
+  h1 { font-size: 64px; margin: 0; text-shadow: 0 2px 24px #000; }
+  a { color: #fff; display: inline-block; padding: 12px 0; }
+</style></head>
+<body>
+  <video muted loop playsinline preload="none" poster="poster.jpg" src="clip.webm"></video>
+  <main><h1>Video hero</h1><p>Only the clip moves.</p><a href="#x">Read more</a></main>
+  <script>
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.querySelector('video').play();
+  </script>
+</body></html>

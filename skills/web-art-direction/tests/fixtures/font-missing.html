@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: display face never declared</title>
+<!-- Defect: the stylesheet names two web fonts but no @font-face rule or link loads them.
+     The page renders in the fallback. A font check should fail. -->
+<style>
+  body { margin: 0; padding: 8vw; background: #f3efe6; color: #1b1a17; }
+  h1 { font-family: "Clash Display", sans-serif; font-size: clamp(40px, 9vw, 128px); line-height: .95; margin: 0 0 .4em; }
+  h2 { font-family: "Clash Display", sans-serif; }
+  p, a, button { font-family: "Satoshi", sans-serif; font-size: 20px; }
+</style></head>
+<body><main>
+  <h1>Display face never declared</h1>
+  <h2>Section heading</h2>
+  <p>Body face never declared either. Both fall back to the system sans.</p>
+  <a href="#x">A link</a> <button type="button">A button</button>
+</main></body></html>

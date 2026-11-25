@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: fixed header, no motion at all</title>
+<!-- No animation, transition or scroll effect anywhere. A motion capture under a wheel
+     trigger should report that nothing moved. -->
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; }
+  header { position: fixed; inset: 0 0 auto 0; height: 64px; background: #111; color: #fff; display: flex; align-items: center; gap: 24px; padding: 0 24px; }
+  header a { color: #fff; }
+  aside { position: sticky; top: 80px; float: right; width: 200px; padding: 12px; background: #eee; }
+  section { height: 90vh; padding: 96px 24px 0; border-bottom: 1px solid #ccc; }
+</style></head>
+<body>
+  <header><strong>Brand</strong><a href="#a">One</a><a href="#b">Two</a><span>Label</span></header>
+  <main>
+    <aside>Sticky note</aside>
+    <section id="a"><h1>Static page</h1><p>Nothing here animates.</p></section>
+    <section id="b"><h2>Second</h2></section>
+    <section><h2>Third</h2></section>
+    <section><h2>Fourth</h2></section>
+  </main>
+</body></html>
