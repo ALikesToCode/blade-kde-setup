@@ -233,6 +233,21 @@ install_skills() {
     done < "$ROOT/packages/codex-skills.lock"
 }
 
+# Skills kept in this repository, under skills/NAME/SKILL.md.
+install_local_skills() {
+    local skill_source
+    [[ -d $ROOT/skills ]] || return 0
+    while IFS= read -r -d '' skill_source; do
+        if ((DRY_RUN)); then
+            printf '  install local skill %s -> %q\n' "$(basename -- "$skill_source")" \
+                "$SKILLS_HOME/$(basename -- "$skill_source")"
+        else
+            install_skill_tree "$skill_source" "$(basename -- "$skill_source")"
+        fi
+    done < <(find "$ROOT/skills" -mindepth 1 -maxdepth 1 -type d \
+        -exec test -f '{}/SKILL.md' \; -print0 | sort -z)
+}
+
 install_python_tools() {
     local package
     if ! command -v uv >/dev/null 2>&1 && ((!DRY_RUN)); then
@@ -318,6 +333,7 @@ fi
 install_npm_tools
 install_officecli
 install_skills
+install_local_skills
 install_python_tools
 configure_code_review_graph
 install_codex_agents

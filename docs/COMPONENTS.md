@@ -23,6 +23,7 @@
 | Shell | `dotfiles/bash/` | `~/.bashrc`, `~/.bash_profile`, `~/.profile`, `~/.inputrc` |
 | Node/Cloudflare CLI | `dotfiles/bash/`, `dotfiles/npm/`, `packages/pacman.txt` | User-writable npm globals, pnpm-first aliases, and `~/.local/share/pnpm/bin/wrangler` |
 | Codex tools/skills | `packages/codex-skills.lock`, `packages/codex-agents.lock`, `packages/npm-global.txt`, `packages/python-tools.lock`, `scripts/install-codex-tools.sh` | OpenWiki, OfficeCLI, Caveman, Matt Pocock, pstack, Hallmark, ECC, Karpathy, Emil Kowalski, Agency Agents, and Code Review Graph |
+| Local agent skills | `skills/` | Skills kept in this repository, copied to `~/.agents/skills/` by `scripts/install-codex-tools.sh`. `web-art-direction` makes an agent write a design contract, build the still page before the motion, capture stills and motion with its scripts, and hand the page to a separate reviewer |
 | Codex Desktop preferences | `scripts/configure-codex-desktop.sh` | Additive `~/.codex/config.toml` merge exposing distinct Max and Ultra reasoning choices |
 | Media | `dotfiles/media/` | `~/.config/mpv/` and `~/.config/yt-dlp/` |
 | Editors/tools | `dotfiles/nvim/`, `dotfiles/tmux/` | `~/.config/nvim/init.lua`, `~/.tmux.conf` |

@@ -32,7 +32,8 @@ done
 
 printf '\nCodex skills\n'
 for skill in officecli caveman cavecrew ask-matt tdd wizard poteto-mode \
-    make-bot-ui hallmark ecc-guide karpathy-guidelines emil-design-eng; do
+    make-bot-ui hallmark ecc-guide karpathy-guidelines emil-design-eng \
+    web-art-direction; do
     if [[ -f $HOME/.agents/skills/$skill/SKILL.md ]]; then
         ok "$skill"
     else

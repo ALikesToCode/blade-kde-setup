@@ -288,6 +288,14 @@ grep -Fq '074718fb987fa2fc0f483570a611efb3028a9a2179c140068393bf12b64a032f' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/config"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 92 ]]
+for file in SKILL.md references/contract.md references/motion.md references/assets.md \
+    references/review.md references/sources.md scripts/lib.mjs scripts/shoot.mjs scripts/motion.mjs; do
+    [[ -f $ROOT/skills/web-art-direction/$file ]]
+done
+grep -Fqx 'name: web-art-direction' "$ROOT/skills/web-art-direction/SKILL.md"
+node --check "$ROOT/skills/web-art-direction/scripts/shoot.mjs"
+node --check "$ROOT/skills/web-art-direction/scripts/motion.mjs"
+grep -Fq 'install_local_skills' "$ROOT/scripts/install-codex-tools.sh"
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
 grep -Fqx 'code-review-graph==2.3.7' "$ROOT/packages/python-tools.lock"
 rg -q '^mattpocock/skills\|[0-9a-f]{40}\|skills/engineering/wizard\|wizard$' \
