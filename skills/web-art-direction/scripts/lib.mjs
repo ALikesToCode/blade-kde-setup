@@ -39,8 +39,10 @@ export async function loadChromium() {
   die(`Playwright not found (${tried.join('; ')}).\nRun from a project that has playwright or playwright-core installed, or set PLAYWRIGHT_PATH to such a project's folder.`);
 }
 
-export async function launch(extra = {}) {
+// With --cdp ENDPOINT the scripts attach to a browser that is already running instead of starting one.
+export async function launch(cdp, extra = {}) {
   const chromium = await loadChromium();
+  if (cdp) return chromium.connectOverCDP(String(cdp));
   const candidates = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome-stable'];
   const executablePath = candidates.find((p) => p && existsSync(p));
   return chromium.launch({
@@ -61,7 +63,8 @@ export function watch(page) {
   const errors = [];
   const failed = [];
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 300)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text().slice(0, 300)}`); });
+  // Failed loads are reported once, from the request events below.
+  page.on('console', (m) => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(`console: ${m.text().slice(0, 300)}`); });
   page.on('requestfailed', (r) => failed.push({ url: r.url().slice(0, 200), reason: r.failure()?.errorText ?? '' }));
   page.on('response', (r) => { if (r.status() >= 400) failed.push({ url: r.url().slice(0, 200), reason: `HTTP ${r.status()}` }); });
   return { errors, failed };

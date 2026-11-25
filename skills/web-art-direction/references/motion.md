@@ -34,9 +34,13 @@ Starting points to adjust by eye, not rules.
 | Item sliding to the next slot | 600–700 ms, plus about 150 ms for each extra slot travelled |
 | Scroll scrub | catch-up of 0.3–0.6 s; under scrub, durations are shares of the scroll range |
 
+A load sequence should be settled within about two seconds. Idle loops on several objects get
+different durations and start offsets so nothing moves in step.
+
 Entrances are faster than they feel they should be. Nothing the visitor is waiting on runs longer
 than about a second. Vary the treatment: a page where every section fades up the same way looks
-generated.
+generated. On the strongest pages scrolling moves a camera or a scene: layers travel at different
+rates, or a clip is scrubbed.
 
 ## Rules that keep it smooth and usable
 
@@ -50,6 +54,10 @@ generated.
 - `prefers-reduced-motion: reduce` gets the settled state at once: no parallax, no pinning, no
   autoplaying scene. Content and controls are all still there.
 - Movement that starts on its own and runs longer than five seconds needs a visible pause control.
+- Use `svh` or `dvh` for full-height stages; `100vh` is clipped by phone browser chrome.
+- Prefer native scrolling with a sticky stage over taking over the wheel. A page that replaces
+  scrolling with states needs keys, a sensible focus order and a way past it.
+- Detect newer APIs (scroll timelines, WebCodecs, WebGPU) and capture the fallback as its own run.
 - On touch screens: no custom cursor, no hover-only reveals, no sideways-pinned scroll that traps
   the page. Give pointer effects a tap or keyboard equivalent.
 - Headline split into spans for animation keeps its full text available to screen readers.

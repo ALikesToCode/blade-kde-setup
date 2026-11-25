@@ -12,6 +12,9 @@
 
 Use the cheapest medium that keeps the main interaction. A layered still can score as well as WebGL.
 
+Match the page background to the edge colour of the media so the picture does not read as a
+rectangle dropped onto the page, and keep a calm area in it for the text.
+
 ## Making it on this machine
 
 - `lmedia` runs local image, video, 3D, cut-out and upscaling models under a GPU lock. Read its
@@ -43,4 +46,5 @@ failed-load state. Self-host fonts and media; do not hotlink a reference site's 
 ## Rights
 
 Use only media you made, generated, or have a licence for. A file being publicly reachable is not
-permission to reuse it.
+permission to reuse it. The same goes for code: never ship another site's compiled bundle. Keep a
+licence or source line for every asset and font.

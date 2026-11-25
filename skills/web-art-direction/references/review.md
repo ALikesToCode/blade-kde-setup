@@ -24,6 +24,8 @@ files.
 - The page is complete and readable with reduced motion, and when the main media fails to load.
 - No uncaught error and no missing required media.
 - Text over imagery stays legible in the brightest and darkest frames.
+- Movement that starts by itself and runs longer than five seconds can be paused or stops.
+- Nothing from a reference site is in the build: its hostnames, files, copy, marks or exact palette.
 
 ## Score (0–3 each)
 
@@ -38,6 +40,11 @@ files.
 | Phone and task fit | The phone layout is rearranged on purpose, and input follows what the device expects. |
 
 Pass: hard checks all clear, total 12 or more, no axis under 2.
+
+Signs of a generated page, to question unless the contract gives a reason: more than two type
+families, more than half the sections entering with the same fade and rise, an all-caps tracked
+label above every heading, 01/02/03 markers on things that are not a sequence, a hero whose only
+image is a gradient or blurred blob, a card grid in the first viewport.
 
 Treat a lint warning or an unusual choice as a question about intent, not a defect. A cropped
 headline, a hidden element or a single font can be deliberate. Judge whether it serves the thesis.

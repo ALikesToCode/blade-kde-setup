@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Record one piece of motion and turn it into evidence a reviewer can read.
 //   node motion.mjs --url URL --out DIR --trigger load|wheel:PX|click:SELECTOR|hover:SELECTOR|key:KEY
-//                   [--ms 4000] [--view desktop|phone] [--reduced] [--settle 1500] [--tiles 16]
+//                   [--ms 4000] [--view desktop|phone] [--reduced] [--settle 1500] [--tiles 16] [--cdp ENDPOINT]
 // Writes clip.webm, frames/NN.png, sheet.png (labelled contact sheet) and motion.json.
 // Exit 0: something moved. 2: nothing moved, or an animation changes layout properties. 3: could not run.
 import { mkdirSync, writeFileSync, renameSync, readdirSync, rmSync } from 'node:fs';
@@ -20,7 +20,7 @@ const param = rest.join(':');
 if (!['load', 'wheel', 'click', 'hover', 'key'].includes(kind)) die(`unknown trigger ${a.trigger}`);
 mkdirSync(path.join(a.out, 'frames'), { recursive: true });
 
-const browser = await launch();
+const browser = await launch(a.cdp);
 const size = { width: vp.width, height: vp.height };
 const t0 = Date.now();
 const context = await browser.newContext({

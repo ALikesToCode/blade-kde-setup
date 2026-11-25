@@ -10,6 +10,8 @@ in writing, build the still page, add one piece of motion that means something, 
 with captures that a separate reviewer scores.
 
 Read the project's existing tokens, components, fonts and copy first. They outrank everything here.
+For product UI, or a page that does not need motion, use `frontend-design-director` or `impeccable`
+instead.
 
 ## 1. Write the contract before any UI code
 
@@ -43,14 +45,18 @@ machine, and delivery sizes. Text and controls stay in HTML, never baked into an
 
 ## 3. Build the still page, and pass the checks, before any motion
 
-Build every section with its final content and no animation. Then run:
+Build the first viewport and its main interaction, look at it, then extend to the other sections.
+Use final content and no animation yet. Then run:
 
 ```bash
 node scripts/shoot.mjs --url http://localhost:3000 --out design/run/still
 ```
 
 It captures desktop, phone and reduced-motion views and exits non-zero on page errors, failed
-requests, sideways overflow, undecoded media or fonts that did not load. Look at every PNG yourself.
+requests, sideways overflow, undecoded media or fonts that did not load. Its notes cover headings,
+alt text, small tap targets, assets loaded from other hosts and media weight. Look at every PNG
+yourself. Both scripts take `--cdp ENDPOINT` to attach to a browser that is already running, for
+sessions that may not start their own.
 Fix the still page until it would be acceptable to ship with motion turned off.
 
 ## 4. Add the signature beat

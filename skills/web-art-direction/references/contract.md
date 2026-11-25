@@ -14,6 +14,7 @@ Subject: · Audience: · The one action we want: · Copy source: · Existing des
 ## First viewport
 Desktop 1440×900: focal subject, what overlaps what, headline position, action position.
 Phone 390×844: what moves, what is cropped, what is dropped.
+Scaling: the design frame and the unit sizes derive from, for example `min(100vw/1440, 100vh/900)`.
 The cue someone would remember with the logo hidden:
 
 ## Type
