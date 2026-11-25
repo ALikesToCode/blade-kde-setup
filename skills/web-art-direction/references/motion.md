@@ -19,7 +19,11 @@ usual cause of jitter.
 A fixed camera move does not need real-time 3D. A pre-rendered clip, a video scrubbed by scroll or
 pointer, or two layered stills often carry the same scene for a fraction of the cost.
 
-Check the installed version's documentation before writing library code; these APIs change.
+Check the installed version's documentation before writing library code; these APIs change. Ask
+the knowledge gateway (`multillm-knowledge`) for the version in the project's lockfile. GSAP also
+publishes its own agent skills at https://github.com/greensock/gsap-skills. Every GSAP plugin,
+SplitText and MorphSVG included, is free for commercial use and installs from the public `gsap`
+package.
 
 ## Starting values
 
@@ -49,6 +53,11 @@ rates, or a clip is scrubbed.
 - Cap canvas pixel ratio at 2. Pixel cost grows with the square of the ratio.
 - Pause canvases and videos that are off-screen or in a hidden tab. Dispose of WebGL resources on
   unmount.
+- Start WebGL after the `load` event. Draw when something changed, and stop the loop after about
+  two seconds without a change unless the scene needs to keep running.
+- Give every WebGL scene a DOM or still fallback, and show it when the renderer is a software one
+  (its name contains SwiftShader or llvmpipe), on narrow viewports if the scene is heavy, and under
+  reduced motion.
 - The largest element in the first viewport loads eagerly. Lazy-load only what is below it.
 - Media that a scroll animation depends on must not be lazy-loaded.
 - `prefers-reduced-motion: reduce` gets the settled state at once: no parallax, no pinning, no

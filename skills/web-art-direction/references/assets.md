@@ -38,7 +38,10 @@ ffmpeg -i out.mp4 -frames:v 1 -q:v 3 poster.jpg
 ```
 
 Budgets to start from, per page: poster up to 250 KB, everything needed for the first view up to
-600 KB, optional phone video up to 1.5 MB more. State any larger budget in the contract.
+600 KB, optional phone video up to 1.5 MB more. These are defaults, not limits. Layered gallery
+pages run to 6 or 7 MB of images. If the picture that carries the page needs more, write the larger
+budget in the contract's media table and keep the picture. `shoot.mjs` reports the bytes each view
+loaded in `report.json` under `transferKB`.
 
 Serve a smaller clip or only the poster to phones. Ship the poster as the reduced-motion and
 failed-load state. Self-host fonts and media; do not hotlink a reference site's files.
