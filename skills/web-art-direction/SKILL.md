@@ -7,7 +7,7 @@ description: Build or redesign a public-facing web page with real art direction 
 
 A page looks templated when its design decisions were never made. This skill makes you settle them
 in writing, build the still page, add one piece of motion that means something, and prove the result
-with captures that a separate reviewer scores.
+with captures that a separate reviewer checks.
 
 Read the project's existing tokens, components, fonts and copy first. They outrank everything here.
 For product UI, or a page that does not need motion, use `frontend-design-director` or `impeccable`
@@ -102,16 +102,34 @@ tile is the same means nothing moved. A screenshot test cannot judge motion, so 
 
 You do not grade your own page. Start a fresh agent with no build history, on a different model
 family when one is available, and give it only: the brief, `design/contract.md`, the capture folders
-and the running URL. It follows [references/review.md](references/review.md) and returns scores and
-defects tied to a screenshot, frame or input.
+and the running URL. It follows [references/review.md](references/review.md) and returns defects
+tied to a screenshot, frame or input. It gives no score.
 
-Fix the highest-impact defects in at most two rounds, re-running the affected capture each time.
-Ship when the hard checks pass and the review reaches 12 of 15 with no axis under 2. If a round
-makes the score worse, keep the earlier version. If no separate reviewer was available, say
-`SELF_REVIEW_ONLY` in your report.
+Fix the highest-impact defects in at most two rounds. Capture each round into its own folder
+(`design/run/2/`, `design/run/3/`) with the same sub-folder names. From the second round the
+reviewer also compares the previous round with the new one without knowing which is which:
+
+```bash
+mkdir -p design/run/pair
+if (( RANDOM % 2 )); then a=1 b=2; else a=2 b=1; fi
+cp -r design/run/$a design/run/pair/left && cp -r design/run/$b design/run/pair/right
+```
+
+Give the reviewer `design/run/pair/` and keep the order to yourself.
+
+Ship when all three hold:
+
+- Both scripts exit 0, with `motion.mjs` run for each row of the motion table and once with
+  `--reduced`.
+- The reviewer lists no high-severity defect.
+- From the second round on, the reviewer does not prefer the previous round in the blind comparison.
+
+If the reviewer prefers the previous round, keep that round and stop. If no separate reviewer was
+available, say `SELF_REVIEW_ONLY` in your report.
 
 ## Report
 
-State the thesis, what the signature beat is, the review score, what failed and was fixed, and what
-is still open. Link the contact sheet and the desktop and phone captures. Say plainly which checks
-did not run. Field performance and real-phone behaviour are unverified unless you measured them.
+State the thesis, what the signature beat is, the reviewer's defects and which you fixed, the result
+of the blind comparison if there was one, and what is still open. Link the contact sheet and the
+desktop and phone captures. Say plainly which checks did not run. Field performance and real-phone
+behaviour are unverified unless you measured them.
