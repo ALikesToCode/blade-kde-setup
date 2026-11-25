@@ -31,10 +31,11 @@ Create `design/contract.md` from [references/contract.md](references/contract.md
 Draft two different first-viewport concepts with the real copy and choose one. If a concept would
 suit three unrelated businesses after swapping the logo, it is not a concept yet.
 
-Using a reference site? Run `scripts/shoot.mjs` and `scripts/motion.mjs` on it and record, for each
-reference, the one principle you take (a composition idea, a motion mechanic) and how your page
-applies it to a different subject. Never reuse its copy, images, marks or layout. Stop at logins and
-bot checks. [references/sources.md](references/sources.md) lists where to find references and
+Using a reference site? Run `scripts/shoot.mjs` and `scripts/motion.mjs` on it and read the captures
+and `motion.json`. Ignore the pass or fail there, because the checks are written for your own page.
+Record, for each reference, the one principle you take (a composition idea, a motion mechanic) and
+how your page applies it to a different subject. Never reuse its copy, images, marks or layout. Stop
+at logins and bot checks. [references/sources.md](references/sources.md) lists where to find references and
 ready-made parts.
 
 ## 2. Make the main asset first
@@ -45,34 +46,57 @@ machine, and delivery sizes. Text and controls stay in HTML, never baked into an
 
 ## 3. Build the still page, and pass the checks, before any motion
 
-Build the first viewport and its main interaction, look at it, then extend to the other sections.
-Use final content and no animation yet. Then run:
+Build the first viewport with every state of its main interaction reachable as a still (a class or
+a query flag), with no animation. Look at it, then extend to the other sections. Use final content.
+Then run:
 
 ```bash
-node scripts/shoot.mjs --url http://localhost:3000 --out design/run/still
+node scripts/shoot.mjs --url http://localhost:3000 --out design/run/1/still
 ```
 
-It captures desktop, phone and reduced-motion views and exits non-zero on page errors, failed
-requests, sideways overflow, undecoded media or fonts that did not load. Its notes cover headings,
-alt text, small tap targets, assets loaded from other hosts and media weight. Look at every PNG
-yourself. Both scripts take `--cdp ENDPOINT` to attach to a browser that is already running, for
-sessions that may not start their own.
-Fix the still page until it would be acceptable to ship with motion turned off.
+It captures desktop, phone and reduced-motion views. It exits non-zero on:
+
+- a page error or a failed request
+- sideways overflow, or a control that is cut off and cannot be reached
+- media that did not decode, or a canvas that paints nothing
+- a named web font that rendered in a fallback font
+- a picture that still changes under reduced motion
+
+Its notes cover headings, heading text that runs past the edge, alt text, small tap targets, assets
+loaded from other hosts and media weight. Look at every PNG yourself. Fix the still page until it
+would be acceptable to ship with motion turned off.
+
+Both scripts render in software unless the page asks for WebGL, and then they use the GPU.
+`--gl hardware|software` forces one. `--cdp ENDPOINT` attaches to a browser that is already running,
+for sessions that may not start their own. If the session may neither start Chromium nor attach
+with `--cdp`, do not capture another way. Ask the parent to run the scripts, and report
+`CAPTURES_NOT_RUN` if nobody can.
 
 ## 4. Add the signature beat
 
 Implement the motion table. [references/motion.md](references/motion.md) says which tool to reach for
-and the rules that keep it smooth. Then capture it:
+and the rules that keep it smooth. Then capture each row of the table by its trigger, and the load
+once more under reduced motion:
 
 ```bash
-node scripts/motion.mjs --url http://localhost:3000 --out design/run/motion --trigger load
-node scripts/motion.mjs --url http://localhost:3000 --out design/run/scroll --trigger wheel:1600
+node scripts/motion.mjs --url http://localhost:3000 --out design/run/1/load --trigger load
+node scripts/motion.mjs --url http://localhost:3000 --out design/run/1/scroll --trigger wheel:1600
+node scripts/motion.mjs --url http://localhost:3000 --out design/run/1/reduced --trigger load --reduced
 ```
 
-Each run writes numbered frames, a labelled contact sheet and `motion.json` (what moved, when it
-started, how long it took, the longest gap between frames). Read the contact sheet: a beat should
-show a start, a change and a settled end. A sheet where every tile is the same means nothing moved.
-A screenshot test cannot judge motion, so do not skip this.
+Triggers are `load`, `wheel:PX`, `click:SELECTOR`, `hover:SELECTOR` and `key:KEY`. Each run writes a
+labelled contact sheet, its frames and `motion.json`. Tile times count from the start of navigation
+for `load` and from the input event for the other triggers. The first tile of a triggered run shows
+the page just before the trigger.
+
+`motion.json` lists what moved once, what loops, the animations and transitions that ran with their
+declared durations, and how many frames changed on screen. A run exits non-zero when nothing moved
+or when an animation changes a layout property. A `--reduced` run exits non-zero when an element
+still moves or the picture is still changing at the end. Opacity may change there, so a cross-fade
+is a valid replacement.
+
+Read the contact sheet. A beat should show a start, a change and a settled end. A sheet where every
+tile is the same means nothing moved. A screenshot test cannot judge motion, so do not skip this.
 
 ## 5. Hand the page to a separate reviewer
 
