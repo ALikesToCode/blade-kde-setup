@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: motion that ignores prefers-reduced-motion</title>
+<!-- Defect: a large element drifts forever and a marquee scrolls forever, with no
+     prefers-reduced-motion rule and no pause control. A reduced-motion check should fail. -->
+<style>
+  html, body { margin: 0; overflow-x: clip; } body { font-family: system-ui, sans-serif; background: #fdf6e3; }
+  @keyframes drift { from { transform: translate(0, 0) rotate(0); } to { transform: translate(40vw, 12vh) rotate(25deg); } }
+  @keyframes run { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .blob { width: 40vw; height: 40vw; border-radius: 40%; background: #e4572e; animation: drift 6s ease-in-out infinite alternate; }
+  .marquee { white-space: nowrap; font-size: 64px; width: max-content; animation: run 12s linear infinite; }
+  main { padding: 8vw; }
+</style></head>
+<body><main>
+  <h1>Reduced motion ignored</h1>
+  <div class="blob"></div>
+  <div class="marquee">Always moving · Always moving · Always moving · Always moving · Always moving · Always moving · </div>
+  <button type="button">Action</button>
+</main></body></html>

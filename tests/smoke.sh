@@ -288,6 +288,27 @@ grep -Fq '074718fb987fa2fc0f483570a611efb3028a9a2179c140068393bf12b64a032f' \
     "$ROOT/extras/hardened-workspace/payload/home/.config/codex-safe/config"
 
 [[ $(grep -Ec '^[^#].*\|.*\|.*\|.*$' "$ROOT/packages/codex-skills.lock") -eq 92 ]]
+for file in SKILL.md references/contract.md references/motion.md references/assets.md \
+    references/review.md references/sources.md scripts/lib.mjs scripts/shoot.mjs scripts/motion.mjs \
+    tests/run.mjs tests/fixtures/canvas-only.html tests/fixtures/clock.html \
+    tests/fixtures/fixed-header.html tests/fixtures/font-404.html tests/fixtures/font-missing.html \
+    tests/fixtures/late-mount.html tests/fixtures/layout-anim.html \
+    tests/fixtures/overflow-clipped.html tests/fixtures/reduced-ignored.html \
+    tests/fixtures/video-hero.html; do
+    [[ -f $ROOT/skills/web-art-direction/$file ]]
+done
+grep -Fqx 'name: web-art-direction' "$ROOT/skills/web-art-direction/SKILL.md"
+# Skill listings cut a description at 250 characters.
+[[ $(sed -n 's/^description: //p' "$ROOT/skills/web-art-direction/SKILL.md" | wc -m) -le 250 ]]
+for script in scripts/lib.mjs scripts/shoot.mjs scripts/motion.mjs tests/run.mjs; do
+    node --check "$ROOT/skills/web-art-direction/$script"
+done
+# The fixture pages need a browser, so they run only when PLAYWRIGHT_PATH names a project that
+# has Playwright installed.
+if [[ -n ${PLAYWRIGHT_PATH:-} ]]; then
+    node "$ROOT/skills/web-art-direction/tests/run.mjs"
+fi
+grep -Fq 'install_local_skills' "$ROOT/scripts/install-codex-tools.sh"
 grep -Fqx 'openwiki@0.2.0' "$ROOT/packages/npm-global.txt"
 grep -Fqx 'code-review-graph==2.3.7' "$ROOT/packages/python-tools.lock"
 rg -q '^mattpocock/skills\|[0-9a-f]{40}\|skills/engineering/wizard\|wizard$' \

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: content cut off behind overflow hidden</title>
+<!-- Defect: the headline and the only call to action extend past the right edge at 390 px,
+     and overflow-x: hidden on html and body hides the scrollbar. Nothing scrolls sideways,
+     yet the action cannot be reached. A layout check should fail on phone. -->
+<style>
+  html, body { margin: 0; overflow-x: hidden; }
+  body { font-family: system-ui, sans-serif; background: #101418; color: #f2f2f2; }
+  .hero { position: relative; height: 100vh; padding: 48px 24px; box-sizing: border-box; }
+  h1 { font-size: 96px; white-space: nowrap; margin: 0; }
+  .cta { position: absolute; left: 520px; top: 320px; padding: 16px 28px; font-size: 18px; background: #ffd23f; color: #101418; border: 0; }
+</style></head>
+<body><main><section class="hero">
+  <h1>Unbreakable headline that runs off the phone</h1>
+  <p>Supporting copy that fits.</p>
+  <button class="cta" type="button">Book a visit</button>
+</section></main></body></html>

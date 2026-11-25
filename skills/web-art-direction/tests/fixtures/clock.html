@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: on-page clock with motion at known times</title>
+<!-- Ground truth for timing. The big number is performance.now() in ms, repainted every frame.
+     ?mode=load  : the box moves 0 -> 600 px, linear, from t=1000 ms to t=1500 ms after navigation.
+     ?mode=click : the number shows ms since the click on #go; the box moves from 200 ms to 700 ms after it.
+     The bar under the number is 1 px wide per 5 ms, so time can also be read by measuring it. -->
+<style>
+  body { margin: 0; font-family: ui-monospace, monospace; background: #fff; color: #000; }
+  #t { font-size: 200px; font-weight: 700; line-height: 1; padding: 24px 40px 0; }
+  #bar { height: 24px; background: #d00; width: 0; margin: 8px 40px; }
+  #box { width: 120px; height: 120px; background: #06c; margin: 24px 40px; will-change: transform; }
+  #go { margin: 0 40px; font-size: 28px; padding: 12px 24px; }
+  #log { margin: 12px 40px; font-size: 18px; }
+</style></head>
+<body><main>
+  <div id="t">0</div><div id="bar"></div><div id="box"></div>
+  <button id="go" type="button">go</button><div id="log"></div>
+</main>
+<script>
+  const mode = new URLSearchParams(location.search).get('mode') ?? 'load';
+  const t = document.getElementById('t'), bar = document.getElementById('bar'), box = document.getElementById('box');
+  let origin = 0, running = mode === 'load';
+  const frames = [];
+  const paint = () => {
+    const now = performance.now();
+    if (running) { const v = Math.max(0, Math.round(now - origin)); t.textContent = v; bar.style.width = (v / 5) + 'px'; frames.push(v); }
+    requestAnimationFrame(paint);
+  };
+  requestAnimationFrame(paint);
+  window.__frames = frames;
+  if (mode === 'load') {
+    box.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(600px)' }], { delay: Math.max(0, 1000 - performance.now()), duration: 500, easing: 'linear', fill: 'both' });
+  } else {
+    document.getElementById('go').addEventListener('click', () => {
+      origin = performance.now(); running = true;
+      box.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(600px)' }], { delay: 200, duration: 500, easing: 'linear', fill: 'both' });
+      document.getElementById('log').textContent = 'clicked at ' + Math.round(origin);
+    }, { once: true });
+  }
+</script></body></html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fixture: short animations of layout properties</title>
+<!-- Defect: the intro animates left and width (layout properties), 600 ms, no fill.
+     The button also transitions width on click. A check for layout-property animation
+     should fail on both the load and the click capture. -->
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; padding: 80px; }
+  @keyframes slide { from { left: -300px; width: 100px; } to { left: 0; width: 400px; } }
+  .card { position: relative; left: 0; width: 400px; height: 200px; background: #2b59c3; animation: slide 600ms ease-out; }
+  #grow { margin-top: 40px; width: 160px; height: 56px; transition: width 400ms ease, margin-left 400ms ease; }
+  #grow.on { width: 420px; margin-left: 120px; }
+</style></head>
+<body><main>
+  <h1>Layout animation</h1>
+  <div class="card"></div>
+  <button id="grow" type="button" onclick="this.classList.toggle('on')">Grow</button>
+</main></body></html>
