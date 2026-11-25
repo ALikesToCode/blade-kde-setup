@@ -1,6 +1,6 @@
 ---
 name: web-art-direction
-description: Build or redesign a public-facing web page with real art direction and motion instead of a template look. Use for landing pages, launch pages, portfolios, product showcases and hero sections, when the user wants a site that looks designed, shows a reference site to learn from, or asks for motion, video, 3D or shader work on a page. Not for dashboards, forms, docs or small UI fixes.
+description: Motion-led landing page, launch page, portfolio or hero section built around one made image, video or 3D object and one signature motion beat, checked with timed browser captures. Not for dashboards, forms, docs, product UI or small fixes.
 ---
 
 # Web art direction
@@ -10,8 +10,11 @@ in writing, build the still page, add one piece of motion that means something, 
 with captures that a separate reviewer checks.
 
 Read the project's existing tokens, components, fonts and copy first. They outrank everything here.
-For product UI, or a page that does not need motion, use `frontend-design-director` or `impeccable`
-instead.
+
+Start here when the request is a motion-led public page. If `frontend-design-director` is already
+leading the task, it stays the lead: use its contract, and take from this skill only step 2, step 4
+and the two capture scripts. For product UI, or a page that does not need motion, use
+`frontend-design-director` or `impeccable` instead.
 
 ## 1. Write the contract before any UI code
 

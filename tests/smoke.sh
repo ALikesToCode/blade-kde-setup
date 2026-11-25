@@ -298,6 +298,8 @@ for file in SKILL.md references/contract.md references/motion.md references/asse
     [[ -f $ROOT/skills/web-art-direction/$file ]]
 done
 grep -Fqx 'name: web-art-direction' "$ROOT/skills/web-art-direction/SKILL.md"
+# Skill listings cut a description at 250 characters.
+[[ $(sed -n 's/^description: //p' "$ROOT/skills/web-art-direction/SKILL.md" | wc -m) -le 250 ]]
 for script in scripts/lib.mjs scripts/shoot.mjs scripts/motion.mjs tests/run.mjs; do
     node --check "$ROOT/skills/web-art-direction/$script"
 done

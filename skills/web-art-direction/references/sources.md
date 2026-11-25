@@ -42,7 +42,7 @@ the thesis.
 ## Other skills on this machine
 
 Use these alongside this skill rather than repeating them: `frontend-design-director` (general
-interface work; it hands motion-led pages to this skill), `impeccable` (critique, audit, polish and
-its detector), `improve-animations` and `find-animation-opportunities` (motion in an existing
+interface work; when it already leads a task it stays the lead and borrows this skill's asset step,
+beat step and capture scripts), `impeccable` (critique, audit, polish and its detector), `improve-animations` and `find-animation-opportunities` (motion in an existing
 codebase), `animation-vocabulary` (naming an effect), `make-interfaces-feel-better` (small details),
 `accessibility`, and `local-media` (the `lmedia` tools).
