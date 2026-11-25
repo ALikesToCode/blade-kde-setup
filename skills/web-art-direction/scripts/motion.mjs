@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Record one piece of motion and turn it into evidence a reviewer can read.
 //   node motion.mjs --url URL --out DIR --trigger load|wheel:PX|click:SELECTOR|hover:SELECTOR|key:KEY
-//                   [--ms 4000] [--view desktop|phone] [--reduced] [--settle 1500] [--tiles 16] [--cdp ENDPOINT]
+//                   [--ms 4000] [--view desktop|phone] [--reduced] [--settle 1500] [--tiles 16]
+//                   [--gl hardware|software] [--cdp ENDPOINT]
 // Writes clip.webm, frames/NN.png, sheet.png (labelled contact sheet) and motion.json.
 // Exit 0: something moved. 2: nothing moved, or an animation changes layout properties. 3: could not run.
 import { mkdirSync, writeFileSync, renameSync, readdirSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { args, die, launch, VIEWPORTS, watch } from './lib.mjs';
+import { args, die, isSoftwareGL, launch, VIEWPORTS, watch } from './lib.mjs';
 
 const a = args();
 if (!a.url || !a.out || !a.trigger) die('usage: node motion.mjs --url URL --out DIR --trigger load|wheel:PX|click:SEL|hover:SEL|key:KEY [--ms 4000] [--view desktop|phone] [--reduced]');
@@ -20,7 +21,7 @@ const param = rest.join(':');
 if (!['load', 'wheel', 'click', 'hover', 'key'].includes(kind)) die(`unknown trigger ${a.trigger}`);
 mkdirSync(path.join(a.out, 'frames'), { recursive: true });
 
-const browser = await launch(a.cdp);
+const { browser, renderer } = await launch(a);
 const size = { width: vp.width, height: vp.height };
 const t0 = Date.now();
 const context = await browser.newContext({
@@ -149,14 +150,14 @@ if (trace.moved.length === 0 && !a.reduced) failures.push('nothing moved during 
 if (layoutAnimations.length) failures.push(`${layoutAnimations.length} animation(s) change layout properties (${[...new Set(layoutAnimations.flatMap((d) => d.properties.filter((p) => layoutProps.includes(p))))].join(', ')}); use transform instead`);
 const notes = [];
 if (a.reduced && trace.moved.length > 3) notes.push(`${trace.moved.length} elements still moved under reduced motion`);
-if (trace.longestFrameGapMs > 100) notes.push(`longest gap between frames was ${trace.longestFrameGapMs} ms; headless software rendering exaggerates this, so confirm in a real browser before calling it a stutter`);
+if (trace.longestFrameGapMs > 100) notes.push(`longest gap between frames was ${trace.longestFrameGapMs} ms${isSoftwareGL(renderer) ? '; software rendering exaggerates this, so confirm in a real browser before calling it a stutter' : ''}`);
 if (!sheet) notes.push(`contact sheet not made (ffmpeg: ${(ff.stderr || 'not found').slice(0, 160)})`);
 const report = {
-  url: a.url, trigger: a.trigger, view: a.view ?? 'desktop', reducedMotion: !!a.reduced, windowMs: Math.round(length * 1000), tileEveryMs: Math.round(step * 1000),
+  url: a.url, trigger: a.trigger, view: a.view ?? 'desktop', renderer, reducedMotion: !!a.reduced, windowMs: Math.round(length * 1000), tileEveryMs: Math.round(step * 1000),
   movedCount: trace.moved.length, moved: trace.moved.slice(0, 40), frames: trace.frames, medianFrameGapMs: trace.medianFrameGapMs, longestFrameGapMs: trace.longestFrameGapMs,
   declaredAnimations: declared, errors: seen.errors, failures, notes, clip, sheet,
   caveat: 'Canvas, WebGL and video content moves without any element changing, so read the contact sheet as well as this list.',
 };
 writeFileSync(path.join(a.out, 'motion.json'), JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ pass: failures.length === 0, movedCount: report.movedCount, first: report.moved.slice(0, 5), failures, notes, sheet }, null, 2));
+console.log(JSON.stringify({ pass: failures.length === 0, renderer, movedCount: report.movedCount, first: report.moved.slice(0, 5), failures, notes, sheet }, null, 2));
 process.exit(failures.length ? 2 : 0);

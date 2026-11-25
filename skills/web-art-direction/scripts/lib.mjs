@@ -39,19 +39,50 @@ export async function loadChromium() {
   die(`Playwright not found (${tried.join('; ')}).\nRun from a project that has playwright or playwright-core installed, or set PLAYWRIGHT_PATH to such a project's folder.`);
 }
 
+const AUTOPLAY = '--autoplay-policy=no-user-gesture-required';
+const GL_FLAGS = {
+  hardware: ['--use-angle=gl-egl', '--enable-gpu', '--ignore-gpu-blocklist', AUTOPLAY],
+  software: ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', AUTOPLAY],
+};
+
+// The WebGL renderer this browser really uses, or null when it has no WebGL.
+async function webglRenderer(browser) {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    return await page.evaluate(() => {
+      const gl = document.createElement('canvas').getContext('webgl');
+      if (!gl) return null;
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      return String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    });
+  } catch { return null; } finally { await context.close().catch(() => {}); }
+}
+
+export const isSoftwareGL = (renderer) => !renderer || /swiftshader|llvmpipe|softpipe/i.test(renderer);
+
+// Starts Chromium with hardware WebGL and falls back to software WebGL when the machine has none.
+// A page that hides its scene from software renderers would otherwise show only its fallback.
 // With --cdp ENDPOINT the scripts attach to a browser that is already running instead of starting one.
-export async function launch(cdp, extra = {}) {
+// Returns { browser, renderer }.
+export async function launch({ cdp, gl = 'hardware' } = {}) {
+  if (!GL_FLAGS[gl]) die(`unknown --gl ${gl} (use hardware or software)`);
   const chromium = await loadChromium();
-  if (cdp) return chromium.connectOverCDP(String(cdp));
+  if (cdp) {
+    const browser = await chromium.connectOverCDP(String(cdp));
+    return { browser, renderer: await webglRenderer(browser) };
+  }
   const candidates = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome-stable'];
   const executablePath = candidates.find((p) => p && existsSync(p));
-  return chromium.launch({
-    ...(executablePath ? { executablePath } : {}),
-    headless: true,
-    // Software WebGL so canvases render without a display.
-    args: ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
-    ...extra,
-  });
+  const start = (mode) => chromium.launch({ ...(executablePath ? { executablePath } : {}), headless: true, args: GL_FLAGS[mode] });
+  let browser = await start(gl);
+  let renderer = await webglRenderer(browser);
+  if (!renderer && gl === 'hardware') {
+    await browser.close();
+    browser = await start('software');
+    renderer = await webglRenderer(browser);
+  }
+  return { browser, renderer };
 }
 
 export const VIEWPORTS = {

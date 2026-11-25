@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Still captures and hard checks for one page.
-//   node shoot.mjs --url URL --out DIR [--settle 1500] [--full] [--allow-failed REGEX] [--cdp ENDPOINT]
+//   node shoot.mjs --url URL --out DIR [--settle 1500] [--full] [--allow-failed REGEX] [--gl hardware|software] [--cdp ENDPOINT]
 // Writes desktop.png, phone.png, desktop-reduced.png, phone-reduced.png (and *-full.png with --full)
 // and report.json. Exit 0: checks pass. 2: a check failed. 3: could not run.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -13,8 +13,8 @@ const settle = Number(a.settle ?? 1500);
 const allow = a['allow-failed'] ? new RegExp(a['allow-failed']) : null;
 mkdirSync(a.out, { recursive: true });
 
-const browser = await launch(a.cdp);
-const report = { url: a.url, at: new Date().toISOString(), views: [], failures: [] };
+const { browser, renderer } = await launch(a);
+const report = { url: a.url, at: new Date().toISOString(), renderer, views: [], failures: [] };
 
 for (const [name, vp] of Object.entries(VIEWPORTS)) {
   for (const reduced of [false, true]) {
@@ -115,5 +115,5 @@ for (const v of report.views.filter((x) => x.view.endsWith('-reduced'))) {
 }
 report.pass = report.failures.length === 0;
 writeFileSync(path.join(a.out, 'report.json'), JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ pass: report.pass, failures: report.failures, notes: report.notes ?? [], out: a.out }, null, 2));
+console.log(JSON.stringify({ pass: report.pass, renderer, failures: report.failures, notes: report.notes ?? [], out: a.out }, null, 2));
 process.exit(report.pass ? 0 : 2);
