@@ -61,28 +61,59 @@ async function webglRenderer(browser) {
 
 export const isSoftwareGL = (renderer) => !renderer || /swiftshader|llvmpipe|softpipe/i.test(renderer);
 
-// Starts Chromium with hardware WebGL and falls back to software WebGL when the machine has none.
-// A page that hides its scene from software renderers would otherwise show only its fallback.
-// With --cdp ENDPOINT the scripts attach to a browser that is already running instead of starting one.
-// Returns { browser, renderer }.
-export async function launch({ cdp, gl = 'hardware' } = {}) {
-  if (!GL_FLAGS[gl]) die(`unknown --gl ${gl} (use hardware or software)`);
+// Does the page ask for a WebGL or WebGPU context while it loads?
+async function wantsGPU(browser, url) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    await context.addInitScript(() => {
+      const flag = () => { window.__wantsGPU = true; };
+      const get = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) { if (/webgl|webgpu/i.test(String(type))) flag(); return get.call(this, type, ...rest); };
+      // A canvas handed to a worker is almost always a WebGL scene.
+      const transfer = HTMLCanvasElement.prototype.transferControlToOffscreen;
+      if (transfer) HTMLCanvasElement.prototype.transferControlToOffscreen = function (...rest) { flag(); return transfer.apply(this, rest); };
+      if (navigator.gpu?.requestAdapter) { const ask = navigator.gpu.requestAdapter.bind(navigator.gpu); navigator.gpu.requestAdapter = (...rest) => { flag(); return ask(...rest); }; }
+    });
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: 'load', timeout: 45000 });
+    await page.waitForTimeout(800);
+    for (const frame of page.frames()) if (await frame.evaluate(() => !!window.__wantsGPU).catch(() => false)) return true;
+    return false;
+  } catch { return false; } finally { await context.close().catch(() => {}); }
+}
+
+// Starts Chromium and returns { browser, renderer, gl }.
+// A page that asks for WebGL gets the machine's GPU: software WebGL runs a 3D scene at a few frames
+// per second, and a page that hides its scene from software renderers would show only its fallback.
+// Every other page gets software rendering, which does not stall when other programs keep the GPU
+// busy. --gl hardware|software overrides the choice. Without a usable GPU the browser falls back to
+// software. With --cdp ENDPOINT the scripts attach to a browser that is already running instead.
+export async function launch({ cdp, gl, url } = {}) {
+  if (gl !== undefined && !GL_FLAGS[gl]) die(`unknown --gl ${gl} (use hardware or software)`);
   const chromium = await loadChromium();
   if (cdp) {
     const browser = await chromium.connectOverCDP(String(cdp));
-    return { browser, renderer: await webglRenderer(browser) };
+    const renderer = await webglRenderer(browser);
+    return { browser, renderer, gl: isSoftwareGL(renderer) ? 'software' : 'hardware' };
   }
   const candidates = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome-stable'];
   const executablePath = candidates.find((p) => p && existsSync(p));
   const start = (mode) => chromium.launch({ ...(executablePath ? { executablePath } : {}), headless: true, args: GL_FLAGS[mode] });
-  let browser = await start(gl);
-  let renderer = await webglRenderer(browser);
-  if (!renderer && gl === 'hardware') {
+  let mode = gl ?? 'software';
+  let browser = await start(mode);
+  if (gl === undefined && url && (await wantsGPU(browser, url))) {
     await browser.close();
-    browser = await start('software');
+    mode = 'hardware';
+    browser = await start(mode);
+  }
+  let renderer = await webglRenderer(browser);
+  if (mode === 'hardware' && !renderer) {
+    await browser.close();
+    mode = 'software';
+    browser = await start(mode);
     renderer = await webglRenderer(browser);
   }
-  return { browser, renderer };
+  return { browser, renderer, gl: isSoftwareGL(renderer) ? 'software' : 'hardware' };
 }
 
 export const VIEWPORTS = {
